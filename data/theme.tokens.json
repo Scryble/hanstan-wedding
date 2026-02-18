@@ -1,0 +1,42 @@
+{
+  "colors": {
+    "railBg": "#1b1026",
+    "panelBg": "#120b1a",
+    "cardBg": "#1a1224",
+    "textPrimary": "#f3ecff",
+    "textMuted": "#cbb9dd",
+    "gold": "#d8b55b",
+    "chipActiveBg": "#d8b55b",
+    "chipActiveText": "#1b1026",
+    "chipInactiveText": "#f3ecff",
+    "chipBorder": "#3c2a4d",
+    "tileOverlayBg": "rgba(0,0,0,0.55)",
+    "tileDisabled": "#9a90a6",
+    "focus": "#d8b55b",
+    "danger": "#ff5a7a"
+  },
+  "radii": {
+    "chip": 14,
+    "card": 18,
+    "tile": 16,
+    "modal": 22
+  },
+  "shadows": {
+    "chip": "0 6px 16px rgba(0,0,0,0.35)",
+    "card": "0 18px 60px rgba(0,0,0,0.45)",
+    "tile": "0 10px 26px rgba(0,0,0,0.35)",
+    "modal": "0 22px 90px rgba(0,0,0,0.55)"
+  },
+  "spacing": {
+    "xs": 6,
+    "sm": 10,
+    "md": 16,
+    "lg": 22,
+    "xl": 30
+  },
+  "fonts": {
+    "heading": "Cormorant Garamond",
+    "body": "Cormorant Garamond",
+    "accent": "Allura"
+  }
+}

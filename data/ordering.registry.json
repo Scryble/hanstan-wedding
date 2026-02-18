@@ -1,0 +1,11 @@
+{
+  "sectionOrder": {
+    "Home": ["home-linen", "home-kettle"],
+    "Adventure": ["adv-cabin-weekend", "adv-nationalparks-pass"],
+    "Hobby": ["hobby-watercolors", "hobby-boardgame"]
+  },
+  "dreamOrder": {
+    "Stan": ["adv-cabin-weekend"],
+    "Hannah": ["home-linen", "hobby-watercolors"]
+  }
+}

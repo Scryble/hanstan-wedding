@@ -1,0 +1,78 @@
+{
+  "siteLabel": "hanstan.wedding",
+  "leftRail": {
+    "howItWorksTitle": "How this works",
+    "howItWorksLines": [
+      "Browse in the middle",
+      "Click a gift to view details on the right",
+      "Use toggles here to filter",
+      "Shipping details are sent by email during checkout"
+    ],
+    "chips": {
+      "Dream": "Dream",
+      "Home": "Home",
+      "Adventure": "Adventure",
+      "Hobby": "Hobby",
+      "Group": "Group Gifts"
+    },
+    "clearAll": "Clear All",
+    "showAll": "Show All"
+  },
+  "middle": {
+    "stickyHeader": "Gift Registry",
+    "dreamStanTitle": "Stan's Dream Gifts",
+    "dreamHannahTitle": "Hannah's Dream Gifts",
+    "sectionHome": "Home",
+    "sectionAdventure": "Adventure",
+    "sectionHobby": "Hobby",
+    "outsideBudgetTitle": "Just outside budget",
+    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budgetÃ¢â‚¬Â¦ shown because they're special picks."
+  },
+  "right": {
+    "statusAvailable": "Available",
+    "statusPending": "Claim pending confirmation",
+    "statusClaimed": "Claimed",
+    "expandLong": "Read more",
+    "collapseLong": "Read less",
+    "checkoutTitle": "Checkout options & instructions",
+    "checkoutIntro": "Choose one path below. This page records your intent-to-gift and sends shipping details by email. (No real payment happens on-site.)",
+    "pathSendFunds": "Send Funds (Recommended)",
+    "pathPurchase": "Purchase Personally",
+    "merchantTitle": "Preferred merchants",
+    "whatToExpectTitle": "What to expect",
+    "whatToExpectLines": [
+      "You'll enter your name, email, and a short message for the gift card.",
+      "Your selection becomes 'Claim pending confirmation' until the couple confirms receipt.",
+      "Shipping details are emailed during the flow."
+    ],
+    "pendingBlockLine": "This gift is currently pending confirmation.",
+    "claimedMessageTitle": "Message from gifter",
+    "replyTitle": "Reply from Hannah & Ranjit",
+    "groupThankYouTitle": "Group thank-you note"
+  },
+  "overlay": {
+    "title": "Gifting details",
+    "required": "Required",
+    "gifterName": "Your name",
+    "gifterEmail": "Your email",
+    "giftMessage": "Message to include on the gift card",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "shippingNote": "Shipping details are delivered by email (they are not shown on the site).",
+    "rightPaneTitle": "Quick guidance",
+    "rightPaneLines": [
+      "No real checkout happens here.",
+      "This captures your intent-to-gift and your gift-card message.",
+      "Preferred merchants are listed for convenience."
+    ]
+  },
+  "budget": {
+    "label": "Approx budget",
+    "step": 25,
+    "default": 200,
+    "rangeLowMultiplier": 0.75,
+    "rangeHighMultiplier": 1.25,
+    "outsideLowMultiplier": 1.25,
+    "outsideHighMultiplier": 1.42
+  }
+}

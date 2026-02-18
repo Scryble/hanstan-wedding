@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registry Admin · hanstan.wedding</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+  <main class="admin">
+
+    <header class="admin__header">
+      <h1 class="admin__title">Registry Admin</h1>
+      <p class="admin__subtitle">hanstan.wedding · Phase 2 dashboard</p>
+    </header>
+
+    <!-- Tab navigation -->
+    <nav class="admin__tabs" id="tabNav" aria-label="Admin tabs">
+      <button class="tabBtn tabBtn--active" data-tab="gifts">Gifts</button>
+      <button class="tabBtn" data-tab="copy">Copy</button>
+      <button class="tabBtn" data-tab="theme">Theme</button>
+      <button class="tabBtn" data-tab="importexport">Import / Export</button>
+      <button class="tabBtn" data-tab="diagnostics">Diagnostics</button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB: GIFTS
+    ════════════════════════════════════════════════ -->
+    <section class="tabContent tabContent--active" id="tab-gifts">
+
+      <!-- Search / filter / sort row -->
+      <div class="admin__row admin__row--toolbar">
+        <input class="input" id="giftSearch" type="search" placeholder="Search gifts…" aria-label="Search gifts" />
+        <select class="select" id="giftFilter" aria-label="Filter by section">
+          <option value="all">All sections</option>
+          <option value="Home">Home</option>
+          <option value="Adventure">Adventure</option>
+          <option value="Hobby">Hobby</option>
+        </select>
+        <select class="select" id="giftSort" aria-label="Sort by">
+          <option value="title">Title A–Z</option>
+          <option value="price">Price ↑</option>
+          <option value="status">Status</option>
+        </select>
+        <button class="btn btn--primary" id="btnAddGift">+ Add gift</button>
+      </div>
+
+      <!-- Two-column layout: master list + editor -->
+      <div class="admin__splitPane">
+
+        <!-- Master list -->
+        <div class="admin__master" id="giftsMaster" aria-label="Gift list"></div>
+
+        <!-- Editor panel (shown when a gift is selected) -->
+        <div class="admin__editor" id="giftEditorPanel" aria-label="Gift editor"></div>
+
+      </div>
+
+      <!-- Ordering sub-section -->
+      <div class="admin__ordering">
+        <h2 class="admin__sectionTitle">Ordering</h2>
+        <nav class="admin__tabs admin__tabs--sm" aria-label="Ordering sub-tabs">
+          <button class="tabBtn tabBtn--sm tabBtn--active" data-ordertab="Home">Home</button>
+          <button class="tabBtn tabBtn--sm" data-ordertab="Adventure">Adventure</button>
+          <button class="tabBtn tabBtn--sm" data-ordertab="Hobby">Hobby</button>
+          <button class="tabBtn tabBtn--sm" data-ordertab="DreamStan">Dream – Stan</button>
+          <button class="tabBtn tabBtn--sm" data-ordertab="DreamHannah">Dream – Hannah</button>
+        </nav>
+        <ul class="ordering__list" id="orderingList" aria-label="Drag to reorder"></ul>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB: COPY
+    ════════════════════════════════════════════════ -->
+    <section class="tabContent" id="tab-copy">
+      <h2 class="admin__sectionTitle">Copy — copy.registry.json</h2>
+      <div class="copy__grid" id="copyGrid"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB: THEME
+    ════════════════════════════════════════════════ -->
+    <section class="tabContent" id="tab-theme">
+      <h2 class="admin__sectionTitle">Theme Tokens — theme.tokens.json</h2>
+      <div class="theme__grid" id="themeGrid"></div>
+      <div class="theme__preview" id="themePreviewBox" aria-label="Live theme preview">
+        <span class="preview-text-primary">Primary text</span>
+        <span class="preview-text-muted">Muted text</span>
+        <span class="preview-chip">Chip</span>
+        <span class="preview-tile">Tile</span>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB: IMPORT / EXPORT
+    ════════════════════════════════════════════════ -->
+    <section class="tabContent" id="tab-importexport">
+      <h2 class="admin__sectionTitle">Batch Import</h2>
+
+      <div class="admin__panel">
+        <label class="label" for="batchInput">Paste batch JSON array of gifts:</label>
+        <textarea class="ta" id="batchInput" rows="10" placeholder='[{"giftId": "…", "title": "…", …}]'></textarea>
+        <div class="admin__row">
+          <button class="btn btn--ghost" id="btnBatchPreview">Preview</button>
+          <button class="btn btn--primary" id="btnBatchImport">Import</button>
+        </div>
+        <div class="msg" id="batchMsg"></div>
+        <div class="batchPreview" id="batchPreviewArea"></div>
+      </div>
+
+      <h2 class="admin__sectionTitle" style="margin-top:2rem;">Export Bundle</h2>
+      <div class="admin__panel">
+        <p class="admin__hint">Downloads all four data files as a single <code>.json</code> bundle.</p>
+        <button class="btn btn--primary" id="btnExportBundle">Export bundle</button>
+        <div class="msg" id="exportMsg"></div>
+      </div>
+
+      <h2 class="admin__sectionTitle" style="margin-top:2rem;">Import Bundle</h2>
+      <div class="admin__panel">
+        <p class="admin__hint">Restores all data from a previously exported bundle file.</p>
+        <input class="input" type="file" id="importFileInput" accept=".json" />
+        <button class="btn btn--primary" id="btnImportBundle" disabled>Import bundle</button>
+        <div class="msg" id="importMsg"></div>
+      </div>
+
+      <h2 class="admin__sectionTitle" style="margin-top:2rem;">Undo</h2>
+      <div class="admin__panel">
+        <p class="admin__hint">Reverts to the last saved snapshot.</p>
+        <button class="btn btn--ghost" id="btnUndo">Undo last action</button>
+        <div class="msg" id="undoMsg"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB: DIAGNOSTICS
+    ════════════════════════════════════════════════ -->
+    <section class="tabContent" id="tab-diagnostics">
+      <h2 class="admin__sectionTitle">Diagnostics</h2>
+      <div class="admin__panel">
+        <label class="label" for="diagBudget">Budget threshold ($):</label>
+        <input class="input" id="diagBudget" type="number" value="200" min="0" step="10" />
+        <button class="btn btn--primary" style="margin-top:0.75rem;" id="btnRunDiag">Run diagnostics</button>
+      </div>
+      <div class="diagResults" id="diagResults"></div>
+    </section>
+
+  </main>
+
+  <script src="./admin.js"></script>
+</body>
+</html>

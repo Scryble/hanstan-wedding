@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hannah & Ranjit</title>
+  
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:title" content="Hannah & Ranjit">
+  <meta property="og:description" content="Sunday, June 7, 2026 · Willamette Mission State Park">
+  <meta property="og:image" content="https://hanstan.wedding/assets/og-image.png">
+  <meta property="og:url" content="https://hanstan.wedding/">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hannah & Ranjit">
+  <meta name="twitter:description" content="Sunday, June 7, 2026 · Willamette Mission State Park">
+  <meta name="twitter:image" content="https://hanstan.wedding/assets/og-image.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="card">
+    <!-- Calendar Header -->
+    <div class="calendar-header">
+      <span class="month">JUNE</span>
+      <div class="calendar-week">
+        <div class="day-col"><span class="day-name">Thu</span><span class="day-num">4</span></div>
+        <div class="day-col"><span class="day-name">Fri</span><span class="day-num">5</span></div>
+        <div class="day-col"><span class="day-name">Sat</span><span class="day-num">6</span></div>
+        <div class="day-col highlight">
+          <span class="day-name">Sun</span>
+          <span class="day-num circled">7</span>
+        </div>
+        <div class="day-col"><span class="day-name">Mon</span><span class="day-num">8</span></div>
+        <div class="day-col"><span class="day-name">Tue</span><span class="day-num">9</span></div>
+        <div class="day-col"><span class="day-name">Wed</span><span class="day-num">10</span></div>
+      </div>
+      <div class="heart-line"></div>
+    </div>
+
+    <!-- Save the Date Script -->
+    <p class="save-the-date">Save the date!</p>
+
+    <!-- Invitation Text -->
+    <p class="invited-line">YOU ARE INVITED TO THE WEDDING OF</p>
+    
+    <h1 class="names">
+      <span class="name">Hannah Joy Shipman</span>
+      <span class="ampersand">&</span>
+      <span class="name">Ranjit Stanzin Sanyal</span>
+    </h1>
+
+    <p class="datetime">SUNDAY, JUNE 7, 2026 AT 2 PM</p>
+
+    <address class="location">
+      <span class="venue">WILLAMETTE MISSION STATE PARK</span>
+      <span class="address">10991 Wheatland Road NE,</span>
+      <span class="address">Keizer, OR 97303</span>
+    </address>
+
+    <p class="reception">RECEPTION TO FOLLOW</p>
+
+    <!-- RSVP Button -->
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSf74sZLrRd59ex2ASpOVFlV_foTcuie7g_HP8Cyie6BuViwsg/viewform?pli=1" 
+       class="rsvp-btn" 
+       target="_blank" 
+       rel="noopener">
+      RSVP
+    </a>
+
+    <!-- Secondary Actions -->
+    <div class="secondary-actions">
+      <a href="https://maps.google.com/?q=Willamette+Mission+State+Park+10991+Wheatland+Road+NE+Keizer+OR+97303" 
+         target="_blank" 
+         rel="noopener"
+         class="secondary-link">
+        Open Map
+      </a>
+      <span class="divider">·</span>
+      <a href="/faq/" class="secondary-link">FAQ</a>
+      <span class="divider">·</span>
+      <a href="#" 
+         class="secondary-link"
+         id="calendar-link">
+        Add to Calendar
+      </a>
+    </div>
+  </main>
+
+  <script>
+    // Generate and download .ics file
+    document.getElementById('calendar-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Hannah & Ranjit Wedding//EN',
+        'BEGIN:VEVENT',
+        'UID:hannah-ranjit-wedding-2026@hanstan.wedding',
+        'DTSTAMP:20260607T140000Z',
+        'DTSTART:20260607T210000Z',
+        'DTEND:20260608T040000Z',
+        'SUMMARY:Hannah & Ranjit Wedding',
+        'DESCRIPTION:Wedding ceremony at 2 PM. Reception to follow.',
+        'LOCATION:Willamette Mission State Park\\, 10991 Wheatland Road NE\\, Keizer\\, OR 97303',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+      
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'hannah-ranjit-wedding.ics';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    });
+  </script>
+</body>
+</html>

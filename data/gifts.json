@@ -1,0 +1,179 @@
+{
+  "gifts": [
+    {
+      "giftId": "home-kettle",
+      "title": "Electric gooseneck kettle",
+      "shortDescription": "Precise pour-over friendly kettle.",
+      "longDescription": "A reliable electric gooseneck kettle with temperature control for tea and coffee. We'll use it constantly.",
+      "images": ["/assets/invitation.png"],
+      "categoryTags": { "home": true, "adventure": false, "hobby": false },
+      "primarySection": "Home",
+      "isDreamGift": false,
+      "dreamOwner": null,
+      "isGroupGift": false,
+      "price": 125,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "Amazon", "merchantReason": "Easy checkout", "merchantURL": "https://www.amazon.com" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "Available",
+      "claimerName": "",
+      "claimerEmail": "",
+      "claimerMessage": "",
+      "coupleReplyToClaimer": "",
+      "contributors": [],
+      "groupThankYouNote": ""
+    },
+    {
+      "giftId": "home-linen",
+      "title": "Linen sheet set",
+      "shortDescription": "Breathable, durable bedding.",
+      "longDescription": "A linen sheet set that gets softer with time. Neutral tone preferred.",
+      "images": ["/assets/mosaic-background-landscape.png"],
+      "categoryTags": { "home": true, "adventure": false, "hobby": false },
+      "primarySection": "Home",
+      "isDreamGift": true,
+      "dreamOwner": "Hannah",
+      "isGroupGift": false,
+      "price": 240,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "Target", "merchantReason": "Easy returns", "merchantURL": "https://www.target.com" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "Available",
+      "claimerName": "",
+      "claimerEmail": "",
+      "claimerMessage": "",
+      "coupleReplyToClaimer": "",
+      "contributors": [],
+      "groupThankYouNote": ""
+    },
+    {
+      "giftId": "adv-nationalparks-pass",
+      "title": "Annual National Parks pass",
+      "shortDescription": "A year of park wandering.",
+      "longDescription": "We'll use this for small spontaneous trips and bigger adventures.",
+      "images": ["/assets/og-image.png"],
+      "categoryTags": { "home": false, "adventure": true, "hobby": false },
+      "primarySection": "Adventure",
+      "isDreamGift": false,
+      "dreamOwner": null,
+      "isGroupGift": false,
+      "price": 80,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "NPS", "merchantReason": "Official source", "merchantURL": "https://www.nps.gov" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "ClaimPendingConfirmation",
+      "claimerName": "Jordan",
+      "claimerEmail": "jordan@example.com",
+      "claimerMessage": "For future hikes and sunsets.",
+      "coupleReplyToClaimer": "We can already feel the trail dust. Thank you.",
+      "contributors": [],
+      "groupThankYouNote": ""
+    },
+    {
+      "giftId": "adv-cabin-weekend",
+      "title": "Cabin weekend getaway",
+      "shortDescription": "A quiet reset in the trees.",
+      "longDescription": "Two nights somewhere green and quiet. This is a dream-level reset button.",
+      "images": ["/assets/mosaic-background-portrait.png"],
+      "categoryTags": { "home": false, "adventure": true, "hobby": false },
+      "primarySection": "Adventure",
+      "isDreamGift": true,
+      "dreamOwner": "Stan",
+      "isGroupGift": true,
+      "price": 420,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "Airbnb", "merchantReason": "Inventory variety", "merchantURL": "https://www.airbnb.com" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "Claimed",
+      "claimerName": "",
+      "claimerEmail": "",
+      "claimerMessage": "",
+      "coupleReplyToClaimer": "",
+      "contributors": [
+        {
+          "contributorName": "Ari",
+          "contributorEmail": "ari@example.com",
+          "contributorMessage": "For stargazing and slow mornings.",
+          "coupleReplyToContributor": "We're going to do exactly this. Thank you."
+        },
+        {
+          "contributorName": "Sam",
+          "contributorEmail": "sam@example.com",
+          "contributorMessage": "Please take a deep breath somewhere beautiful.",
+          "coupleReplyToContributor": "We will. This is perfect."
+        }
+      ],
+      "groupThankYouNote": "Thank you for making space in our year for one truly restful weekend."
+    },
+    {
+      "giftId": "hobby-watercolors",
+      "title": "Watercolor travel kit",
+      "shortDescription": "Pocket painting set.",
+      "longDescription": "A small watercolor kit for sketching in parks and cafes.",
+      "images": ["/assets/favicon.png"],
+      "categoryTags": { "home": false, "adventure": false, "hobby": true },
+      "primarySection": "Hobby",
+      "isDreamGift": true,
+      "dreamOwner": "Hannah",
+      "isGroupGift": false,
+      "price": 60,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "Blick", "merchantReason": "Art supply specialist", "merchantURL": "https://www.dickblick.com" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "Claimed",
+      "claimerName": "Mina",
+      "claimerEmail": "mina@example.com",
+      "claimerMessage": "Paint something ridiculous and lovely.",
+      "coupleReplyToClaimer": "We promise at least 30% ridiculous. Thank you.",
+      "contributors": [],
+      "groupThankYouNote": ""
+    },
+    {
+      "giftId": "hobby-boardgame",
+      "title": "Co-op board game",
+      "shortDescription": "A game for rainy evenings.",
+      "longDescription": "A cooperative board game that's fun with 2\u20134 players.",
+      "images": ["/assets/og-image.png"],
+      "categoryTags": { "home": false, "adventure": false, "hobby": true },
+      "primarySection": "Hobby",
+      "isDreamGift": false,
+      "dreamOwner": null,
+      "isGroupGift": false,
+      "price": 45,
+      "currency": "USD",
+      "allowGifterProvidedVariant": false,
+      "preferredMerchants": [
+        { "merchantName": "Local Game Store", "merchantReason": "Support local", "merchantURL": "https://example.com" }
+      ],
+      "alternativeMerchants": [],
+      "acquisitionNotes": "",
+      "status": "Available",
+      "claimerName": "",
+      "claimerEmail": "",
+      "claimerMessage": "",
+      "coupleReplyToClaimer": "",
+      "contributors": [],
+      "groupThankYouNote": ""
+    }
+  ]
+}

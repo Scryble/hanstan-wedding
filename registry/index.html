@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Registry · hanstan.wedding</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="./registry.css" />
+
+  <!-- Netlify Forms stub -->
+  <form name="gift-claim" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="giftId" />
+    <input name="giftTitle" />
+    <input name="isGroupGift" />
+    <input name="path" />
+    <input name="gifterName" />
+    <input name="gifterEmail" />
+    <textarea name="giftMessage"></textarea>
+    <input name="submittedAtISO" />
+  </form>
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- LEFT RAIL -->
+    <aside class="rail" aria-label="Filters and instructions">
+      <div class="rail__inner">
+        <div class="rail__site" id="railSiteLabel"></div>
+
+        <section class="rail__how" aria-label="How this works">
+          <div class="rail__howTitle" id="howTitle"></div>
+          <ul class="rail__howList" id="howList"></ul>
+        </section>
+
+        <section class="rail__controls" aria-label="Filters">
+          <div class="rail__chips" id="chipStack"></div>
+
+          <div class="rail__budget" aria-label="Budget slider">
+            <div class="rail__budgetRow">
+              <div class="rail__budgetLabel" id="budgetLabel"></div>
+              <div class="rail__budgetValue" id="budgetValue"></div>
+            </div>
+            <input id="budgetSlider" class="rail__budgetSlider" type="range" />
+          </div>
+
+          <div class="rail__clear">
+            <button type="button" class="btn btn--ghost" id="btnShowAll"></button>
+            <button type="button" class="btn btn--ghost" id="btnClearAll"></button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- MIDDLE (scrollable catalog) -->
+    <main class="middle" aria-label="Gift catalog">
+      <div class="middle__sticky">
+        <h2 class="middle__title" id="middleTitle"></h2>
+      </div>
+
+      <div class="middle__scroll" id="middleScroll">
+
+        <!-- Dream gifts block -->
+        <section class="dream" id="dreamBlock" aria-label="Dream gifts">
+          <div class="dream__grid">
+            <div class="dream__col">
+              <h3 class="h3" id="dreamStanTitle"></h3>
+              <div class="tiles" id="dreamStan"></div>
+            </div>
+            <div class="dream__col">
+              <h3 class="h3" id="dreamHannahTitle"></h3>
+              <div class="tiles" id="dreamHannah"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Home section -->
+        <section class="section" id="sectionHome" data-section="Home">
+          <h3 class="section__title" id="sectionHomeTitle"></h3>
+          <div class="tiles" id="tilesHome"></div>
+        </section>
+
+        <!-- Adventure section -->
+        <section class="section" id="sectionAdventure" data-section="Adventure">
+          <h3 class="section__title" id="sectionAdventureTitle"></h3>
+          <div class="tiles" id="tilesAdventure"></div>
+        </section>
+
+        <!-- Hobby section -->
+        <section class="section" id="sectionHobby" data-section="Hobby">
+          <h3 class="section__title" id="sectionHobbyTitle"></h3>
+          <div class="tiles" id="tilesHobby"></div>
+        </section>
+
+        <!-- Outside budget section -->
+        <section class="outside" id="outsideBudget">
+          <h3 class="section__title" id="outsideTitle"></h3>
+          <p class="outside__blurb" id="outsideBlurb"></p>
+          <div class="outside__slots">
+            <div class="outside__slot">
+              <div class="tiles tiles--mini" id="outsideSlotNormal"></div>
+            </div>
+            <div class="outside__slot">
+              <div class="tiles tiles--mini" id="outsideSlotDream"></div>
+            </div>
+            <div class="outside__slot">
+              <div class="tiles tiles--mini" id="outsideSlotGroup"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Price unknown section -->
+        <section class="section" id="priceUnknownBlock">
+          <div class="tiles" id="tilesUnknown"></div>
+        </section>
+
+      </div><!-- end middle__scroll -->
+    </main>
+
+    <!-- RIGHT DETAIL PANEL -->
+    <aside class="detail" id="detail" aria-label="Gift details"></aside>
+
+    <!-- MODAL -->
+    <div class="modal__backdrop" id="modalBackdrop" aria-hidden="true"></div>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modalTitle"></h2>
+        <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__left">
+          <form class="gift-form" id="giftForm" name="gift-claim" netlify>
+            <input type="hidden" id="formGiftId" name="giftId" />
+            <input type="hidden" id="formPath" name="path" />
+
+            <div class="form__row">
+              <label class="form__label" id="labelName" for="inputName"></label>
+              <input class="form__input" id="inputName" name="gifterName" type="text" autocomplete="name" />
+              <span class="form__req" id="reqName"></span>
+            </div>
+            <div class="form__row">
+              <label class="form__label" id="labelEmail" for="inputEmail"></label>
+              <input class="form__input" id="inputEmail" name="gifterEmail" type="email" autocomplete="email" />
+              <span class="form__req" id="reqEmail"></span>
+            </div>
+            <div class="form__row">
+              <label class="form__label" id="labelMsg" for="inputMsg"></label>
+              <textarea class="form__input form__textarea" id="inputMsg" name="giftMessage"></textarea>
+              <span class="form__req" id="reqMsg"></span>
+            </div>
+
+            <p class="form__shipping" id="shippingNote"></p>
+            <p class="form__error" id="formError"></p>
+
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary" id="btnSubmit"></button>
+              <button type="button" class="btn btn--ghost" id="btnCancel"></button>
+            </div>
+          </form>
+        </div>
+        <div class="modal__right">
+          <h3 class="modal__rightTitle" id="modalRightTitle"></h3>
+          <ul class="modal__rightList" id="modalRightList"></ul>
+          <div class="modal__rightMerchant" id="modalRightMerchant"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .app -->
+
+  <script src="./registry.js"></script>
+</body>
+</html>

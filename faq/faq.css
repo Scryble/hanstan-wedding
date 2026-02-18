@@ -1,0 +1,136 @@
+/* ============================================
+   FAQ PAGE â€“ Minimal Art Deco / High Readability
+   ============================================ */
+
+/* Make the FAQ page feel like a readable panel on top of the existing mosaic */
+.faq-card {
+  max-width: 900px;
+  justify-content: flex-start;
+  padding-top: clamp(2rem, 5vh, 3.5rem);
+  padding-bottom: clamp(2.5rem, 6vh, 4rem);
+}
+
+.faq-header {
+  width: 100%;
+  margin-bottom: clamp(1rem, 3vh, 1.75rem);
+}
+
+.faq-kicker {
+  font-size: clamp(0.75rem, 2vw, 0.95rem);
+  letter-spacing: 0.25em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #4a4640;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.25rem;
+}
+
+.faq-title {
+  font-family: 'Allura', cursive;
+  font-size: clamp(2.6rem, 7vw, 4.2rem);
+  font-weight: 400;
+  line-height: 1.05;
+  margin: 0.25rem 0 0.5rem;
+  color: #2d2a26;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.faq-subtitle {
+  font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  color: #3d3a36;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.85rem;
+}
+
+.faq-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Readable, high-contrast panel */
+.faq-panel {
+  width: 100%;
+  background: rgba(250, 247, 242, 0.9);
+  border: 1px solid rgba(61, 58, 54, 0.22);
+  border-radius: 14px;
+  padding: clamp(1.1rem, 3.5vw, 1.75rem);
+  box-shadow: 0 14px 36px rgba(61, 58, 54, 0.18);
+  backdrop-filter: blur(6px);
+}
+
+.faq-item {
+  border-top: 1px dotted rgba(90, 86, 80, 0.55);
+  padding-top: 0.15rem;
+}
+
+.faq-item:first-child {
+  border-top: none;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1rem 0;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2d2a26;
+}
+
+/* Remove default marker; we add our own */
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::before {
+  content: 'ï¼‹';
+  display: inline-block;
+  width: 1.25em;
+  margin-right: 0.4rem;
+  color: #5a5650;
+  font-weight: 700;
+}
+
+.faq-item[open] summary::before {
+  content: 'â€”';
+}
+
+.faq-answer {
+  padding: 0 0 1.15rem;
+  color: #3d3a36;
+}
+
+.faq-answer p {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0.6rem 0;
+}
+
+.faq-answer ul {
+  margin: 0.5rem 0 0.75rem 1.15rem;
+}
+
+.faq-answer li {
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.faq-cta {
+  margin-top: clamp(1.25rem, 4vh, 2rem);
+}
+
+/* Small screens: slightly denser typography */
+@media (max-width: 420px) {
+  .faq-answer p {
+    font-size: 1rem;
+  }
+
+  .faq-item summary {
+    letter-spacing: 0.06em;
+  }
+}
