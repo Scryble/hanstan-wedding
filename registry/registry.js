@@ -195,13 +195,14 @@
   function buildChips() {
     el.chipStack.innerHTML = '';
     CHIP_KEYS.forEach(function (key) {
-      var label = (key === 'Group') ? state.copy.leftRail.chips.Group : state.copy.leftRail.chips[key];
+      var label = (key === 'Group') ?
+        state.copy.leftRail.chips.Group : state.copy.leftRail.chips[key];
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'chip';
       btn.setAttribute('data-chip', key);
       // Phase 2: chips as toggles, no "+" icon
-      btn.innerHTML = '<span class="chip__leftAccent"></span><span class="chip__label">' + escapeHtml(label) + '</span><span class="chip__indicator">â—‹</span>';
+      btn.innerHTML = '<span class="chip__leftAccent"></span><span class="chip__label">' + escapeHtml(label) + '</span><span class="chip__indicator">\u25CB</span>';
       btn.addEventListener('click', function () { toggleChip(key); });
       el.chipStack.appendChild(btn);
     });
@@ -217,8 +218,12 @@
     renderAll();
   }
 
-  function clearAllChips() {
+  /* [TICKET 2 — F1] showAllGifts replaces clearAllChips */
+  function showAllGifts() {
     state.activeChips.clear();
+    state.budget = Number(el.budgetSlider.max);
+    el.budgetSlider.value = String(state.budget);
+    el.budgetValue.textContent = '$' + state.budget;
     state.locatorEnabled = true;
     state.activeLocatorSection = null;
     syncChipUi();
@@ -233,13 +238,14 @@
       chip.classList.toggle('chip--active', active);
       chip.classList.remove('chip--locator');
       var indicator = chip.querySelector('.chip__indicator');
-      if (indicator) indicator.textContent = active ? 'â—' : 'â—‹';
+      if (indicator) indicator.textContent = active ? '\u25CF' : '\u25CB';
     });
   }
 
+  /* [TICKET 2 — F1b] wireClearButtons references showAllGifts */
   function wireClearButtons() {
-    el.btnShowAll.addEventListener('click', clearAllChips);
-    el.btnClearAll.addEventListener('click', clearAllChips);
+    el.btnShowAll.addEventListener('click', showAllGifts);
+    el.btnClearAll.addEventListener('click', showAllGifts);
   }
 
   /* --- Budget --- */
@@ -273,8 +279,14 @@
     renderOutsideBudget(visible);
     renderPriceUnknown();
 
+    /* [TICKET 2 — R2] Hide section headers when no visible gifts */
+    document.getElementById('sectionHome').style.display = el.tilesHome.children.length ? '' : 'none';
+    document.getElementById('sectionAdventure').style.display = el.tilesAdventure.children.length ? '' : 'none';
+    document.getElementById('sectionHobby').style.display = el.tilesHobby.children.length ? '' : 'none';
+
     if (!state.selectedGiftId || !state.gifts.find(function (g) { return g.giftId === state.selectedGiftId; })) {
-      state.selectedGiftId = (state.gifts[0] && state.gifts[0].giftId) ? state.gifts[0].giftId : null;
+      state.selectedGiftId = (state.gifts[0] && state.gifts[0].giftId) ?
+        state.gifts[0].giftId : null;
     }
     renderDetail();
     updateScrollLocator();
@@ -480,7 +492,8 @@
       btn.classList.add('tile--disabled');
       var overlay = document.createElement('div');
       overlay.className = 'tile__overlay';
-      overlay.textContent = (gift.status === STATUS.Pending) ? state.copy.right.statusPending : state.copy.right.statusClaimed;
+      overlay.textContent = (gift.status === STATUS.Pending) ?
+        state.copy.right.statusPending : state.copy.right.statusClaimed;
       btn.appendChild(overlay);
     }
 
@@ -516,7 +529,8 @@
     }
 
     // Phase 2: hero uses selectedGift.images[0]
-    var heroUrl = (gift.images && gift.images[0]) ? gift.images[0] : '/assets/og-image.png';
+    var heroUrl = (gift.images && gift.images[0]) ?
+      gift.images[0] : '/assets/og-image.png';
 
     el.detail.innerHTML = '';
 
@@ -740,7 +754,6 @@
       var c = contributors[idx];
       if (!c) return;
 
-      // Contributor names only in right panel
       var mTitle = document.createElement('div');
       mTitle.className = 'blockTitle';
       mTitle.textContent = state.copy.right.claimedMessageTitle;
@@ -863,6 +876,12 @@
       return;
     }
 
+    /* [TICKET 3 — R5] Email validation */
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      el.formError.textContent = 'Please enter a valid email address.';
+      return;
+    }
+
     var gift = state.gifts.find(function (g) { return g.giftId === giftId; });
     if (!gift) { el.formError.textContent = 'Gift not found.'; return; }
 
@@ -883,6 +902,20 @@
     gift.status = STATUS.Pending;
     persistLocalPendingOverride(gift.giftId, gift.status);
 
+    closeModal();
+    renderAll();
+
+    /* [TICKET 3 — R3] Success confirmation banner */
+    var successMsg = (state.copy.right && state.copy.right.claimSuccessMessage)
+      ? state.copy.right.claimSuccessMessage
+      : 'Thank you! Your intent-to-gift has been recorded.';
+    var successBanner = document.createElement('div');
+    successBanner.className = 'claim-success';
+    successBanner.textContent = successMsg;
+    el.detail.insertBefore(successBanner, el.detail.firstChild);
+    setTimeout(function () { if (successBanner.parentNode) successBanner.parentNode.removeChild(successBanner); }, 6000);
+
+    /* [TICKET 3 — R6] Form error handling with .catch() */
     postNetlifyForm({
       giftId: gift.giftId,
       giftTitle: gift.title,
@@ -892,22 +925,26 @@
       gifterEmail: email,
       giftMessage: msg,
       submittedAtISO: new Date().toISOString()
+    }).catch(function () {
+      var warnBanner = document.createElement('div');
+      warnBanner.className = 'claim-warning';
+      warnBanner.textContent = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored.';
+      el.detail.insertBefore(warnBanner, el.detail.firstChild);
+      setTimeout(function () { if (warnBanner.parentNode) warnBanner.parentNode.removeChild(warnBanner); }, 8000);
     });
-
-    closeModal();
-    renderAll();
   }
 
+  /* [TICKET 3 — R6] postNetlifyForm returns promise */
   function postNetlifyForm(fields) {
     var formName = 'gift-claim';
     var body = new URLSearchParams();
     body.append('form-name', formName);
     Object.keys(fields).forEach(function (k) { body.append(k, fields[k]); });
-    fetch('/', {
+    return fetch('/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString()
-    }).catch(function () {});
+    });
   }
 
   function persistLocalPendingOverride(giftId, status) {
@@ -920,19 +957,33 @@
     } catch (e) {}
   }
 
+  /* [TICKET 4 — R4] Reconciliation: only preserve overrides where server hasn't caught up */
   function hydrateLocalPendingOverrides() {
     try {
       var key = 'hanstan_registry_local_overrides_v1';
       var raw = localStorage.getItem(key);
       if (!raw) return;
       var doc = JSON.parse(raw);
+      var dirty = false;
       Object.keys(doc).forEach(function (giftId) {
         var override = doc[giftId];
         var g = state.gifts.find(function (x) { return x.giftId === giftId; });
         if (g && override && override.status) {
-          g.status = override.status;
+          if (g.status === 'Available' && override.status === 'ClaimPendingConfirmation') {
+            g.status = override.status;
+          } else {
+            delete doc[giftId];
+            dirty = true;
+          }
         }
       });
+      if (dirty) {
+        if (Object.keys(doc).length === 0) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, JSON.stringify(doc));
+        }
+      }
     } catch (e) {}
   }
 
@@ -1073,6 +1124,9 @@
 
     applyThemeTokens(tokens);
     applyCopy(copy);
+
+    /* [TICKET 4 — R1] Re-hydrate local overrides after polling refresh */
+    hydrateLocalPendingOverrides();
 
     if (prevSelectedId && state.gifts.find(function (g) { return g.giftId === prevSelectedId; })) {
       state.selectedGiftId = prevSelectedId;

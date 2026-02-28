@@ -26,12 +26,13 @@
     "sectionAdventure": "Adventure",
     "sectionHobby": "Hobby",
     "outsideBudgetTitle": "Just outside budget",
-    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budgetÃ¢â‚¬Â¦ shown because they're special picks."
+    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budget\u2026 shown because they're special picks."
   },
   "right": {
     "statusAvailable": "Available",
     "statusPending": "Claim pending confirmation",
     "statusClaimed": "Claimed",
+    "claimSuccessMessage": "Thank you! Your intent-to-gift has been recorded.",
     "expandLong": "Read more",
     "collapseLong": "Read less",
     "checkoutTitle": "Checkout options & instructions",
@@ -70,7 +71,7 @@
     "label": "Approx budget",
     "step": 25,
     "default": 200,
-    "rangeLowMultiplier": 0.75,
+    "rangeLowMultiplier": 0,
     "rangeHighMultiplier": 1.25,
     "outsideLowMultiplier": 1.25,
     "outsideHighMultiplier": 1.42

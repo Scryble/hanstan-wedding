@@ -542,13 +542,13 @@
       inp.type = 'text'; inp.className = 'field__input'; inp.value = url;
       inp.addEventListener('change', function () { gift.images[i] = inp.value; });
       var upBtn = document.createElement('button');
-      upBtn.type = 'button'; upBtn.className = 'btn btn--sm'; upBtn.textContent = '↑';
+      upBtn.type = 'button'; upBtn.className = 'btn btn--sm'; upBtn.textContent = '\u2191';
       upBtn.disabled = i === 0;
       upBtn.addEventListener('click', function () {
         if (i > 0) { var t = gift.images[i]; gift.images[i] = gift.images[i - 1]; gift.images[i - 1] = t; renderGiftEditor(gift); }
       });
       var rmBtn = document.createElement('button');
-      rmBtn.type = 'button'; rmBtn.className = 'btn btn--sm btn--danger'; rmBtn.textContent = '✕';
+      rmBtn.type = 'button'; rmBtn.className = 'btn btn--sm btn--danger'; rmBtn.textContent = '\u2715';
       rmBtn.addEventListener('click', function () { gift.images.splice(i, 1); renderGiftEditor(gift); });
       item.appendChild(inp); item.appendChild(upBtn); item.appendChild(rmBtn);
       imgList.appendChild(item);
@@ -574,7 +574,7 @@
       inpUrl.addEventListener('change', function () { m.merchantURL = inpUrl.value; });
       var inpReason = document.createElement('input'); inpReason.type = 'text'; inpReason.className = 'field__input'; inpReason.value = m.merchantReason || ''; inpReason.placeholder = 'Reason';
       inpReason.addEventListener('change', function () { m.merchantReason = inpReason.value; });
-      var rmBtn = document.createElement('button'); rmBtn.type = 'button'; rmBtn.className = 'btn btn--sm btn--danger'; rmBtn.textContent = '✕';
+      var rmBtn = document.createElement('button'); rmBtn.type = 'button'; rmBtn.className = 'btn btn--sm btn--danger'; rmBtn.textContent = '\u2715';
       rmBtn.addEventListener('click', function () { gift.preferredMerchants.splice(i, 1); renderGiftEditor(gift); });
       item.appendChild(inpName); item.appendChild(inpUrl); item.appendChild(inpReason); item.appendChild(rmBtn);
       merchList.appendChild(item);
@@ -604,7 +604,7 @@
       var confirmBtn = document.createElement('button');
       confirmBtn.type = 'button';
       confirmBtn.className = 'btn btn--primary';
-      confirmBtn.textContent = 'Confirm → Claimed';
+      confirmBtn.textContent = 'Confirm \u2192 Claimed';
       confirmBtn.addEventListener('click', function () {
         saveSnapshot();
         gift.status = 'Claimed';
@@ -774,7 +774,7 @@
 
       var handle = document.createElement('span');
       handle.className = 'order-item__handle';
-      handle.textContent = '☰';
+      handle.textContent = '\u2630';
 
       var title = document.createElement('span');
       title.className = 'order-item__title';
@@ -961,6 +961,7 @@
 
   var batchItems = [];
 
+  /* [TICKET 6 — A2] Accept bare array or {items:[...]} without batchName requirement */
   function previewBatch() {
     var msg = document.getElementById('batchMsg');
     var area = document.getElementById('batchPreviewArea');
@@ -971,18 +972,14 @@
     try {
       var raw = document.getElementById('batchInput').value.trim();
       var parsed = JSON.parse(raw);
-      if (parsed.batchName !== 'Gift Intake Batch1') {
+      var items = Array.isArray(parsed) ? parsed : parsed.items;
+      if (!Array.isArray(items) || items.length === 0) {
         msg.className = 'msg msg--error';
-        msg.textContent = 'batchName must be exactly "Gift Intake Batch1"';
-        return;
-      }
-      if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
-        msg.className = 'msg msg--error';
-        msg.textContent = 'items array is empty or missing';
+        msg.textContent = 'items array is empty or missing. Paste [{...}] or {"items": [...]}';
         return;
       }
 
-      parsed.items.forEach(function (item, i) {
+      items.forEach(function (item, i) {
         var div = document.createElement('div');
         div.className = 'batch-item';
         var title = item.title || ('Untitled #' + (i + 1));
@@ -992,15 +989,15 @@
         if (!variant && (typeof price !== 'number' || price <= 0) && item.preferredMerchants && item.preferredMerchants.length > 0) {
           warn = 'Publish gating: merchant-linked gift requires numeric price when allowGifterProvidedVariant=false';
         }
-        div.innerHTML = '<strong>' + esc(title) + '</strong> — ' + (typeof price === 'number' ? '$' + price : 'no price') +
-          (variant ? ' (variant allowed)' : '') + (warn ? '<div class="batch-item__warn">⚠ ' + esc(warn) + '</div>' : '');
+        div.innerHTML = '<strong>' + esc(title) + '</strong> \u2014 ' + (typeof price === 'number' ? '$' + price : 'no price') +
+          (variant ? ' (variant allowed)' : '') + (warn ? '<div class="batch-item__warn">\u26A0 ' + esc(warn) + '</div>' : '');
         area.appendChild(div);
       });
 
-      batchItems = parsed.items;
+      batchItems = items;
       document.getElementById('btnBatchImport').disabled = false;
       msg.className = 'msg msg--success';
-      msg.textContent = parsed.items.length + ' items ready to import as Draft.';
+      msg.textContent = items.length + ' items ready to import as Draft.';
     } catch (e) {
       msg.className = 'msg msg--error';
       msg.textContent = 'Invalid JSON: ' + e.message;
@@ -1048,11 +1045,12 @@
     renderOrderingList();
   }
 
+  /* [TICKET 6 — A1] Export uses 'theme' key instead of 'tokens' */
   function exportBundle() {
     var bundle = {
       gifts: { gifts: data.gifts },
       copy: data.copy,
-      tokens: data.tokens,
+      theme: data.tokens,
       ordering: data.ordering
     };
     downloadJson('hanstan-registry-bundle.json', bundle);
@@ -1060,6 +1058,7 @@
     document.getElementById('exportMsg').textContent = 'Bundle exported.';
   }
 
+  /* [TICKET 6 — A1] Import reads 'theme' with fallback to 'tokens' for backward compat */
   function importBundle() {
     var fileInput = document.getElementById('importFileInput');
     var msg = document.getElementById('importMsg');
@@ -1072,7 +1071,7 @@
         var errors = [];
         if (!bundle.gifts || !bundle.gifts.gifts) errors.push('Missing gifts.gifts');
         if (!bundle.copy) errors.push('Missing copy');
-        if (!bundle.tokens) errors.push('Missing tokens');
+        if (!bundle.theme && !bundle.tokens) errors.push('Missing theme (or tokens)');
         if (!bundle.ordering) errors.push('Missing ordering');
         if (errors.length > 0) {
           msg.className = 'msg msg--error';
@@ -1082,7 +1081,7 @@
         saveSnapshot();
         data.gifts = bundle.gifts.gifts;
         data.copy = bundle.copy;
-        data.tokens = bundle.tokens;
+        data.tokens = bundle.theme || bundle.tokens || {};
         data.ordering = bundle.ordering;
         msg.className = 'msg msg--success';
         msg.textContent = 'Bundle imported successfully.';
@@ -1169,10 +1168,47 @@
     var slotDream = outsideBand.find(function (g) { return g.isDreamGift && !g.isGroupGift; }) || null;
     var slotGroup = outsideBand.find(function (g) { return g.isGroupGift; }) || null;
 
-    container.appendChild(makeDiagBand('In-Band ($' + low.toFixed(0) + '–$' + high.toFixed(0) + ')', inBand));
-    container.appendChild(makeDiagBand('Just Outside Band ($' + oLow.toFixed(0) + '–$' + oHigh.toFixed(0) + ') — strict 3 slots', [slotNormal, slotDream, slotGroup].filter(Boolean)));
+    container.appendChild(makeDiagBand('In-Band ($' + low.toFixed(0) + '\u2013$' + high.toFixed(0) + ')', inBand));
+    container.appendChild(makeDiagBand('Just Outside Band ($' + oLow.toFixed(0) + '\u2013$' + oHigh.toFixed(0) + ') \u2014 strict 3 slots', [slotNormal, slotDream, slotGroup].filter(Boolean)));
     container.appendChild(makeDiagBand('Price Unknown (allowGifterProvidedVariant=true, no price)', priceUnknown));
     container.appendChild(makeDiagBand('Out of Range', outOfRange));
+
+    /* [TICKET 6 — A3] Ordering diagnostics: orphaned IDs + unordered gifts */
+    var giftIdSet = {};
+    data.gifts.forEach(function (g) { giftIdSet[g.giftId] = g; });
+
+    var orphaned = [];
+    var so = data.ordering.sectionOrder || {};
+    var dr = data.ordering.dreamOrder || {};
+
+    ['Home', 'Adventure', 'Hobby'].forEach(function (sec) {
+      (so[sec] || []).forEach(function (id) {
+        if (!giftIdSet[id]) orphaned.push(id + ' (sectionOrder.' + sec + ')');
+      });
+    });
+    ['Stan', 'Hannah'].forEach(function (owner) {
+      (dr[owner] || []).forEach(function (id) {
+        if (!giftIdSet[id]) orphaned.push(id + ' (dreamOrder.' + owner + ')');
+      });
+    });
+
+    container.appendChild(makeDiagBandText('Orphaned Ordering IDs', orphaned));
+
+    var unordered = [];
+    data.gifts.forEach(function (g) {
+      var secList = so[g.primarySection] || [];
+      if (secList.indexOf(g.giftId) < 0) {
+        unordered.push(g.title + ' (' + g.giftId + ') \u2014 missing from sectionOrder.' + g.primarySection);
+      }
+      if (g.isDreamGift && g.dreamOwner) {
+        var dreamList = dr[g.dreamOwner] || [];
+        if (dreamList.indexOf(g.giftId) < 0) {
+          unordered.push(g.title + ' (' + g.giftId + ') \u2014 missing from dreamOrder.' + g.dreamOwner);
+        }
+      }
+    });
+
+    container.appendChild(makeDiagBandText('Unordered Gifts', unordered));
   }
 
   function makeDiagBand(title, items) {
@@ -1194,6 +1230,32 @@
     });
     if (items.length === 0) {
       list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px;">None</div>';
+    }
+    band.appendChild(list);
+    return band;
+  }
+
+  /* [TICKET 6 — A3] Helper for text-only diagnostic bands (ordering issues) */
+  function makeDiagBandText(title, lines) {
+    var band = document.createElement('div');
+    band.className = 'diag-band';
+    var t = document.createElement('div');
+    t.className = 'diag-band__title';
+    t.textContent = title + ' (' + lines.length + ')';
+    band.appendChild(t);
+
+    var list = document.createElement('div');
+    list.className = 'diag-band__items';
+    if (lines.length === 0) {
+      list.innerHTML = '<div style="color:#2ecc71;font-size:12px;padding:4px;">\u2713 None found</div>';
+    } else {
+      lines.forEach(function (line) {
+        var item = document.createElement('div');
+        item.className = 'diag-item';
+        item.style.color = '#e74c3c';
+        item.textContent = line;
+        list.appendChild(item);
+      });
     }
     band.appendChild(list);
     return band;
