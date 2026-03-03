@@ -1,0 +1,4 @@
+/data/gifts.json /.netlify/functions/data-gifts 200
+/data/copy.registry.json /.netlify/functions/data-copy-registry 200
+/data/theme.tokens.json /.netlify/functions/data-theme-tokens 200
+/data/ordering.registry.json /.netlify/functions/data-ordering-registry 200

@@ -1,0 +1,421 @@
+/* ============================================
+   WEDDING CARD SITE - MOBILE-FIRST CSS
+   Primary: 390Ã—844 | Secondary: 1366Ã—768
+   ============================================ */
+
+/* CSS Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: #3d3a36;
+  
+  /* Layered background: ivory overlay on top of mosaic */
+  background: 
+    linear-gradient(rgba(250, 247, 242, 0.65), rgba(250, 247, 242, 0.65)),
+    url('assets/mosaic-background-portrait.png') center/cover no-repeat fixed,
+    #f5f2ed;
+}
+
+/* Remove separate overlay - now combined in body background */
+.background-overlay {
+  display: none;
+}
+
+/* ============================================
+   THE CONTENT (no card - integrated with background)
+   ============================================ */
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  
+  /* No background - text floats on mosaic */
+  background: transparent;
+  
+  padding: clamp(2rem, 5vh, 4rem) clamp(1.5rem, 5vw, 3rem);
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ============================================
+   CALENDAR HEADER
+   ============================================ */
+.calendar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: clamp(0.25rem, 1vh, 0.75rem);
+}
+
+.month {
+  font-size: clamp(0.85rem, 2.2vw, 1.1rem);
+  letter-spacing: 0.35em;
+  font-weight: 500;
+  color: #3d3a36;
+  margin-bottom: clamp(0.4rem, 1.2vh, 0.7rem);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.calendar-week {
+  display: flex;
+  gap: clamp(0.7rem, 3vw, 1.4rem);
+  align-items: flex-start;
+}
+
+.day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.day-name {
+  font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+  font-style: italic;
+  font-weight: 400;
+  color: #5a5650;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.day-num {
+  font-size: clamp(1.1rem, 2.8vw, 1.4rem);
+  font-weight: 500;
+  color: #3d3a36;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.day-col.highlight .day-name {
+  color: #3d3a36;
+}
+
+.day-num.circled {
+  position: relative;
+  font-weight: 600;
+  color: #2d2a26;
+}
+
+.day-num.circled::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(1.8rem, 4.5vw, 2.4rem);
+  height: clamp(1.6rem, 4vw, 2.1rem);
+  border: 2px dotted #5a5650;
+  border-radius: 50% 50% 50% 50% / 45% 45% 55% 55%;
+}
+
+/* Heart line below calendar */
+.heart-line {
+  width: 2px;
+  height: clamp(2rem, 5vh, 3.5rem);
+  background: linear-gradient(
+    to bottom,
+    #7a756d 0%,
+    #7a756d 40%,
+    transparent 40%,
+    transparent 50%,
+    #7a756d 50%,
+    #7a756d 100%
+  );
+  background-size: 100% 8px;
+  margin-top: 0.3rem;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+.save-the-date {
+  font-family: 'Allura', cursive;
+  font-size: clamp(2.8rem, 9vw, 4.5rem);
+  font-weight: 400;
+  color: #3d3a36;
+  margin: clamp(0.5rem, 2vh, 1rem) 0;
+  line-height: 1.1;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.invited-line {
+  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  letter-spacing: 0.25em;
+  font-weight: 500;
+  color: #4a4640;
+  margin-bottom: clamp(0.6rem, 1.5vh, 1rem);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.names {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: clamp(1rem, 2.5vh, 1.5rem);
+}
+
+.name {
+  font-size: clamp(1.5rem, 5.5vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: #2d2a26;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.ampersand {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 400;
+  color: #4a4640;
+  line-height: 1.1;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+
+.datetime {
+  font-size: clamp(0.75rem, 2vw, 1.05rem);
+  letter-spacing: 0.2em;
+  font-weight: 500;
+  color: #3d3a36;
+  margin-bottom: clamp(0.8rem, 2vh, 1.25rem);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.location {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-style: normal;
+  margin-bottom: clamp(0.6rem, 1.5vh, 1rem);
+}
+
+.venue {
+  font-size: clamp(0.75rem, 2vw, 1.05rem);
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  color: #3d3a36;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.address {
+  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  letter-spacing: 0.12em;
+  font-weight: 400;
+  color: #4a4640;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.reception {
+  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  letter-spacing: 0.2em;
+  font-weight: 500;
+  color: #4a4640;
+  margin-bottom: clamp(1.25rem, 3vh, 2rem);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================
+   RSVP BUTTON
+   ============================================ */
+.rsvp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  padding: clamp(0.9rem, 2vh, 1.15rem) clamp(3rem, 12vw, 5rem);
+  
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-decoration: none;
+  
+  color: #fdfbf7;
+  background: linear-gradient(135deg, #5a5450 0%, #3d3a36 100%);
+  
+  border: none;
+  border-radius: 4px;
+  
+  box-shadow: 
+    0 4px 16px rgba(61, 58, 54, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rsvp-btn:hover {
+  background: linear-gradient(135deg, #6b665f 0%, #4a4640 100%);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(61, 58, 54, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.rsvp-btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   SECONDARY ACTIONS
+   ============================================ */
+.secondary-actions {
+  margin-top: clamp(1rem, 2.5vh, 1.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.secondary-link {
+  font-size: clamp(0.75rem, 1.8vw, 0.95rem);
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  color: #4a4640;
+  text-decoration: none;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+  transition: color 0.2s ease;
+}
+
+.secondary-link:hover {
+  color: #2d2a26;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.divider {
+  color: #6a655d;
+  font-size: clamp(0.65rem, 1.5vw, 0.85rem);
+}
+
+/* ============================================
+   DESKTOP BREAKPOINT (768px+)
+   ============================================ */
+@media (min-width: 768px) {
+  body {
+    /* Switch to landscape background */
+    background: 
+      linear-gradient(rgba(250, 247, 242, 0.55), rgba(250, 247, 242, 0.55)),
+      url('assets/mosaic-background-landscape.png') center/cover no-repeat fixed,
+      #f5f2ed;
+  }
+  
+  .card {
+    max-width: 800px;
+  }
+  
+  .calendar-week {
+    gap: clamp(1.2rem, 3vw, 1.8rem);
+  }
+  
+  .heart-line {
+    height: clamp(3rem, 6vh, 4.5rem);
+  }
+  
+  .name {
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+  
+  .save-the-date {
+    font-size: clamp(3.5rem, 6vw, 5rem);
+  }
+}
+
+/* ============================================
+   LARGE DESKTOP (1200px+)
+   ============================================ */
+@media (min-width: 1200px) {
+  .card {
+    max-width: 900px;
+  }
+  
+  .name {
+    font-size: 3.2rem;
+  }
+  
+  .save-the-date {
+    font-size: 5.5rem;
+  }
+  
+  .datetime,
+  .venue {
+    font-size: 1.15rem;
+  }
+  
+  .address,
+  .reception {
+    font-size: 1.05rem;
+  }
+}
+
+/* ============================================
+   VERY SMALL SCREENS (<360px)
+   Tighten everything for tiny phones
+   ============================================ */
+@media (max-width: 359px) {
+  .card {
+    padding: 1.5rem 1rem;
+  }
+  
+  .calendar-week {
+    gap: 0.4rem;
+  }
+  
+  .save-the-date {
+    font-size: 2.2rem;
+  }
+  
+  .name {
+    font-size: 1.2rem;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .rsvp-btn {
+    transition: none;
+  }
+  
+  .secondary-link {
+    transition: none;
+  }
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+@media (prefers-contrast: high) {
+  .card {
+    border: 2px solid #3d3a36;
+  }
+  
+  .rsvp-btn {
+    border: 2px solid #2d2a26;
+  }
+}
