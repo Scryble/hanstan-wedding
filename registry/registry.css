@@ -208,12 +208,6 @@ body {
   font-weight: 700;
 }
 
-.btn--sm {
-  padding: 5px 10px;
-  font-size: 12px;
-  border-radius: 10px;
-}
-
 .btn--icon {
   width: 36px;
   height: 36px;
@@ -539,20 +533,6 @@ body {
 
 /* ---- MODAL ---- */
 
-.modal__close {
-  background: none;
-  border: 1px solid rgba(216,181,91,0.18);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 2px 8px;
-  line-height: 1;
-}
-
-.modal__close:hover { background: rgba(255,255,255,0.06); }
-.modal__close:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
-
 .modal {
   position: fixed;
   inset: 0;
@@ -621,18 +601,17 @@ body {
 .modal__rightMerchant { margin-top: var(--s-md); }
 
 .form { display: flex; flex-direction: column; gap: var(--s-sm); }
-.gift-form { display: flex; flex-direction: column; gap: var(--s-sm); }
 
-.field__label, .form__label { display: flex; gap: 8px; align-items: baseline; }
+.field__label { display: flex; gap: 8px; align-items: baseline; }
 
-.field__req, .form__req {
+.field__req {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.field__input, .field__textarea, .form__input, .form__textarea {
+.field__input, .field__textarea {
   width: 100%;
   padding: 10px 12px;
   border-radius: 14px;
@@ -643,22 +622,9 @@ body {
   font-size: 15px;
 }
 
-.field__input:focus, .field__textarea:focus,
-.form__input:focus, .form__textarea:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+.field__input:focus, .field__textarea:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .form__actions { display: flex; gap: var(--s-xs); }
-
-.form__row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form__shipping {
-  color: var(--text-muted);
-  font-size: 13px;
-  margin: 0;
-}
 
 .form__note {
   color: var(--text-muted);
@@ -695,387 +661,4 @@ body {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
-}
-
-/* ================================================================
-   MOBILE RESPONSIVE — Registry Phase 2
-   Breakpoint: 768px
-   Architecture: floating filter bar + catalog/detail room switching
-   ================================================================ */
-
-/* --- Mobile Filter Bar (hidden on desktop) --- */
-
-.mobileBar { display: none; }
-.mobileDetail { display: none; }
-
-@media (max-width: 767px) {
-
-  /* --- Layout Override --- */
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
-
-  .rail { display: none; }
-  .right { display: none; }
-
-  .middle {
-    flex: 1;
-    border-right: none;
-    padding-top: 0;
-  }
-
-  .middle__sticky {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-  }
-
-  .middle__title {
-    font-size: 22px;
-    padding: var(--s-sm) var(--s-md);
-  }
-
-  .middle__scroll {
-    padding: 0 var(--s-sm) var(--s-lg) var(--s-sm);
-  }
-
-  /* --- Mobile Filter Bar --- */
-
-  .mobileBar {
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--rail-bg);
-    border-bottom: 1px solid rgba(216,181,91,0.16);
-    padding: var(--s-sm) var(--s-md);
-  }
-
-  .mobileBar__top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--s-xs);
-  }
-
-  .mobileBar__site {
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    text-transform: lowercase;
-    opacity: 0.8;
-  }
-
-  .mobileBar__toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid var(--chip-border);
-    border-radius: var(--r-chip);
-    background: rgba(255,255,255,0.04);
-    color: var(--text-primary);
-    padding: 6px 12px;
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-size: 13px;
-  }
-
-  .mobileBar__toggle[aria-expanded="true"] {
-    background: rgba(216,181,91,0.12);
-    border-color: rgba(216,181,91,0.30);
-  }
-
-  .mobileBar__toggleIcon { font-size: 16px; }
-
-  .mobileBar__chips {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 4px;
-  }
-
-  .mobileBar__chips::-webkit-scrollbar { display: none; }
-
-  .mobileBar__chips .chip {
-    flex: 0 0 auto;
-    width: auto;
-    padding: 7px 14px;
-    font-size: 13px;
-    box-shadow: none;
-  }
-
-  .mobileBar__chips .chip__leftAccent { display: none; }
-
-  /* Drawer (budget + how-it-works) */
-
-  .mobileBar__drawer {
-    padding-top: var(--s-sm);
-    border-top: 1px solid rgba(216,181,91,0.10);
-    margin-top: var(--s-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-sm);
-  }
-
-  .mobileBar__drawer[hidden] { display: none; }
-
-  .mobileBar__budget {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(216,181,91,0.12);
-    border-radius: var(--r-card);
-    padding: var(--s-sm);
-  }
-
-  .mobileBar__budgetRow {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 4px;
-  }
-
-  .mobileBar__budgetLabel {
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
-  .mobileBar__budgetValue {
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .mobileBar__budgetSlider { width: 100%; }
-
-  .mobileBar__actions {
-    display: flex;
-    gap: var(--s-xs);
-  }
-
-  .mobileBar__how {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(216,181,91,0.12);
-    border-radius: var(--r-card);
-    padding: var(--s-sm);
-  }
-
-  .mobileBar__howTitle {
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-
-  .mobileBar__howList {
-    margin: 0;
-    padding-left: 16px;
-    font-size: 13px;
-    line-height: 1.35;
-  }
-
-  /* --- Tile Grid: 2-up on mobile --- */
-
-  .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--s-xs);
-  }
-
-  .tiles--dream { grid-template-columns: 1fr; }
-  .tiles--mini { grid-template-columns: 1fr; }
-
-  .tile__img { height: 70px; }
-
-  .tile__body { padding: var(--s-xs); }
-
-  .tile__title { font-size: 13px; }
-  .tile__desc { font-size: 11px; }
-  .tile__price { font-size: 12px; }
-  .badge { font-size: 9px; padding: 2px 5px; }
-
-  /* Dream grid stacks */
-
-  .dream__grid {
-    grid-template-columns: 1fr;
-    gap: var(--s-md);
-  }
-
-  .dream { padding: var(--s-sm); margin: var(--s-sm) 0 var(--s-md) 0; }
-
-  .h3 { font-size: 17px; }
-
-  .section__title { font-size: 20px; }
-
-  /* Outside budget stacks */
-
-  .outside__slots {
-    grid-template-columns: 1fr;
-    gap: var(--s-sm);
-  }
-
-  /* --- Mobile Detail Overlay --- */
-
-  .mobileDetail {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    background: var(--panel-bg);
-    flex-direction: column;
-  }
-
-  .mobileDetail[hidden] { display: none; }
-
-  .mobileDetail--open {
-    display: flex !important;
-  }
-
-  .mobileDetail__header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--rail-bg);
-    border-bottom: 1px solid rgba(216,181,91,0.16);
-    padding: var(--s-sm) var(--s-md);
-  }
-
-  .mobileDetail__back {
-    border: none;
-    background: none;
-    color: var(--gold);
-    font-family: var(--font-body);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px 0;
-    font-weight: 600;
-  }
-
-  .mobileDetail__scroll {
-    flex: 1;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: var(--s-md);
-  }
-
-  /* Reuse detail card styles inside mobile overlay */
-  .mobileDetail__scroll .detailCard { box-shadow: none; }
-  .mobileDetail__scroll .detailHero { height: 200px; }
-  .mobileDetail__scroll .detailTitle { font-size: 24px; }
-
-  /* --- Modal: Stack to Single Column --- */
-
-  .modal__panel {
-    width: 100%;
-    max-width: 100vw;
-    height: 100%;
-    max-height: 100vh;
-    max-height: 100dvh;
-    border-radius: 0;
-    top: 0;
-    left: 0;
-    transform: none;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .modal__header {
-    padding: var(--s-sm) var(--s-md);
-    flex-shrink: 0;
-  }
-
-  .modal__title { font-size: 18px; }
-
-  .modal__close {
-    font-size: 28px;
-    padding: 4px 8px;
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .modal__body {
-    grid-template-columns: 1fr;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    flex: 1;
-  }
-
-  .modal__left { padding: var(--s-md); }
-
-  .modal__right {
-    border-left: none;
-    border-top: 1px solid rgba(216,181,91,0.10);
-    padding: var(--s-md);
-  }
-
-  .field__input, .field__textarea,
-  .form__input, .form__textarea {
-    font-size: 16px; /* prevent iOS zoom on focus */
-    padding: 12px;
-  }
-
-  .form__actions {
-    flex-direction: column;
-    gap: var(--s-sm);
-  }
-
-  .form__actions .btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    min-height: 48px;
-  }
-}
-
-/* --- Very Small Screens (<400px) --- */
-
-@media (max-width: 399px) {
-  .tiles {
-    grid-template-columns: 1fr;
-  }
-
-  .tile__img { height: 80px; }
-
-  .mobileBar {
-    padding: var(--s-xs) var(--s-sm);
-  }
-
-  .mobileBar__chips .chip {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  .middle__title { font-size: 20px; }
-}
-
-/* --- Tablet (768–1024): tighter 3-panel --- */
-
-@media (min-width: 768px) and (max-width: 1024px) {
-  .app {
-    grid-template-columns: 240px 1fr 320px;
-  }
-
-  .rail__inner { padding: var(--s-md); }
-
-  .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .modal__panel { width: 95vw; }
-}
-
-/* --- Reduced Motion --- */
-
-@media (prefers-reduced-motion: reduce) {
-  .mobileDetail,
-  .mobileBar__drawer,
-  .chip {
-    transition: none;
-  }
 }
