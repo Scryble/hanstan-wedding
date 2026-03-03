@@ -696,6 +696,11 @@
     form.appendChild(actions);
 
     panel.appendChild(form);
+
+    /* Mobile: scroll editor into view */
+    if (window.innerWidth < 768) {
+      setTimeout(function () { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+    }
   }
 
   function duplicateGift(gift) {

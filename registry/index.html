@@ -28,6 +28,43 @@
 <body>
   <div class="app" id="app">
 
+    <!-- MOBILE FILTER BAR (visible < 768px only) -->
+    <div class="mobileBar" id="mobileBar">
+      <div class="mobileBar__top">
+        <span class="mobileBar__site" id="mobileBarSite">hanstan.wedding</span>
+        <button type="button" class="mobileBar__toggle" id="mobileFilterToggle" aria-label="Toggle filters" aria-expanded="false">
+          <span class="mobileBar__toggleIcon">&#9776;</span>
+          <span class="mobileBar__toggleLabel">Filters</span>
+        </button>
+      </div>
+      <div class="mobileBar__chips" id="mobileChipRow"></div>
+      <div class="mobileBar__drawer" id="mobileDrawer" hidden>
+        <div class="mobileBar__budget">
+          <div class="mobileBar__budgetRow">
+            <span class="mobileBar__budgetLabel" id="mobileBudgetLabel">Budget</span>
+            <span class="mobileBar__budgetValue" id="mobileBudgetValue"></span>
+          </div>
+          <input type="range" class="mobileBar__budgetSlider" id="mobileBudgetSlider" />
+        </div>
+        <div class="mobileBar__actions">
+          <button type="button" class="btn btn--ghost btn--sm" id="mobileBtnShowAll">Show all</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="mobileBtnClearAll">Clear all</button>
+        </div>
+        <section class="mobileBar__how" id="mobileHow">
+          <div class="mobileBar__howTitle" id="mobileHowTitle"></div>
+          <ul class="mobileBar__howList" id="mobileHowList"></ul>
+        </section>
+      </div>
+    </div>
+
+    <!-- MOBILE DETAIL OVERLAY (visible < 768px only) -->
+    <div class="mobileDetail" id="mobileDetail" hidden>
+      <div class="mobileDetail__header">
+        <button type="button" class="mobileDetail__back" id="mobileDetailBack" aria-label="Back to catalog">&#8592; Back</button>
+      </div>
+      <div class="mobileDetail__scroll" id="mobileDetailScroll"></div>
+    </div>
+
     <!-- LEFT RAIL -->
     <aside class="rail" aria-label="Filters and instructions">
       <div class="rail__inner">
@@ -123,50 +160,52 @@
     </main>
 
     <!-- RIGHT DETAIL PANEL -->
-    <aside class="detail" id="detail" aria-label="Gift details"></aside>
+    <aside class="right detail" id="detail" aria-label="Gift details"></aside>
 
     <!-- MODAL -->
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
      <div class="modal__backdrop" id="modalBackdrop" aria-hidden="true"></div>
-      <div class="modal__header">
-        <h2 class="modal__title" id="modalTitle"></h2>
-        <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal__body">
-        <div class="modal__left">
-          <form class="gift-form" id="giftForm" name="gift-claim" netlify>
-            <input type="hidden" id="formGiftId" name="giftId" />
-            <input type="hidden" id="formPath" name="path" />
-
-            <div class="form__row">
-              <label class="form__label" id="labelName" for="inputName"></label>
-              <input class="form__input" id="inputName" name="gifterName" type="text" autocomplete="name" />
-              <span class="form__req" id="reqName"></span>
-            </div>
-            <div class="form__row">
-              <label class="form__label" id="labelEmail" for="inputEmail"></label>
-              <input class="form__input" id="inputEmail" name="gifterEmail" type="email" autocomplete="email" />
-              <span class="form__req" id="reqEmail"></span>
-            </div>
-            <div class="form__row">
-              <label class="form__label" id="labelMsg" for="inputMsg"></label>
-              <textarea class="form__input form__textarea" id="inputMsg" name="giftMessage"></textarea>
-              <span class="form__req" id="reqMsg"></span>
-            </div>
-
-            <p class="form__shipping" id="shippingNote"></p>
-            <p class="form__error" id="formError"></p>
-
-            <div class="form__actions">
-              <button type="submit" class="btn btn--primary" id="btnSubmit"></button>
-              <button type="button" class="btn btn--ghost" id="btnCancel"></button>
-            </div>
-          </form>
+      <div class="modal__panel">
+        <div class="modal__header">
+          <h2 class="modal__title" id="modalTitle"></h2>
+          <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
         </div>
-        <div class="modal__right">
-          <h3 class="modal__rightTitle" id="modalRightTitle"></h3>
-          <ul class="modal__rightList" id="modalRightList"></ul>
-          <div class="modal__rightMerchant" id="modalRightMerchant"></div>
+        <div class="modal__body">
+          <div class="modal__left">
+            <form class="gift-form" id="giftForm" name="gift-claim" netlify>
+              <input type="hidden" id="formGiftId" name="giftId" />
+              <input type="hidden" id="formPath" name="path" />
+
+              <div class="form__row">
+                <label class="form__label" id="labelName" for="inputName"></label>
+                <input class="form__input" id="inputName" name="gifterName" type="text" autocomplete="name" />
+                <span class="form__req" id="reqName"></span>
+              </div>
+              <div class="form__row">
+                <label class="form__label" id="labelEmail" for="inputEmail"></label>
+                <input class="form__input" id="inputEmail" name="gifterEmail" type="email" autocomplete="email" />
+                <span class="form__req" id="reqEmail"></span>
+              </div>
+              <div class="form__row">
+                <label class="form__label" id="labelMsg" for="inputMsg"></label>
+                <textarea class="form__input form__textarea" id="inputMsg" name="giftMessage"></textarea>
+                <span class="form__req" id="reqMsg"></span>
+              </div>
+
+              <p class="form__shipping" id="shippingNote"></p>
+              <p class="form__error" id="formError"></p>
+
+              <div class="form__actions">
+                <button type="submit" class="btn btn--primary" id="btnSubmit"></button>
+                <button type="button" class="btn btn--ghost" id="btnCancel"></button>
+              </div>
+            </form>
+          </div>
+          <div class="modal__right">
+            <h3 class="modal__rightTitle" id="modalRightTitle"></h3>
+            <ul class="modal__rightList" id="modalRightList"></ul>
+            <div class="modal__rightMerchant" id="modalRightMerchant"></div>
+          </div>
         </div>
       </div>
     </div>

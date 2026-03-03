@@ -119,6 +119,7 @@
     wireClearButtons();
     wireModal();
     wireScrollLocator();
+    initMobile();
 
     renderAll();
   }
@@ -441,6 +442,7 @@
     btn.addEventListener('click', function () {
       state.selectedGiftId = gift.giftId;
       renderDetail();
+      if (isMobileViewport()) openMobileDetail();
     });
 
     btn.addEventListener('keydown', function (e) {
@@ -448,6 +450,7 @@
         e.preventDefault();
         state.selectedGiftId = gift.giftId;
         renderDetail();
+        if (isMobileViewport()) openMobileDetail();
       }
     });
 
@@ -903,6 +906,7 @@
     persistLocalPendingOverride(gift.giftId, gift.status);
 
     closeModal();
+    if (isMobileViewport()) closeMobileDetail();
     renderAll();
 
     /* [TICKET 3 — R3] Success confirmation banner */
@@ -1140,6 +1144,171 @@
 
     var ms = document.getElementById('middleScroll');
     if (ms) ms.scrollTop = prevScrollTop;
+  }
+
+  /* ============ MOBILE SUPPORT ============ */
+
+  function isMobileViewport() {
+    return window.innerWidth < 768;
+  }
+
+  var mobileEl = {
+    bar: null, chipRow: null, drawer: null, toggle: null,
+    budgetSlider: null, budgetValue: null, budgetLabel: null,
+    btnShowAll: null, btnClearAll: null,
+    howTitle: null, howList: null, site: null,
+    detail: null, detailScroll: null, detailBack: null
+  };
+
+  function initMobile() {
+    mobileEl.bar = document.getElementById('mobileBar');
+    mobileEl.chipRow = document.getElementById('mobileChipRow');
+    mobileEl.drawer = document.getElementById('mobileDrawer');
+    mobileEl.toggle = document.getElementById('mobileFilterToggle');
+    mobileEl.budgetSlider = document.getElementById('mobileBudgetSlider');
+    mobileEl.budgetValue = document.getElementById('mobileBudgetValue');
+    mobileEl.budgetLabel = document.getElementById('mobileBudgetLabel');
+    mobileEl.btnShowAll = document.getElementById('mobileBtnShowAll');
+    mobileEl.btnClearAll = document.getElementById('mobileBtnClearAll');
+    mobileEl.howTitle = document.getElementById('mobileHowTitle');
+    mobileEl.howList = document.getElementById('mobileHowList');
+    mobileEl.site = document.getElementById('mobileBarSite');
+    mobileEl.detail = document.getElementById('mobileDetail');
+    mobileEl.detailScroll = document.getElementById('mobileDetailScroll');
+    mobileEl.detailBack = document.getElementById('mobileDetailBack');
+
+    if (!mobileEl.bar) return;
+
+    buildMobileChips();
+    wireMobileBudget();
+    wireMobileDrawer();
+    wireMobileDetail();
+    applyMobileCopy();
+  }
+
+  function applyMobileCopy() {
+    if (!state.copy) return;
+    mobileEl.site.textContent = state.copy.siteLabel || 'hanstan.wedding';
+    mobileEl.budgetLabel.textContent = state.copy.budget.label || 'Budget';
+    mobileEl.howTitle.textContent = state.copy.leftRail.howItWorksTitle || '';
+    mobileEl.howList.innerHTML = '';
+    (state.copy.leftRail.howItWorksLines || []).forEach(function (line) {
+      var li = document.createElement('li');
+      li.textContent = line;
+      mobileEl.howList.appendChild(li);
+    });
+    mobileEl.btnShowAll.textContent = state.copy.leftRail.showAll || 'Show all';
+    mobileEl.btnClearAll.textContent = state.copy.leftRail.clearAll || 'Clear all';
+  }
+
+  function buildMobileChips() {
+    mobileEl.chipRow.innerHTML = '';
+    CHIP_KEYS.forEach(function (key) {
+      var label = (key === 'Group') ? state.copy.leftRail.chips.Group : state.copy.leftRail.chips[key];
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.setAttribute('data-chip', key);
+      btn.innerHTML = '<span class="chip__label">' + escapeHtml(label) + '</span><span class="chip__indicator">\u25CB</span>';
+      btn.addEventListener('click', function () { toggleChip(key); syncMobileChipUi(); });
+      mobileEl.chipRow.appendChild(btn);
+    });
+    syncMobileChipUi();
+  }
+
+  function syncMobileChipUi() {
+    if (!mobileEl.chipRow) return;
+    var chips = mobileEl.chipRow.querySelectorAll('.chip');
+    chips.forEach(function (chip) {
+      var key = chip.getAttribute('data-chip');
+      var active = state.activeChips.has(key);
+      chip.classList.toggle('chip--active', active);
+      var ind = chip.querySelector('.chip__indicator');
+      if (ind) ind.textContent = active ? '\u25CF' : '\u25CB';
+    });
+  }
+
+  /* Override syncChipUi to also update mobile */
+  var _origSyncChipUi = syncChipUi;
+  syncChipUi = function () {
+    _origSyncChipUi();
+    syncMobileChipUi();
+  };
+
+  function wireMobileBudget() {
+    var cfg = state.copy.budget;
+    var step = cfg.step;
+    mobileEl.budgetSlider.min = String(step);
+    mobileEl.budgetSlider.max = '1000';
+    mobileEl.budgetSlider.step = String(step);
+    mobileEl.budgetSlider.value = String(cfg.default);
+    mobileEl.budgetValue.textContent = '$' + cfg.default;
+
+    mobileEl.budgetSlider.addEventListener('input', function () {
+      var val = Number(mobileEl.budgetSlider.value);
+      state.budget = val;
+      mobileEl.budgetValue.textContent = '$' + val;
+      /* sync desktop slider */
+      el.budgetSlider.value = String(val);
+      el.budgetValue.textContent = '$' + val;
+      renderAll();
+    });
+
+    /* sync mobile when desktop changes */
+    el.budgetSlider.addEventListener('input', function () {
+      mobileEl.budgetSlider.value = el.budgetSlider.value;
+      mobileEl.budgetValue.textContent = '$' + el.budgetSlider.value;
+    });
+  }
+
+  function wireMobileDrawer() {
+    mobileEl.toggle.addEventListener('click', function () {
+      var isOpen = mobileEl.drawer.hidden === false;
+      mobileEl.drawer.hidden = isOpen;
+      mobileEl.toggle.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    mobileEl.btnShowAll.addEventListener('click', function () { clearAllChips(); });
+    mobileEl.btnClearAll.addEventListener('click', function () { clearAllChips(); });
+  }
+
+  function wireMobileDetail() {
+    mobileEl.detailBack.addEventListener('click', function () { closeMobileDetail(); });
+  }
+
+  function openMobileDetail() {
+    if (!mobileEl.detail) return;
+    /* Clone the detail content from the desktop panel into mobile overlay */
+    mobileEl.detailScroll.innerHTML = '';
+    var desktopContent = el.detail.innerHTML;
+    mobileEl.detailScroll.innerHTML = desktopContent;
+
+    /* Re-wire any checkout buttons inside the cloned content */
+    rewireMobileDetailButtons();
+
+    mobileEl.detail.hidden = false;
+    mobileEl.detail.classList.add('mobileDetail--open');
+    document.body.style.overflow = 'hidden';
+    mobileEl.detailScroll.scrollTop = 0;
+  }
+
+  function closeMobileDetail() {
+    if (!mobileEl.detail) return;
+    mobileEl.detail.classList.remove('mobileDetail--open');
+    mobileEl.detail.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function rewireMobileDetailButtons() {
+    /* Re-attach event listeners on the cloned checkout buttons */
+    var linkBtns = mobileEl.detailScroll.querySelectorAll('.linkBtn');
+    linkBtns.forEach(function (btn, idx) {
+      btn.addEventListener('click', function () {
+        var giftId = state.selectedGiftId;
+        var path = idx === 0 ? 'SendFunds' : 'PurchasePersonally';
+        openModal(giftId, path);
+      });
+    });
   }
 
   setInterval(pollRegistryVersion, REGISTRY_POLL_MS);

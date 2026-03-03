@@ -527,3 +527,373 @@ input[type="file"] {
   font-family: var(--font);
   font-size: 13px;
 }
+
+/* ================================================================
+   ADMIN CLASS ALIASES — bridge HTML class names to CSS
+   (HTML uses admin__* naming, original CSS used gifts-* naming)
+   ================================================================ */
+
+.admin__splitPane {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.admin__master {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(216,181,91,0.12);
+  border-radius: var(--r);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  max-height: 500px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin__editor {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(216,181,91,0.12);
+  border-radius: var(--r);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.admin__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin__row--toolbar {
+  margin-bottom: 16px;
+}
+
+.admin__row--toolbar .input { flex: 1; min-width: 120px; }
+.admin__row--toolbar .select { flex: 0 0 150px; }
+
+.admin__ordering {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.admin__sectionTitle {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-family: var(--font);
+}
+
+.admin__panel {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(216,181,91,0.12);
+  border-radius: var(--r);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin__hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin__tabs--sm {
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+/* Standard input/select classes used in admin HTML */
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.20);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+}
+
+.input:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.20);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23cbb9dd' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.select:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE — Admin Phase 2
+   ================================================================ */
+
+@media (max-width: 767px) {
+
+  body { font-size: 14px; }
+
+  .admin { padding: 10px; }
+
+  .admin__header {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  .admin__title { font-size: 22px; }
+  .admin__subtitle { font-size: 12px; }
+
+  /* Tabs: horizontal scroll */
+  .admin__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+  }
+
+  .admin__tabs::-webkit-scrollbar { display: none; }
+
+  .tabBtn {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .tabBtn--sm {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  /* Split pane: stack vertically */
+  .admin__splitPane {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .gifts-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Master list: taller on mobile since it's full width */
+  .admin__master {
+    max-height: 350px;
+    padding: 10px;
+  }
+
+  .gifts-master { max-height: 350px; }
+
+  /* Gift rows: better touch targets */
+  .gift-row {
+    padding: 10px;
+    gap: 8px;
+    min-height: 48px;
+    flex-wrap: wrap;
+  }
+
+  .gift-row__title {
+    flex: 1 1 100%;
+    font-size: 14px;
+  }
+
+  .gift-row__section { font-size: 11px; }
+  .gift-row__price { font-size: 12px; }
+  .gift-row__status { font-size: 10px; }
+
+  /* Editor: full width, natural scroll */
+  .admin__editor {
+    max-height: none;
+    padding: 12px;
+  }
+
+  .gifts-editor-panel {
+    max-height: none;
+    padding: 12px;
+  }
+
+  .editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+  }
+
+  .editor-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Toolbar: stack search and filters */
+  .admin__row--toolbar {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin__row--toolbar .input,
+  .admin__row--toolbar .select,
+  .gifts-toolbar .field__input,
+  .gifts-toolbar .field__select {
+    flex: 1 1 100%;
+    min-width: unset;
+    width: 100%;
+  }
+
+  .gifts-toolbar {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Ordering: full width already, just tighten */
+  .admin__ordering { margin-top: 14px; padding-top: 12px; }
+
+  .admin__tabs.admin__tabs--sm {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .ordering__list {
+    gap: 3px;
+  }
+
+  .order-item {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+
+  /* Copy grid: single column */
+  .copy-grid, .copy__grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Theme grid: single column */
+  .theme-grid, .theme__grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Import/Export panels */
+  .admin__panel {
+    padding: 12px;
+  }
+
+  .ta { font-size: 11px; }
+
+  /* IE grid (import/export) */
+  .ie-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Diagnostics */
+  .diag-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* General inputs: prevent iOS zoom */
+  .input, .select, .field__input, .field__select, .field__textarea, .ta {
+    font-size: 16px;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  .btn--sm { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+
+  /* Control bar: wrap better */
+  #adminControlBar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+  }
+
+  #adminControlBar label,
+  #adminControlBar input,
+  #adminControlBar select,
+  #adminControlBar button {
+    width: 100%;
+    min-height: 40px;
+    font-size: 14px;
+  }
+
+  #adminControlBar .btn {
+    width: 100%;
+  }
+}
+
+/* --- Very small screens --- */
+
+@media (max-width: 399px) {
+  .admin { padding: 6px; }
+
+  .tabBtn { padding: 6px 10px; font-size: 12px; }
+
+  .gift-row { padding: 8px; }
+}
+
+/* --- Tablet (768–1024) --- */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .admin { padding: 14px; }
+
+  .admin__splitPane { gap: 12px; }
+  .gifts-layout { gap: 12px; }
+
+  .theme-grid, .theme__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- Reduced Motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tabBtn, .btn, .gift-row {
+    transition: none;
+  }
+}
