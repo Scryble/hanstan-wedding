@@ -28,7 +28,9 @@
     activeLocatorSection: null,
     locatorEnabled: true,
     modalOpen: false,
-    modalPath: null
+    modalPath: null,
+    modalMode: null,
+    bottomSheetOpen: true
   };
 
   const el = {
@@ -119,6 +121,7 @@
     wireClearButtons();
     wireModal();
     wireScrollLocator();
+    initBottomSheet();
 
     renderAll();
   }
@@ -439,15 +442,23 @@
     btn.setAttribute('data-gift-id', gift.giftId);
 
     btn.addEventListener('click', function () {
-      state.selectedGiftId = gift.giftId;
-      renderDetail();
+      if (isMobileViewport()) {
+        openMobileDetail(gift);
+      } else {
+        state.selectedGiftId = gift.giftId;
+        renderDetail();
+      }
     });
 
     btn.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        state.selectedGiftId = gift.giftId;
-        renderDetail();
+        if (isMobileViewport()) {
+          openMobileDetail(gift);
+        } else {
+          state.selectedGiftId = gift.giftId;
+          renderDetail();
+        }
       }
     });
 
@@ -860,6 +871,7 @@
   function closeModal() {
     state.modalOpen = false;
     state.modalPath = null;
+    state.modalMode = null;
     el.modal.classList.remove('modal--open');
     el.modal.setAttribute('aria-hidden', 'true');
   }
@@ -1082,6 +1094,247 @@
     return '"' + String(url).replace(/"/g, '%22') + '"';
   }
 
+  /* ============ MOBILE: VIEWPORT DETECTION ============ */
+
+  var _mobileQuery = window.matchMedia('(max-width: 767px)');
+
+  function isMobileViewport() {
+    return _mobileQuery.matches;
+  }
+
+  /* ============ MOBILE: BOTTOM SHEET ============ */
+
+  function initBottomSheet() {
+    if (!isMobileViewport()) return;
+
+    var sheet = document.getElementById('bottomSheet');
+    var handle = document.getElementById('bottomSheetHandle');
+    var content = document.getElementById('bottomSheetContent');
+    if (!sheet || !handle || !content) return;
+
+    /* Build chip row */
+    var chipRow = document.createElement('div');
+    chipRow.style.cssText = 'display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;';
+
+    CHIP_KEYS.forEach(function (key) {
+      var label = (key === 'Group') ?
+        state.copy.leftRail.chips.Group : state.copy.leftRail.chips[key];
+      var pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'chip';
+      pill.setAttribute('data-chip', key);
+      pill.style.cssText = 'white-space:nowrap;flex-shrink:0;min-width:unset;width:auto;padding:8px 14px;';
+      pill.innerHTML = '<span class="chip__label">' + escapeHtml(label) + '</span>';
+      pill.addEventListener('click', function () { toggleChip(key); syncBottomSheetControls(); });
+      chipRow.appendChild(pill);
+    });
+    content.appendChild(chipRow);
+
+    /* Build budget slider */
+    var budgetWrap = document.createElement('div');
+    budgetWrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;';
+
+    var budgetLbl = document.createElement('span');
+    budgetLbl.style.cssText = 'font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;';
+    budgetLbl.textContent = state.copy.budget.label;
+
+    var budgetVal = document.createElement('span');
+    budgetVal.id = 'mobileBudgetValue';
+    budgetVal.style.cssText = 'font-size:14px;font-weight:600;min-width:48px;';
+    budgetVal.textContent = '$' + state.budget;
+
+    var slider = document.createElement('input');
+    slider.type = 'range';
+    slider.id = 'mobileBudgetSlider';
+    slider.className = 'rail__budgetSlider';
+    slider.style.flex = '1';
+    var cfg = state.copy.budget;
+    slider.min = String(cfg.step);
+    slider.max = '1000';
+    slider.step = String(cfg.step);
+    slider.value = String(state.budget);
+    slider.addEventListener('input', function () {
+      state.budget = Number(slider.value);
+      budgetVal.textContent = '$' + state.budget;
+      el.budgetSlider.value = String(state.budget);
+      el.budgetValue.textContent = '$' + state.budget;
+      renderAll();
+    });
+
+    budgetWrap.appendChild(budgetLbl);
+    budgetWrap.appendChild(budgetVal);
+    budgetWrap.appendChild(slider);
+    content.appendChild(budgetWrap);
+
+    /* Build action buttons */
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+
+    var btnShow = document.createElement('button');
+    btnShow.type = 'button';
+    btnShow.className = 'btn btn--ghost btn--sm';
+    btnShow.textContent = state.copy.leftRail.showAll;
+    btnShow.addEventListener('click', function () { showAllGifts(); syncBottomSheetControls(); });
+
+    var btnClear = document.createElement('button');
+    btnClear.type = 'button';
+    btnClear.className = 'btn btn--ghost btn--sm';
+    btnClear.textContent = state.copy.leftRail.clearAll;
+    btnClear.addEventListener('click', function () { showAllGifts(); syncBottomSheetControls(); });
+
+    actions.appendChild(btnShow);
+    actions.appendChild(btnClear);
+    content.appendChild(actions);
+
+    /* Show the sheet and open it */
+    sheet.removeAttribute('hidden');
+    sheet.classList.remove('bottomSheet--collapsed');
+    state.bottomSheetOpen = true;
+
+    /* Wire handle toggle */
+    handle.addEventListener('click', function () {
+      state.bottomSheetOpen = !state.bottomSheetOpen;
+      sheet.classList.toggle('bottomSheet--collapsed', !state.bottomSheetOpen);
+    });
+
+    /* Listen for viewport changes */
+    _mobileQuery.addEventListener('change', function (e) {
+      if (e.matches) {
+        sheet.removeAttribute('hidden');
+      } else {
+        sheet.setAttribute('hidden', '');
+      }
+    });
+  }
+
+  function syncBottomSheetControls() {
+    if (!isMobileViewport()) return;
+
+    /* Sync chip active states */
+    var sheet = document.getElementById('bottomSheetContent');
+    if (!sheet) return;
+    var chips = sheet.querySelectorAll('.chip');
+    chips.forEach(function (chip) {
+      var key = chip.getAttribute('data-chip');
+      var active = state.activeChips.has(key);
+      chip.classList.toggle('chip--active', active);
+      var indicator = chip.querySelector('.chip__indicator');
+      if (indicator) indicator.textContent = active ? '\u25CF' : '\u25CB';
+    });
+
+    /* Sync budget slider */
+    var slider = document.getElementById('mobileBudgetSlider');
+    var val = document.getElementById('mobileBudgetValue');
+    if (slider) slider.value = String(state.budget);
+    if (val) val.textContent = '$' + state.budget;
+  }
+
+  /* ============ MOBILE: DETAIL MODAL ============ */
+
+  function openMobileDetail(gift) {
+    if (!gift) return;
+    state.modalMode = 'detail';
+    state.modalOpen = true;
+
+    el.modal.classList.add('modal--open');
+    el.modal.setAttribute('aria-hidden', 'false');
+
+    /* Build simplified detail content */
+    var body = el.modal.querySelector('.modal__body');
+    body.innerHTML = '';
+    body.style.display = 'block';
+
+    var wrap = document.createElement('div');
+    wrap.style.padding = 'var(--s-md)';
+
+    /* Hero */
+    var heroUrl = (gift.images && gift.images[0]) ? gift.images[0] : '/assets/og-image.png';
+    var hero = document.createElement('div');
+    hero.className = 'detailHero';
+    hero.style.backgroundImage = 'url(' + escapeCssUrl(heroUrl) + ')';
+    hero.style.borderRadius = 'var(--r-tile)';
+    hero.style.marginBottom = 'var(--s-sm)';
+    wrap.appendChild(hero);
+
+    /* Title */
+    var titleEl = document.createElement('h2');
+    titleEl.className = 'detailTitle';
+    titleEl.textContent = gift.title;
+    wrap.appendChild(titleEl);
+
+    /* Status + Price */
+    var statusRow = document.createElement('div');
+    statusRow.className = 'detailStatus';
+    var statusLabel = (gift.status === STATUS.Available) ? state.copy.right.statusAvailable
+      : (gift.status === STATUS.Pending) ? state.copy.right.statusPending
+      : state.copy.right.statusClaimed;
+    var pill = document.createElement('div');
+    pill.className = 'statusPill';
+    pill.textContent = statusLabel;
+    var priceEl = document.createElement('div');
+    priceEl.className = 'price';
+    priceEl.textContent = (typeof gift.price === 'number' && gift.price > 0) ? '$' + gift.price : 'Price varies';
+    statusRow.appendChild(pill);
+    statusRow.appendChild(priceEl);
+    wrap.appendChild(statusRow);
+
+    /* Badges */
+    var tags = [];
+    if (gift.isDreamGift) tags.push('Dream');
+    if (gift.isGroupGift) tags.push('Group');
+    if (gift.categoryTags && typeof gift.categoryTags === 'object' && !Array.isArray(gift.categoryTags)) {
+      if (gift.categoryTags.home) tags.push('Home');
+      if (gift.categoryTags.adventure) tags.push('Adventure');
+      if (gift.categoryTags.hobby) tags.push('Hobby');
+    }
+    if (tags.length > 0) {
+      var badgesEl = document.createElement('div');
+      badgesEl.className = 'badges';
+      badgesEl.style.marginBottom = 'var(--s-sm)';
+      tags.forEach(function (t) { badgesEl.appendChild(buildBadge(t)); });
+      wrap.appendChild(badgesEl);
+    }
+
+    /* Short description */
+    var desc = document.createElement('p');
+    desc.className = 'detailDesc';
+    desc.textContent = gift.shortDescription || '';
+    wrap.appendChild(desc);
+
+    /* Checkout buttons (only if Available) */
+    if (gift.status === STATUS.Available) {
+      var btn1 = document.createElement('button');
+      btn1.type = 'button';
+      btn1.className = 'linkBtn';
+      btn1.innerHTML = '<span>' + escapeHtml(state.copy.right.pathSendFunds) + '</span><span>\u2192</span>';
+      btn1.addEventListener('click', function () {
+        /* Transition from detail mode to claim mode */
+        state.modalMode = 'claim';
+        body.innerHTML = '';
+        body.style.display = '';
+        openModal(gift.giftId, 'SendFunds');
+      });
+      wrap.appendChild(btn1);
+
+      var btn2 = document.createElement('button');
+      btn2.type = 'button';
+      btn2.className = 'linkBtn';
+      btn2.innerHTML = '<span>' + escapeHtml(state.copy.right.pathPurchase) + '</span><span>\u2192</span>';
+      btn2.addEventListener('click', function () {
+        state.modalMode = 'claim';
+        body.innerHTML = '';
+        body.style.display = '';
+        openModal(gift.giftId, 'PurchasePersonally');
+      });
+      wrap.appendChild(btn2);
+    }
+
+    body.appendChild(wrap);
+
+    /* Update modal title */
+    el.modalTitle.textContent = gift.title;
+  }
+
   /* ============ VERSION POLLING (Section 12.2) ============ */
 
   const REGISTRY_POLL_MS = 10000;
@@ -1137,6 +1390,7 @@
     }
 
     renderAll();
+    syncBottomSheetControls();
 
     var ms = document.getElementById('middleScroll');
     if (ms) ms.scrollTop = prevScrollTop;
