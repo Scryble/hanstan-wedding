@@ -662,3 +662,248 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+
+/* ---- HW-010a: FORM FIELD CLASSES (modal claim form) ---- */
+
+.gift-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-sm);
+}
+
+.form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form__label {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.form__input, .form__textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(216,181,91,0.20);
+  background: rgba(0,0,0,0.18);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.form__input:focus, .form__textarea:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.form__textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.form__req {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.form__shipping {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ---- HW-010a: MODAL CLOSE BUTTON ---- */
+
+.modal__close {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(216,181,91,0.18);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-body);
+}
+
+.modal__close:hover { background: rgba(255,255,255,0.06); }
+.modal__close:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---- HW-010a: COMPACT BUTTON VARIANT ---- */
+
+.btn--sm {
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+/* ---- HW-010a: DREAM COLUMN OVERFLOW FIX ---- */
+
+.dream__col {
+  min-width: 0;
+}
+
+/* ---- HW-010a: DESKTOP-HIDE RULES FOR MOBILE/BOTTOM-SHEET ELEMENTS ---- */
+
+.mobileBar,
+.mobileDetail,
+.bottomSheet {
+  display: none;
+}
+
+/* ---- HW-010b: BOTTOM SHEET COMPONENT (base styles, hidden on desktop by rule above) ---- */
+
+.bottomSheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--rail-bg);
+  border-top: 1px solid rgba(216,181,91,0.16);
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+.bottomSheet--collapsed {
+  transform: translateY(calc(100% - 44px));
+  overflow: hidden;
+}
+
+.bottomSheet__handle {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottomSheet__handle::before {
+  content: '';
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(216,181,91,0.35);
+}
+
+.bottomSheet__content {
+  padding: var(--s-sm) var(--s-md) var(--s-md);
+  max-height: 45vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Z-index safety: hide bottom sheet when modal is open */
+.modal--open ~ .bottomSheet { display: none; }
+
+/* ---- HW-010b: RESPONSIVE BREAKPOINT ---- */
+
+@media (max-width: 767px) {
+
+  /* --- Hide desktop panels --- */
+  .rail { display: none; }
+  .right.detail { display: none; }
+  .mobileBar { display: none; }
+  .mobileDetail { display: none; }
+  #dreamBlock { display: none !important; }
+  .dream__grid { display: none; }
+
+  /* --- Single-column app grid --- */
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* --- Middle panel full-width --- */
+  .middle {
+    border-right: none;
+  }
+
+  .middle__scroll {
+    padding-bottom: 200px; /* space for bottom sheet */
+  }
+
+  /* --- Two-column tile grid --- */
+  .tiles {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s-xs);
+  }
+
+  .tile__img {
+    height: 70px;
+  }
+
+  .tile__body {
+    padding: var(--s-xs);
+  }
+
+  .tile__title {
+    font-size: 13px;
+  }
+
+  .tile__desc {
+    font-size: 11px;
+  }
+
+  .tile__price {
+    font-size: 12px;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+
+  /* --- Show bottom sheet --- */
+  .bottomSheet {
+    display: block;
+  }
+
+  /* --- Modal: full-width on mobile --- */
+  .modal__panel {
+    width: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+    overflow-y: auto;
+  }
+
+  .modal__body {
+    grid-template-columns: 1fr;
+  }
+
+  .modal__right {
+    border-left: none;
+    border-top: 1px solid rgba(216,181,91,0.10);
+  }
+
+  .modal__header {
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+    z-index: 10;
+  }
+
+  /* --- Outside budget slots: single column on mobile --- */
+  .outside__slots {
+    grid-template-columns: 1fr;
+  }
+}
