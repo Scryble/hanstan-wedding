@@ -456,14 +456,44 @@
     var form = document.createElement('div');
     form.className = 'editor-form';
 
-    form.appendChild(makeField('text', 'Gift ID', gift.giftId, function (v) { gift.giftId = v; }));
+    form.appendChild(makeField('text', 'Gift ID', gift.giftId, function (v) {
+      var oldId = gift.giftId;
+      gift.giftId = v;
+      var so = data.ordering.sectionOrder;
+      ['Home', 'Adventure', 'Hobby'].forEach(function (sec) {
+        if (so[sec]) {
+          var idx = so[sec].indexOf(oldId);
+          if (idx >= 0) so[sec][idx] = v;
+        }
+      });
+      var dr = data.ordering.dreamOrder;
+      ['Stan', 'Hannah'].forEach(function (owner) {
+        if (dr[owner]) {
+          var idx = dr[owner].indexOf(oldId);
+          if (idx >= 0) dr[owner][idx] = v;
+        }
+      });
+      renderOrderingList();
+      updateDirtyIndicator();
+    }));
     form.appendChild(makeField('text', 'Title', gift.title, function (v) { gift.title = v; updateDirtyIndicator(); }));
     form.appendChild(makeField('text', 'Short Description', gift.shortDescription || '', function (v) { gift.shortDescription = v; }));
     form.appendChild(makeTextarea('Long Description', gift.longDescription || '', function (v) { gift.longDescription = v; }));
 
     var row1 = document.createElement('div');
     row1.className = 'editor-row';
-    row1.appendChild(makeSelect('Primary Section', ['Home', 'Adventure', 'Hobby'], gift.primarySection, function (v) { gift.primarySection = v; }));
+    row1.appendChild(makeSelect('Primary Section', ['Home', 'Adventure', 'Hobby'], gift.primarySection, function (v) {
+      var oldSection = gift.primarySection;
+      saveSnapshot();
+      gift.primarySection = v;
+      var so = data.ordering.sectionOrder;
+      if (so[oldSection]) {
+        so[oldSection] = so[oldSection].filter(function (id) { return id !== gift.giftId; });
+      }
+      ensureOrdering(gift);
+      renderOrderingList();
+      updateDirtyIndicator();
+    }));
     row1.appendChild(makeField('number', 'Price', gift.price || '', function (v) { gift.price = v ? Number(v) : null; }));
     form.appendChild(row1);
 
