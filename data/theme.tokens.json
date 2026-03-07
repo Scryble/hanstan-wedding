@@ -1,10 +1,10 @@
 {
   "colors": {
     "railBg": "#1b1026",
-    "panelBg": "#120b1a",
-    "cardBg": "#1a1224",
+    "panelBg": "#0e0814",
+    "cardBg": "#1e1430",
     "textPrimary": "#f3ecff",
-    "textMuted": "#cbb9dd",
+    "textMuted": "#d9cce8",
     "gold": "#d8b55b",
     "chipActiveBg": "#d8b55b",
     "chipActiveText": "#1b1026",
