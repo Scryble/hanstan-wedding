@@ -1,3 +1,13 @@
+/* === CHANGE LOG ===
+ * HW-012E (2026-03-06): Tile overlay variants (--pending purple, --claimed gold), softened
+ *   tile--disabled, statusPill variants, cta--primary/secondary + hints, tile--flash click.
+ * HW-012B (2026-03-06): Group gift budget bypass, outside budget/price-unknown group exclusions,
+ *   image fallback probes in buildTile + buildDetailContent, guestNotes rendering.
+ * HW-012A (2026-03-06): Two-column layout, unified detail modal, dream section removal,
+ *   mobile dead code removal (openMobileDetail, bottomSheet, mobileBar, mobileDetail),
+ *   submitGiftForm banner redirect to detailModal.
+ * === END CHANGE LOG === */
+
 /* Registry Phase 2 (GiftRegistryP2)
    Renders the 3-panel registry via Netlify Function endpoints.
    Phase 2: ordering integration, price-unknown section, UX polish, status locks.
@@ -28,9 +38,7 @@
     activeLocatorSection: null,
     locatorEnabled: true,
     modalOpen: false,
-    modalPath: null,
-    modalMode: null,
-    bottomSheetOpen: true
+    modalPath: null
   };
 
   const el = {
@@ -60,7 +68,9 @@
     outsideSlotGroup: document.getElementById('outsideSlotGroup'),
     priceUnknownBlock: document.getElementById('priceUnknownBlock'),
     tilesUnknown: document.getElementById('tilesUnknown'),
-    detail: document.getElementById('detail'),
+    detailModal: document.getElementById('detailModal'),
+    detailModalBack: document.getElementById('detailModalBack'),
+    detailModalScroll: document.getElementById('detailModalScroll'),
     middleScroll: document.getElementById('middleScroll'),
 
     budgetSlider: document.getElementById('budgetSlider'),
@@ -112,16 +122,12 @@
     applyCopy(copy);
     hydrateLocalPendingOverrides();
 
-    if (state.gifts.length > 0) {
-      state.selectedGiftId = state.gifts[0].giftId;
-    }
-
     buildChips();
     wireBudgetSlider();
     wireClearButtons();
     wireModal();
     wireScrollLocator();
-    initBottomSheet();
+    el.detailModalBack.addEventListener('click', closeDetailModal);
 
     renderAll();
   }
@@ -275,7 +281,7 @@
 
   function renderAll() {
     var visible = getVisibleGifts();
-    renderDreamBlocks(visible);
+    el.dreamBlock.style.display = 'none';
     renderSection('Home', visible, el.tilesHome);
     renderSection('Adventure', visible, el.tilesAdventure);
     renderSection('Hobby', visible, el.tilesHobby);
@@ -287,11 +293,6 @@
     document.getElementById('sectionAdventure').style.display = el.tilesAdventure.children.length ? '' : 'none';
     document.getElementById('sectionHobby').style.display = el.tilesHobby.children.length ? '' : 'none';
 
-    if (!state.selectedGiftId || !state.gifts.find(function (g) { return g.giftId === state.selectedGiftId; })) {
-      state.selectedGiftId = (state.gifts[0] && state.gifts[0].giftId) ?
-        state.gifts[0].giftId : null;
-    }
-    renderDetail();
     updateScrollLocator();
   }
 
@@ -305,7 +306,7 @@
     return state.gifts.filter(function (g) {
       var chipPass = chips.size === 0 ? true : passesAnyChip(g, chips);
       var hasPrice = typeof g.price === 'number' && g.price > 0;
-      var budgetPass = hasPrice && (g.price >= low) && (g.price <= high);
+      var budgetPass = g.isGroupGift || (hasPrice && (g.price >= low) && (g.price <= high));
       return chipPass && budgetPass;
     });
   }
@@ -316,7 +317,7 @@
     var low = cfg.outsideLowMultiplier * B;
     var high = cfg.outsideHighMultiplier * B;
     return visibleByChipOnly.filter(function (g) {
-      return (typeof g.price === 'number') && (g.price > low) && (g.price <= high);
+      return !g.isGroupGift && (typeof g.price === 'number') && (g.price > low) && (g.price <= high);
     });
   }
 
@@ -363,25 +364,6 @@
     return dream.concat(nonDream);
   }
 
-  /* --- Dream Blocks --- */
-
-  function renderDreamBlocks(visible) {
-    var so = state.ordering;
-    var stanGifts = visible.filter(function (g) { return g.isDreamGift && g.dreamOwner === 'Stan'; });
-    var hannahGifts = visible.filter(function (g) { return g.isDreamGift && g.dreamOwner === 'Hannah'; });
-
-    stanGifts = sortByOrdering(stanGifts, so.dreamOrder && so.dreamOrder.Stan);
-    hannahGifts = sortByOrdering(hannahGifts, so.dreamOrder && so.dreamOrder.Hannah);
-
-    el.dreamStan.innerHTML = '';
-    el.dreamHannah.innerHTML = '';
-    stanGifts.forEach(function (g) { el.dreamStan.appendChild(buildTile(g, false)); });
-    hannahGifts.forEach(function (g) { el.dreamHannah.appendChild(buildTile(g, false)); });
-
-    var anyDream = stanGifts.length > 0 || hannahGifts.length > 0;
-    el.dreamBlock.style.display = anyDream ? 'block' : 'none';
-  }
-
   /* --- Sections --- */
 
   function renderSection(section, visible, container) {
@@ -424,7 +406,7 @@
       return state.activeChips.size === 0 ? true : passesAnyChip(g, state.activeChips);
     });
     var unknown = chipOnly.filter(function (g) {
-      return g.allowGifterProvidedVariant === true && (typeof g.price !== 'number' || g.price <= 0 || g.price === null);
+      return !g.isGroupGift && g.allowGifterProvidedVariant === true && (typeof g.price !== 'number' || g.price <= 0 || g.price === null);
     });
 
     el.tilesUnknown.innerHTML = '';
@@ -442,29 +424,33 @@
     btn.setAttribute('data-gift-id', gift.giftId);
 
     btn.addEventListener('click', function () {
-      if (isMobileViewport()) {
-        openMobileDetail(gift);
-      } else {
-        state.selectedGiftId = gift.giftId;
-        renderDetail();
-      }
+      btn.classList.add('tile--flash');
+      setTimeout(function () {
+        btn.classList.remove('tile--flash');
+        openDetailModal(gift.giftId);
+      }, 120);
     });
 
     btn.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        if (isMobileViewport()) {
-          openMobileDetail(gift);
-        } else {
-          state.selectedGiftId = gift.giftId;
-          renderDetail();
-        }
+        btn.classList.add('tile--flash');
+        setTimeout(function () {
+          btn.classList.remove('tile--flash');
+          openDetailModal(gift.giftId);
+        }, 120);
       }
     });
 
+    var imgUrl = gift.images && gift.images[0] ? gift.images[0] : '/assets/og-image.png';
     var img = document.createElement('div');
     img.className = 'tile__img';
-    img.style.backgroundImage = 'url(' + escapeCssUrl(gift.images && gift.images[0] ? gift.images[0] : '/assets/og-image.png') + ')';
+    img.style.backgroundImage = 'url(' + escapeCssUrl(imgUrl) + ')';
+    if (imgUrl !== '/assets/og-image.png') {
+      var probe = new Image();
+      probe.onerror = function () { img.style.backgroundImage = "url('/assets/og-image.png')"; };
+      probe.src = imgUrl;
+    }
 
     var body = document.createElement('div');
     body.className = 'tile__body';
@@ -502,7 +488,7 @@
     if (gift.status === STATUS.Pending || gift.status === STATUS.Claimed) {
       btn.classList.add('tile--disabled');
       var overlay = document.createElement('div');
-      overlay.className = 'tile__overlay';
+      overlay.className = 'tile__overlay tile__overlay--' + (gift.status === STATUS.Pending ? 'pending' : 'claimed');
       overlay.textContent = (gift.status === STATUS.Pending) ?
         state.copy.right.statusPending : state.copy.right.statusClaimed;
       btn.appendChild(overlay);
@@ -518,12 +504,29 @@
     return b;
   }
 
-  /* --- Detail Panel --- */
+  /* --- Detail Modal (HW-012A) --- */
 
-  function renderDetail() {
-    var gift = state.gifts.find(function (g) { return g.giftId === state.selectedGiftId; }) || state.gifts[0] || null;
-    if (!gift) { el.detail.innerHTML = ''; return; }
+  function openDetailModal(giftId) {
+    var gift = state.gifts.find(function (g) { return g.giftId === giftId; });
+    if (!gift) return;
+    state.selectedGiftId = giftId;
 
+    var content = buildDetailContent(gift);
+    el.detailModalScroll.innerHTML = '';
+    el.detailModalScroll.appendChild(content);
+    el.detailModal.hidden = false;
+    el.detailModal.classList.add('detailModal--open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDetailModal() {
+    el.detailModal.classList.remove('detailModal--open');
+    el.detailModal.hidden = true;
+    document.body.style.overflow = '';
+    state.selectedGiftId = null;
+  }
+
+  function buildDetailContent(gift) {
     var statusLabel = (gift.status === STATUS.Available) ? state.copy.right.statusAvailable
       : (gift.status === STATUS.Pending) ? state.copy.right.statusPending
       : state.copy.right.statusClaimed;
@@ -539,11 +542,7 @@
       gift.categoryTags.forEach(function (t) { tags.push(t); });
     }
 
-    // Phase 2: hero uses selectedGift.images[0]
-    var heroUrl = (gift.images && gift.images[0]) ?
-      gift.images[0] : '/assets/og-image.png';
-
-    el.detail.innerHTML = '';
+    var heroUrl = (gift.images && gift.images[0]) ? gift.images[0] : '/assets/og-image.png';
 
     var card = document.createElement('div');
     card.className = 'detailCard';
@@ -551,6 +550,11 @@
     var hero = document.createElement('div');
     hero.className = 'detailHero';
     hero.style.backgroundImage = 'url(' + escapeCssUrl(heroUrl) + ')';
+    if (heroUrl !== '/assets/og-image.png') {
+      var probe = new Image();
+      probe.onerror = function () { hero.style.backgroundImage = "url('/assets/og-image.png')"; };
+      probe.src = heroUrl;
+    }
 
     var body = document.createElement('div');
     body.className = 'detailBody';
@@ -563,7 +567,9 @@
     statusRow.className = 'detailStatus';
 
     var pill = document.createElement('div');
-    pill.className = 'statusPill';
+    var pillVariant = (gift.status === STATUS.Available) ? 'available'
+      : (gift.status === STATUS.Pending) ? 'pending' : 'claimed';
+    pill.className = 'statusPill statusPill--' + pillVariant;
     pill.textContent = statusLabel;
 
     var priceEl = document.createElement('div');
@@ -605,6 +611,13 @@
     descWrap.appendChild(toggle);
     descWrap.appendChild(pLong);
 
+    if (gift.guestNotes && gift.guestNotes.trim()) {
+      var notesEl = document.createElement('p');
+      notesEl.className = 'detailGuestNotes';
+      notesEl.textContent = gift.guestNotes;
+      descWrap.appendChild(notesEl);
+    }
+
     body.appendChild(titleEl);
     body.appendChild(statusRow);
     body.appendChild(badgesEl);
@@ -624,8 +637,8 @@
 
     card.appendChild(hero);
     card.appendChild(body);
-    el.detail.appendChild(card);
     updateModalMerchantPane(gift);
+    return card;
   }
 
   function buildCheckoutBlock(gift) {
@@ -642,15 +655,23 @@
 
     var btn1 = document.createElement('button');
     btn1.type = 'button';
-    btn1.className = 'linkBtn';
-    btn1.innerHTML = '<span>' + escapeHtml(state.copy.right.pathSendFunds) + '</span><span>\u2192</span>';
+    btn1.className = 'cta--primary';
+    btn1.textContent = state.copy.right.pathSendFunds;
     btn1.addEventListener('click', function () { openModal(gift.giftId, 'SendFunds'); });
+
+    var hint1 = document.createElement('p');
+    hint1.className = 'cta__hint';
+    hint1.textContent = 'We receive funds directly \u2014 simplest for everyone.';
 
     var btn2 = document.createElement('button');
     btn2.type = 'button';
-    btn2.className = 'linkBtn';
-    btn2.innerHTML = '<span>' + escapeHtml(state.copy.right.pathPurchase) + '</span><span>\u2192</span>';
+    btn2.className = 'cta--secondary';
+    btn2.textContent = state.copy.right.pathPurchase;
     btn2.addEventListener('click', function () { openModal(gift.giftId, 'PurchasePersonally'); });
+
+    var hint2 = document.createElement('p');
+    hint2.className = 'cta__hint';
+    hint2.textContent = 'You buy from a retailer and ship to us.';
 
     var expectTitle = document.createElement('div');
     expectTitle.className = 'blockTitle';
@@ -689,7 +710,9 @@
     blk.appendChild(title);
     blk.appendChild(intro);
     blk.appendChild(btn1);
+    blk.appendChild(hint1);
     blk.appendChild(btn2);
+    blk.appendChild(hint2);
     blk.appendChild(expectTitle);
     blk.appendChild(ul);
     blk.appendChild(merchTitle);
@@ -871,7 +894,6 @@
   function closeModal() {
     state.modalOpen = false;
     state.modalPath = null;
-    state.modalMode = null;
     el.modal.classList.remove('modal--open');
     el.modal.setAttribute('aria-hidden', 'true');
   }
@@ -924,7 +946,9 @@
     var successBanner = document.createElement('div');
     successBanner.className = 'claim-success';
     successBanner.textContent = successMsg;
-    el.detail.insertBefore(successBanner, el.detail.firstChild);
+    if (el.detailModalScroll) {
+      el.detailModalScroll.insertBefore(successBanner, el.detailModalScroll.firstChild);
+    }
     setTimeout(function () { if (successBanner.parentNode) successBanner.parentNode.removeChild(successBanner); }, 6000);
 
     /* [TICKET 3 — R6] Form error handling with .catch() */
@@ -941,7 +965,9 @@
       var warnBanner = document.createElement('div');
       warnBanner.className = 'claim-warning';
       warnBanner.textContent = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored.';
-      el.detail.insertBefore(warnBanner, el.detail.firstChild);
+      if (el.detailModalScroll) {
+        el.detailModalScroll.insertBefore(warnBanner, el.detailModalScroll.firstChild);
+      }
       setTimeout(function () { if (warnBanner.parentNode) warnBanner.parentNode.removeChild(warnBanner); }, 8000);
     });
   }
@@ -1094,247 +1120,6 @@
     return '"' + String(url).replace(/"/g, '%22') + '"';
   }
 
-  /* ============ MOBILE: VIEWPORT DETECTION ============ */
-
-  var _mobileQuery = window.matchMedia('(max-width: 767px)');
-
-  function isMobileViewport() {
-    return _mobileQuery.matches;
-  }
-
-  /* ============ MOBILE: BOTTOM SHEET ============ */
-
-  function initBottomSheet() {
-    if (!isMobileViewport()) return;
-
-    var sheet = document.getElementById('bottomSheet');
-    var handle = document.getElementById('bottomSheetHandle');
-    var content = document.getElementById('bottomSheetContent');
-    if (!sheet || !handle || !content) return;
-
-    /* Build chip row */
-    var chipRow = document.createElement('div');
-    chipRow.style.cssText = 'display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;';
-
-    CHIP_KEYS.forEach(function (key) {
-      var label = (key === 'Group') ?
-        state.copy.leftRail.chips.Group : state.copy.leftRail.chips[key];
-      var pill = document.createElement('button');
-      pill.type = 'button';
-      pill.className = 'chip';
-      pill.setAttribute('data-chip', key);
-      pill.style.cssText = 'white-space:nowrap;flex-shrink:0;min-width:unset;width:auto;padding:8px 14px;';
-      pill.innerHTML = '<span class="chip__label">' + escapeHtml(label) + '</span>';
-      pill.addEventListener('click', function () { toggleChip(key); syncBottomSheetControls(); });
-      chipRow.appendChild(pill);
-    });
-    content.appendChild(chipRow);
-
-    /* Build budget slider */
-    var budgetWrap = document.createElement('div');
-    budgetWrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;';
-
-    var budgetLbl = document.createElement('span');
-    budgetLbl.style.cssText = 'font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;';
-    budgetLbl.textContent = state.copy.budget.label;
-
-    var budgetVal = document.createElement('span');
-    budgetVal.id = 'mobileBudgetValue';
-    budgetVal.style.cssText = 'font-size:14px;font-weight:600;min-width:48px;';
-    budgetVal.textContent = '$' + state.budget;
-
-    var slider = document.createElement('input');
-    slider.type = 'range';
-    slider.id = 'mobileBudgetSlider';
-    slider.className = 'rail__budgetSlider';
-    slider.style.flex = '1';
-    var cfg = state.copy.budget;
-    slider.min = String(cfg.step);
-    slider.max = '1000';
-    slider.step = String(cfg.step);
-    slider.value = String(state.budget);
-    slider.addEventListener('input', function () {
-      state.budget = Number(slider.value);
-      budgetVal.textContent = '$' + state.budget;
-      el.budgetSlider.value = String(state.budget);
-      el.budgetValue.textContent = '$' + state.budget;
-      renderAll();
-    });
-
-    budgetWrap.appendChild(budgetLbl);
-    budgetWrap.appendChild(budgetVal);
-    budgetWrap.appendChild(slider);
-    content.appendChild(budgetWrap);
-
-    /* Build action buttons */
-    var actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
-
-    var btnShow = document.createElement('button');
-    btnShow.type = 'button';
-    btnShow.className = 'btn btn--ghost btn--sm';
-    btnShow.textContent = state.copy.leftRail.showAll;
-    btnShow.addEventListener('click', function () { showAllGifts(); syncBottomSheetControls(); });
-
-    var btnClear = document.createElement('button');
-    btnClear.type = 'button';
-    btnClear.className = 'btn btn--ghost btn--sm';
-    btnClear.textContent = state.copy.leftRail.clearAll;
-    btnClear.addEventListener('click', function () { showAllGifts(); syncBottomSheetControls(); });
-
-    actions.appendChild(btnShow);
-    actions.appendChild(btnClear);
-    content.appendChild(actions);
-
-    /* Show the sheet and open it */
-    sheet.removeAttribute('hidden');
-    sheet.classList.remove('bottomSheet--collapsed');
-    state.bottomSheetOpen = true;
-
-    /* Wire handle toggle */
-    handle.addEventListener('click', function () {
-      state.bottomSheetOpen = !state.bottomSheetOpen;
-      sheet.classList.toggle('bottomSheet--collapsed', !state.bottomSheetOpen);
-    });
-
-    /* Listen for viewport changes */
-    _mobileQuery.addEventListener('change', function (e) {
-      if (e.matches) {
-        sheet.removeAttribute('hidden');
-      } else {
-        sheet.setAttribute('hidden', '');
-      }
-    });
-  }
-
-  function syncBottomSheetControls() {
-    if (!isMobileViewport()) return;
-
-    /* Sync chip active states */
-    var sheet = document.getElementById('bottomSheetContent');
-    if (!sheet) return;
-    var chips = sheet.querySelectorAll('.chip');
-    chips.forEach(function (chip) {
-      var key = chip.getAttribute('data-chip');
-      var active = state.activeChips.has(key);
-      chip.classList.toggle('chip--active', active);
-      var indicator = chip.querySelector('.chip__indicator');
-      if (indicator) indicator.textContent = active ? '\u25CF' : '\u25CB';
-    });
-
-    /* Sync budget slider */
-    var slider = document.getElementById('mobileBudgetSlider');
-    var val = document.getElementById('mobileBudgetValue');
-    if (slider) slider.value = String(state.budget);
-    if (val) val.textContent = '$' + state.budget;
-  }
-
-  /* ============ MOBILE: DETAIL MODAL ============ */
-
-  function openMobileDetail(gift) {
-    if (!gift) return;
-    state.modalMode = 'detail';
-    state.modalOpen = true;
-
-    el.modal.classList.add('modal--open');
-    el.modal.setAttribute('aria-hidden', 'false');
-
-    /* Build simplified detail content */
-    var body = el.modal.querySelector('.modal__body');
-    body.innerHTML = '';
-    body.style.display = 'block';
-
-    var wrap = document.createElement('div');
-    wrap.style.padding = 'var(--s-md)';
-
-    /* Hero */
-    var heroUrl = (gift.images && gift.images[0]) ? gift.images[0] : '/assets/og-image.png';
-    var hero = document.createElement('div');
-    hero.className = 'detailHero';
-    hero.style.backgroundImage = 'url(' + escapeCssUrl(heroUrl) + ')';
-    hero.style.borderRadius = 'var(--r-tile)';
-    hero.style.marginBottom = 'var(--s-sm)';
-    wrap.appendChild(hero);
-
-    /* Title */
-    var titleEl = document.createElement('h2');
-    titleEl.className = 'detailTitle';
-    titleEl.textContent = gift.title;
-    wrap.appendChild(titleEl);
-
-    /* Status + Price */
-    var statusRow = document.createElement('div');
-    statusRow.className = 'detailStatus';
-    var statusLabel = (gift.status === STATUS.Available) ? state.copy.right.statusAvailable
-      : (gift.status === STATUS.Pending) ? state.copy.right.statusPending
-      : state.copy.right.statusClaimed;
-    var pill = document.createElement('div');
-    pill.className = 'statusPill';
-    pill.textContent = statusLabel;
-    var priceEl = document.createElement('div');
-    priceEl.className = 'price';
-    priceEl.textContent = (typeof gift.price === 'number' && gift.price > 0) ? '$' + gift.price : 'Price varies';
-    statusRow.appendChild(pill);
-    statusRow.appendChild(priceEl);
-    wrap.appendChild(statusRow);
-
-    /* Badges */
-    var tags = [];
-    if (gift.isDreamGift) tags.push('Dream');
-    if (gift.isGroupGift) tags.push('Group');
-    if (gift.categoryTags && typeof gift.categoryTags === 'object' && !Array.isArray(gift.categoryTags)) {
-      if (gift.categoryTags.home) tags.push('Home');
-      if (gift.categoryTags.adventure) tags.push('Adventure');
-      if (gift.categoryTags.hobby) tags.push('Hobby');
-    }
-    if (tags.length > 0) {
-      var badgesEl = document.createElement('div');
-      badgesEl.className = 'badges';
-      badgesEl.style.marginBottom = 'var(--s-sm)';
-      tags.forEach(function (t) { badgesEl.appendChild(buildBadge(t)); });
-      wrap.appendChild(badgesEl);
-    }
-
-    /* Short description */
-    var desc = document.createElement('p');
-    desc.className = 'detailDesc';
-    desc.textContent = gift.shortDescription || '';
-    wrap.appendChild(desc);
-
-    /* Checkout buttons (only if Available) */
-    if (gift.status === STATUS.Available) {
-      var btn1 = document.createElement('button');
-      btn1.type = 'button';
-      btn1.className = 'linkBtn';
-      btn1.innerHTML = '<span>' + escapeHtml(state.copy.right.pathSendFunds) + '</span><span>\u2192</span>';
-      btn1.addEventListener('click', function () {
-        /* Transition from detail mode to claim mode */
-        state.modalMode = 'claim';
-        body.innerHTML = '';
-        body.style.display = '';
-        openModal(gift.giftId, 'SendFunds');
-      });
-      wrap.appendChild(btn1);
-
-      var btn2 = document.createElement('button');
-      btn2.type = 'button';
-      btn2.className = 'linkBtn';
-      btn2.innerHTML = '<span>' + escapeHtml(state.copy.right.pathPurchase) + '</span><span>\u2192</span>';
-      btn2.addEventListener('click', function () {
-        state.modalMode = 'claim';
-        body.innerHTML = '';
-        body.style.display = '';
-        openModal(gift.giftId, 'PurchasePersonally');
-      });
-      wrap.appendChild(btn2);
-    }
-
-    body.appendChild(wrap);
-
-    /* Update modal title */
-    el.modalTitle.textContent = gift.title;
-  }
-
   /* ============ VERSION POLLING (Section 12.2) ============ */
 
   const REGISTRY_POLL_MS = 10000;
@@ -1381,16 +1166,8 @@
     /* [TICKET 4 — R1] Re-hydrate local overrides after polling refresh */
     hydrateLocalPendingOverrides();
 
-    if (prevSelectedId && state.gifts.find(function (g) { return g.giftId === prevSelectedId; })) {
-      state.selectedGiftId = prevSelectedId;
-    } else if (state.gifts.length > 0) {
-      state.selectedGiftId = state.gifts[0].giftId;
-    } else {
-      state.selectedGiftId = null;
-    }
-
+    closeDetailModal();
     renderAll();
-    syncBottomSheetControls();
 
     var ms = document.getElementById('middleScroll');
     if (ms) ms.scrollTop = prevScrollTop;
