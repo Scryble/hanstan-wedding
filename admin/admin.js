@@ -1,3 +1,12 @@
+/* === CHANGE LOG ===
+ * HW-012D (2026-03-06): ensureDreamOrdering + removeDreamOrderingFrom handle 'Both' owner;
+ *   Dream Owner dropdown expanded to ['Stan', 'Hannah', 'Both'].
+ * HW-012C (2026-03-06): Batch import overhaul — normalizeMerchant, stripTrackingParams,
+ *   CANONICAL_FIELDS, validateBatchItem (14 checks), renderPreviewCard, previewBatch pipeline,
+ *   importBatch giftId passthrough + field passthrough + duplicate handling,
+ *   ensureOrdering position argument, batchFileInput wiring.
+ * === END CHANGE LOG === */
+
 /* Admin Dashboard Phase 3 (NETLIFYADMIN-T2-WRITE-PATH-ADMIN-LIVE)
    Loads draft/published bundle from Netlify Blobs.
    Supports Save Draft, Publish Live, Undo Publish (server), Undo Draft Edit (local, N=10).
@@ -540,7 +549,7 @@
     flagRow.appendChild(dreamCheck);
 
     if (gift.isDreamGift) {
-      flagRow.appendChild(makeSelect('Dream Owner', ['Stan', 'Hannah'], gift.dreamOwner || 'Stan', function (v) {
+      flagRow.appendChild(makeSelect('Dream Owner', ['Stan', 'Hannah', 'Both'], gift.dreamOwner || 'Stan', function (v) {
         saveSnapshot();
         var old = gift.dreamOwner;
         gift.dreamOwner = v;
@@ -749,17 +758,33 @@
 
   /* ============ ORDERING ============ */
 
-  function ensureOrdering(gift) {
+  function ensureOrdering(gift, position) {
     var so = data.ordering.sectionOrder;
     if (!so[gift.primarySection]) so[gift.primarySection] = [];
-    if (so[gift.primarySection].indexOf(gift.giftId) < 0) so[gift.primarySection].push(gift.giftId);
+    if (so[gift.primarySection].indexOf(gift.giftId) < 0) {
+      if (position === 'top') {
+        so[gift.primarySection].unshift(gift.giftId);
+      } else if (typeof position === 'number') {
+        var idx = Math.max(0, Math.min(position, so[gift.primarySection].length));
+        so[gift.primarySection].splice(idx, 0, gift.giftId);
+      } else {
+        so[gift.primarySection].push(gift.giftId);
+      }
+    }
     if (gift.isDreamGift && gift.dreamOwner) ensureDreamOrdering(gift.giftId, gift.dreamOwner);
   }
 
   function ensureDreamOrdering(giftId, owner) {
     var d = data.ordering.dreamOrder;
-    if (!d[owner]) d[owner] = [];
-    if (d[owner].indexOf(giftId) < 0) d[owner].push(giftId);
+    if (owner === 'Both') {
+      ['Stan', 'Hannah'].forEach(function (o) {
+        if (!d[o]) d[o] = [];
+        if (d[o].indexOf(giftId) < 0) d[o].push(giftId);
+      });
+    } else {
+      if (!d[owner]) d[owner] = [];
+      if (d[owner].indexOf(giftId) < 0) d[owner].push(giftId);
+    }
   }
 
   function removeDreamOrdering(giftId) {
@@ -771,7 +796,13 @@
 
   function removeDreamOrderingFrom(giftId, owner) {
     var d = data.ordering.dreamOrder;
-    if (d[owner]) d[owner] = d[owner].filter(function (id) { return id !== giftId; });
+    if (owner === 'Both') {
+      ['Stan', 'Hannah'].forEach(function (o) {
+        if (d[o]) d[o] = d[o].filter(function (id) { return id !== giftId; });
+      });
+    } else {
+      if (d[owner]) d[owner] = d[owner].filter(function (id) { return id !== giftId; });
+    }
   }
 
   function removeFromOrdering(giftId) {
@@ -987,9 +1018,195 @@
     });
     document.getElementById('btnImportBundle').addEventListener('click', importBundle);
     document.getElementById('btnUndo').addEventListener('click', undoLastAction);
+    document.getElementById('batchFileInput').addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('batchInput').value = e.target.result;
+      };
+      reader.readAsText(file);
+    });
   }
 
   var batchItems = [];
+
+  function normalizeMerchant(m) {
+    return {
+      merchantName: m.merchantName || m.name || m.merchant || '',
+      merchantURL: stripTrackingParams(m.merchantURL || m.url || m.link || m.href || ''),
+      merchantReason: m.merchantReason || m.reason || m.note || ''
+    };
+  }
+
+  function stripTrackingParams(url) {
+    if (!url) return url;
+    try {
+      var u = new URL(url);
+      var paramsToStrip = [];
+      u.searchParams.forEach(function (v, k) {
+        if (/^utm_/i.test(k) || /^(ref|ref_|tag|linkCode|linkId|camp|creative|th|psc)$/i.test(k)) {
+          paramsToStrip.push(k);
+        }
+      });
+      paramsToStrip.forEach(function (k) { u.searchParams.delete(k); });
+      return u.toString();
+    } catch (e) {
+      return url;
+    }
+  }
+
+  var CANONICAL_FIELDS = [
+    'giftId', 'title', 'shortDescription', 'longDescription', 'images',
+    'categoryTags', 'primarySection', 'isDreamGift', 'dreamOwner',
+    'isGroupGift', 'price', 'currency', 'allowGifterProvidedVariant',
+    'preferredMerchants', 'alternativeMerchants', 'acquisitionNotes',
+    'adminNotes', 'guestNotes', 'status', 'claimerName', 'claimerEmail',
+    'claimerMessage', 'coupleReplyToClaimer', 'contributors',
+    'groupThankYouNote', 'orderPosition'
+  ];
+
+  function validateBatchItem(item, index, allItems, existingGifts) {
+    var issues = [];
+
+    // Check 1: Missing title
+    if (!item.title || item.title.trim() === '') {
+      issues.push({ severity: 'ERROR', message: 'Gift at index ' + index + ' has no title.' });
+    }
+
+    // Check 2: Invalid primarySection
+    if (['Home', 'Adventure', 'Hobby'].indexOf(item.primarySection) < 0) {
+      issues.push({ severity: 'ERROR', message: "Gift '" + (item.title || 'Untitled') + "' has invalid section '" + item.primarySection + "'. Must be Home, Adventure, or Hobby." });
+    }
+
+    // Check 3: Invalid dreamOwner
+    if (item.isDreamGift === true && ['Stan', 'Hannah', 'Both'].indexOf(item.dreamOwner) < 0) {
+      issues.push({ severity: 'ERROR', message: "Gift '" + (item.title || 'Untitled') + "' is a dream gift but has invalid owner '" + item.dreamOwner + "'." });
+    }
+
+    // Check 4: Dream flag mismatch
+    if (item.isDreamGift !== true && item.dreamOwner != null) {
+      issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "' has a dreamOwner but isDreamGift is false. Owner will be ignored." });
+    }
+
+    // Check 5: Invisible gift
+    var hasValidPrice = typeof item.price === 'number' && item.price > 0;
+    if (!hasValidPrice && item.allowGifterProvidedVariant !== true && item.isGroupGift !== true) {
+      issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "' has no price, is not variant-allowed, and is not a group gift. It will be invisible on the registry." });
+    }
+
+    // Checks 6-9: Merchant validation (after normalization — merchants already normalized in-place)
+    (item.preferredMerchants || []).forEach(function (m, mi) {
+      if (!m.merchantName) {
+        issues.push({ severity: 'ERROR', message: "Gift '" + (item.title || 'Untitled') + "', merchant at index " + mi + ": missing merchant name." });
+      }
+      if (!m.merchantURL) {
+        issues.push({ severity: 'ERROR', message: "Gift '" + (item.title || 'Untitled') + "', merchant at index " + mi + ": missing merchant URL." });
+      }
+      if (m.merchantURL && !/^https?:\/\//.test(m.merchantURL)) {
+        issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "', merchant at index " + mi + ": URL may be malformed." });
+      }
+    });
+
+    // Check 10: High price non-group
+    if (typeof item.price === 'number' && item.price > 500 && item.isGroupGift !== true) {
+      issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "' is $" + item.price + " but not a group gift. Intentional?" });
+    }
+
+    // Check 11: Duplicate giftId
+    if (item.giftId) {
+      var existingMatch = existingGifts.find(function (eg) { return eg.giftId === item.giftId; });
+      var batchMatch = allItems.find(function (other, oi) { return oi !== index && other.giftId === item.giftId; });
+      if (existingMatch || batchMatch) {
+        issues.push({ severity: 'WARNING', message: "Duplicate of '" + item.giftId + "'. Will import with new ID and [DUPLICATE] tag for review." });
+        item._isDuplicate = true;
+        item._originalGiftId = item.giftId;
+      }
+    }
+
+    // Check 12: Unrecognized top-level keys
+    var unrecognized = Object.keys(item).filter(function (k) {
+      return k.charAt(0) !== '_' && CANONICAL_FIELDS.indexOf(k) < 0;
+    });
+    if (unrecognized.length > 0) {
+      issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "' has unrecognized fields: " + unrecognized.join(', ') + ". These will be ignored." });
+    }
+
+    // Check 13: Variant + valid price
+    if (item.allowGifterProvidedVariant === true && typeof item.price === 'number' && item.price > 0) {
+      issues.push({ severity: 'INFO', message: "Gift '" + (item.title || 'Untitled') + "' has both a price and variant flag. It will render in budget zone, not Price Unknown." });
+    }
+
+    // Check 14: Placeholder image
+    if (!item.images || item.images.length === 0 || item.images[0] === '/assets/og-image.png') {
+      issues.push({ severity: 'WARNING', message: "Gift '" + (item.title || 'Untitled') + "' is using the default placeholder image." });
+    }
+
+    return issues;
+  }
+
+  function renderPreviewCard(item, index, issues) {
+    var div = document.createElement('div');
+    div.className = 'batch-item';
+
+    var hasError = issues.some(function (i) { return i.severity === 'ERROR'; });
+    var hasWarn = issues.some(function (i) { return i.severity === 'WARNING'; });
+    div.style.borderLeft = '4px solid ' + (hasError ? '#e74c3c' : hasWarn ? '#f39c12' : '#2ecc71');
+
+    var title = item.title || ('Untitled #' + (index + 1));
+    var price = typeof item.price === 'number' ? '$' + item.price : 'no price';
+    var section = item.primarySection || 'Home';
+    var flags = [];
+    if (item.isDreamGift) flags.push('Dream');
+    if (item.isGroupGift) flags.push('Group');
+    if (item.allowGifterProvidedVariant) flags.push('Variant');
+
+    var header = document.createElement('div');
+    header.innerHTML = '<strong>' + esc(title) + '</strong> — ' + price +
+      ' — <span style="opacity:0.7">' + esc(section) + '</span>' +
+      (flags.length ? ' — ' + flags.join(', ') : '');
+    div.appendChild(header);
+
+    // Merchant list
+    if (item.preferredMerchants && item.preferredMerchants.length > 0) {
+      var merchDiv = document.createElement('div');
+      merchDiv.style.fontSize = '12px';
+      merchDiv.style.opacity = '0.7';
+      merchDiv.style.marginTop = '2px';
+      merchDiv.textContent = 'Merchants: ' + item.preferredMerchants.map(function (m) {
+        return m.merchantName + ' (' + m.merchantURL + ')';
+      }).join(', ');
+      div.appendChild(merchDiv);
+    }
+
+    // Image thumbnail
+    var imgUrl = item.images && item.images[0] ? item.images[0] : null;
+    if (imgUrl) {
+      var thumb = document.createElement('img');
+      thumb.src = imgUrl;
+      thumb.style.maxHeight = '40px';
+      thumb.style.maxWidth = '60px';
+      thumb.style.marginTop = '4px';
+      thumb.style.borderRadius = '4px';
+      thumb.onerror = function () {
+        this.style.border = '2px solid #f39c12';
+        this.src = '/assets/og-image.png';
+      };
+      div.appendChild(thumb);
+    }
+
+    // Validation messages
+    issues.forEach(function (issue) {
+      var msg = document.createElement('div');
+      msg.className = 'batch-item__warn';
+      var color = issue.severity === 'ERROR' ? '#e74c3c' : issue.severity === 'WARNING' ? '#f39c12' : '#999';
+      var icon = issue.severity === 'ERROR' ? '\u274C' : issue.severity === 'WARNING' ? '\u26A0' : '\u2139';
+      msg.innerHTML = '<span style="color:' + color + '">' + icon + ' ' + esc(issue.severity) + ':</span> ' + esc(issue.message);
+      div.appendChild(msg);
+    });
+
+    return div;
+  }
 
   /* [TICKET 6 — A2] Accept bare array or {items:[...]} without batchName requirement */
   function previewBatch() {
@@ -1009,25 +1226,66 @@
         return;
       }
 
-      items.forEach(function (item, i) {
-        var div = document.createElement('div');
-        div.className = 'batch-item';
-        var title = item.title || ('Untitled #' + (i + 1));
-        var price = item.price;
-        var variant = item.allowGifterProvidedVariant === true;
-        var warn = '';
-        if (!variant && (typeof price !== 'number' || price <= 0) && item.preferredMerchants && item.preferredMerchants.length > 0) {
-          warn = 'Publish gating: merchant-linked gift requires numeric price when allowGifterProvidedVariant=false';
+      // Phase 1: Normalize merchants in-place
+      items.forEach(function (item) {
+        if (item.preferredMerchants && Array.isArray(item.preferredMerchants)) {
+          item.preferredMerchants = item.preferredMerchants.map(normalizeMerchant);
         }
-        div.innerHTML = '<strong>' + esc(title) + '</strong> \u2014 ' + (typeof price === 'number' ? '$' + price : 'no price') +
-          (variant ? ' (variant allowed)' : '') + (warn ? '<div class="batch-item__warn">\u26A0 ' + esc(warn) + '</div>' : '');
-        area.appendChild(div);
+        if (item.alternativeMerchants && Array.isArray(item.alternativeMerchants)) {
+          item.alternativeMerchants = item.alternativeMerchants.map(normalizeMerchant);
+        }
       });
 
+      // Phase 2: Validate
+      var totalErrors = 0;
+      var totalWarnings = 0;
+      items.forEach(function (item, i) {
+        var issues = validateBatchItem(item, i, items, data.gifts);
+        item._issues = issues;
+        issues.forEach(function (issue) {
+          if (issue.severity === 'ERROR') totalErrors++;
+          if (issue.severity === 'WARNING') totalWarnings++;
+        });
+      });
+
+      // Phase 3: Render summary
+      var summary = document.createElement('div');
+      summary.style.marginBottom = '12px';
+      summary.style.fontWeight = '600';
+      if (totalErrors > 0) {
+        summary.style.color = '#e74c3c';
+        summary.textContent = items.length + ' items — ' + totalErrors + ' error(s) must be fixed before import' +
+          (totalWarnings > 0 ? ', ' + totalWarnings + ' warning(s)' : '');
+      } else if (totalWarnings > 0) {
+        summary.style.color = '#f39c12';
+        summary.textContent = items.length + ' items ready to import (' + totalWarnings + ' warning(s))';
+      } else {
+        summary.style.color = '#2ecc71';
+        summary.textContent = items.length + ' items ready to import';
+      }
+      area.appendChild(summary);
+
+      // Phase 4: Render preview cards
+      items.forEach(function (item, i) {
+        area.appendChild(renderPreviewCard(item, i, item._issues || []));
+      });
+
+      // Phase 5: Gate
       batchItems = items;
-      document.getElementById('btnBatchImport').disabled = false;
+      var importBtn = document.getElementById('btnBatchImport');
+      if (totalErrors > 0) {
+        importBtn.disabled = true;
+        importBtn.textContent = 'Fix ' + totalErrors + ' error(s) to import';
+      } else if (totalWarnings > 0) {
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import ' + items.length + ' items (' + totalWarnings + ' warnings)';
+      } else {
+        importBtn.disabled = false;
+        importBtn.textContent = 'Import ' + items.length + ' items';
+      }
+
       msg.className = 'msg msg--success';
-      msg.textContent = items.length + ' items ready to import as Draft.';
+      msg.textContent = 'Preview complete.';
     } catch (e) {
       msg.className = 'msg msg--error';
       msg.textContent = 'Invalid JSON: ' + e.message;
@@ -1038,11 +1296,39 @@
     if (batchItems.length === 0) return;
     saveSnapshot();
 
+    var duplicateCounters = {};
+
     batchItems.forEach(function (item) {
-      var id = 'gift-batch-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+      // giftId passthrough with duplicate handling
+      var id;
+      if (item._isDuplicate) {
+        id = 'gift-batch-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+      } else if (typeof item.giftId === 'string' && item.giftId.trim()) {
+        id = item.giftId.trim();
+      } else {
+        id = 'gift-batch-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+      }
+
+      // Duplicate title suffix
+      var title = item.title || 'Untitled';
+      if (item._isDuplicate) {
+        var origId = item._originalGiftId || 'unknown';
+        if (!duplicateCounters[origId]) duplicateCounters[origId] = 0;
+        duplicateCounters[origId]++;
+        var suffix = duplicateCounters[origId] === 1 ? '[DUPLICATE]' : '[DUPLICATE ' + duplicateCounters[origId] + ']';
+        title = title + ' ' + suffix;
+      }
+
+      // Duplicate adminNotes
+      var adminNotes = item.adminNotes || '';
+      if (item._isDuplicate) {
+        adminNotes = "REVIEW NEEDED: This item was imported as a duplicate of '" + (item._originalGiftId || 'unknown') + "'. Verify whether this is intentional or should be merged/removed." +
+          (adminNotes ? '\n' + adminNotes : '');
+      }
+
       var g = {
         giftId: id,
-        title: item.title || 'Untitled',
+        title: title,
         shortDescription: item.shortDescription || '',
         longDescription: item.longDescription || '',
         images: item.images || ['/assets/og-image.png'],
@@ -1055,19 +1341,22 @@
         currency: 'USD',
         allowGifterProvidedVariant: item.allowGifterProvidedVariant || false,
         preferredMerchants: item.preferredMerchants || [],
-        alternativeMerchants: [],
-        acquisitionNotes: '',
+        alternativeMerchants: item.alternativeMerchants || [],
+        acquisitionNotes: item.acquisitionNotes || '',
+        adminNotes: adminNotes,
+        guestNotes: item.guestNotes || '',
         status: 'Available',
         claimerName: '', claimerEmail: '', claimerMessage: '', coupleReplyToClaimer: '',
         contributors: [],
         groupThankYouNote: ''
       };
       data.gifts.push(g);
-      ensureOrdering(g);
+      ensureOrdering(g, item.orderPosition);
     });
 
     batchItems = [];
     document.getElementById('btnBatchImport').disabled = true;
+    document.getElementById('btnBatchImport').textContent = 'Import Batch';
     document.getElementById('batchMsg').className = 'msg msg--success';
     document.getElementById('batchMsg').textContent = 'Imported. Gifts added as Available (Draft).';
     document.getElementById('batchPreviewArea').innerHTML = '';
