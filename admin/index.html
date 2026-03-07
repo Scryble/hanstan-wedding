@@ -106,6 +106,10 @@
       <h2 class="admin__sectionTitle">Batch Import</h2>
 
       <div class="admin__panel">
+        <div class="admin__row">
+          <label class="label" for="batchFileInput">Or upload a JSON file:</label>
+          <input class="input" type="file" id="batchFileInput" accept=".json" />
+        </div>
         <label class="label" for="batchInput">Paste batch JSON array of gifts:</label>
         <textarea class="ta" id="batchInput" rows="10" placeholder='[{"giftId": "…", "title": "…", …}]'></textarea>
         <div class="admin__row">
