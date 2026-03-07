@@ -28,43 +28,6 @@
 <body>
   <div class="app" id="app">
 
-    <!-- MOBILE FILTER BAR (visible < 768px only) -->
-    <div class="mobileBar" id="mobileBar">
-      <div class="mobileBar__top">
-        <span class="mobileBar__site" id="mobileBarSite">hanstan.wedding</span>
-        <button type="button" class="mobileBar__toggle" id="mobileFilterToggle" aria-label="Toggle filters" aria-expanded="false">
-          <span class="mobileBar__toggleIcon">&#9776;</span>
-          <span class="mobileBar__toggleLabel">Filters</span>
-        </button>
-      </div>
-      <div class="mobileBar__chips" id="mobileChipRow"></div>
-      <div class="mobileBar__drawer" id="mobileDrawer" hidden>
-        <div class="mobileBar__budget">
-          <div class="mobileBar__budgetRow">
-            <span class="mobileBar__budgetLabel" id="mobileBudgetLabel">Budget</span>
-            <span class="mobileBar__budgetValue" id="mobileBudgetValue"></span>
-          </div>
-          <input type="range" class="mobileBar__budgetSlider" id="mobileBudgetSlider" />
-        </div>
-        <div class="mobileBar__actions">
-          <button type="button" class="btn btn--ghost btn--sm" id="mobileBtnShowAll">Show all</button>
-          <button type="button" class="btn btn--ghost btn--sm" id="mobileBtnClearAll">Clear all</button>
-        </div>
-        <section class="mobileBar__how" id="mobileHow">
-          <div class="mobileBar__howTitle" id="mobileHowTitle"></div>
-          <ul class="mobileBar__howList" id="mobileHowList"></ul>
-        </section>
-      </div>
-    </div>
-
-    <!-- MOBILE DETAIL OVERLAY (visible < 768px only) -->
-    <div class="mobileDetail" id="mobileDetail" hidden>
-      <div class="mobileDetail__header">
-        <button type="button" class="mobileDetail__back" id="mobileDetailBack" aria-label="Back to catalog">&#8592; Back</button>
-      </div>
-      <div class="mobileDetail__scroll" id="mobileDetailScroll"></div>
-    </div>
-
     <!-- LEFT RAIL -->
     <aside class="rail" aria-label="Filters and instructions">
       <div class="rail__inner">
@@ -159,9 +122,6 @@
       </div><!-- end middle__scroll -->
     </main>
 
-    <!-- RIGHT DETAIL PANEL -->
-    <aside class="right detail" id="detail" aria-label="Gift details"></aside>
-
     <!-- MODAL -->
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
      <div class="modal__backdrop" id="modalBackdrop" aria-hidden="true"></div>
@@ -211,6 +171,14 @@
     </div>
 
   </div><!-- end .app -->
+
+<!-- DETAIL MODAL -->
+<div class="detailModal" id="detailModal" hidden>
+  <div class="detailModal__header">
+    <button type="button" class="detailModal__back" id="detailModalBack">&larr; Back to gifts</button>
+  </div>
+  <div class="detailModal__scroll" id="detailModalScroll"></div>
+</div>
 
   <script src="./registry.js"></script>
 </body>
