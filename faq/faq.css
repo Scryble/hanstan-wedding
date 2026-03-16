@@ -1,5 +1,5 @@
 /* ============================================
-   FAQ PAGE â€“ Minimal Art Deco / High Readability
+   FAQ PAGE — Minimal Art Deco / High Readability
    ============================================ */
 
 /* Make the FAQ page feel like a readable panel on top of the existing mosaic */
@@ -88,7 +88,7 @@
 }
 
 .faq-item summary::before {
-  content: 'ï¼‹';
+  content: '\FF0B';
   display: inline-block;
   width: 1.25em;
   margin-right: 0.4rem;
@@ -97,7 +97,7 @@
 }
 
 .faq-item[open] summary::before {
-  content: 'â€”';
+  content: '\2014';
 }
 
 .faq-answer {
