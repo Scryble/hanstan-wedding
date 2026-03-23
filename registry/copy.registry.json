@@ -4,7 +4,7 @@
     "howItWorksTitle": "How this works",
     "howItWorksLines": [
       "Browse in the middle",
-      "Click a gift to view details on the right",
+      "Click a gift to see full details",
       "Use toggles here to filter",
       "Shipping details are sent by email during checkout"
     ],
@@ -25,8 +25,8 @@
     "sectionHome": "Home",
     "sectionAdventure": "Adventure",
     "sectionHobby": "Hobby",
-    "outsideBudgetTitle": "Just outside budget",
-    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budget\u2026 shown because they're special picks."
+    "outsideBudgetTitle": "Worth stretching for",
+    "outsideBudgetBlurb": "A little beyond your set range \u2014 but these are picks we\u2019d especially love."
   },
   "right": {
     "statusAvailable": "Available",
