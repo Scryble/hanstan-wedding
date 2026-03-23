@@ -1,4 +1,6 @@
 /* === CHANGE LOG ===
+ * DA-UNIFIED (2026-03-17): Status chip moved from absolute overlay on image to
+ *   flow element in tile body before title.
  * HW-012E (2026-03-06): Tile overlay variants (--pending purple, --claimed gold), softened
  *   tile--disabled, statusPill variants, cta--primary/secondary + hints, tile--flash click.
  * HW-012B (2026-03-06): Group gift budget bypass, outside budget/price-unknown group exclusions,
@@ -476,6 +478,16 @@
     if (gift.isDreamGift) badges.appendChild(buildBadge('Dream Gift'));
     if (gift.isGroupGift) badges.appendChild(buildBadge('Group Gift'));
 
+    // DA-UNIFIED: Status chip in body flow, before title
+    if (gift.status === STATUS.Pending || gift.status === STATUS.Claimed) {
+      btn.classList.add('tile--disabled');
+      var overlay = document.createElement('div');
+      overlay.className = 'tile__overlay tile__overlay--' + (gift.status === STATUS.Pending ? 'pending' : 'claimed');
+      overlay.textContent = (gift.status === STATUS.Pending) ?
+        state.copy.right.statusPending : state.copy.right.statusClaimed;
+      body.appendChild(overlay);
+    }
+
     body.appendChild(title);
     if (gift.shortDescription) body.appendChild(desc);
     body.appendChild(priceEl);
@@ -483,16 +495,6 @@
 
     btn.appendChild(img);
     btn.appendChild(body);
-
-    // Status overlay: Pending and Claimed grayed identically, overlay text differs
-    if (gift.status === STATUS.Pending || gift.status === STATUS.Claimed) {
-      btn.classList.add('tile--disabled');
-      var overlay = document.createElement('div');
-      overlay.className = 'tile__overlay tile__overlay--' + (gift.status === STATUS.Pending ? 'pending' : 'claimed');
-      overlay.textContent = (gift.status === STATUS.Pending) ?
-        state.copy.right.statusPending : state.copy.right.statusClaimed;
-      btn.appendChild(overlay);
-    }
 
     return btn;
   }
