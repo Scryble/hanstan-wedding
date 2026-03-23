@@ -43,14 +43,18 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 600px;
+  max-width: 680px;
   min-height: 100vh;
   min-height: 100dvh;
   
-  /* No background - text floats on mosaic */
-  background: transparent;
+  /* Translucent paper-glass panel over mosaic */
+  background: rgba(250, 247, 242, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(61, 58, 54, 0.08);
+  border-radius: 24px;
   
-  padding: clamp(2rem, 5vh, 4rem) clamp(1.5rem, 5vw, 3rem);
+  padding: clamp(2.5rem, 6vh, 4.5rem) clamp(2rem, 6vw, 3.5rem);
   
   display: flex;
   flex-direction: column;
@@ -284,15 +288,15 @@ body {
    SECONDARY ACTIONS
    ============================================ */
 .secondary-actions {
-  margin-top: clamp(1rem, 2.5vh, 1.5rem);
+  margin-top: clamp(1.25rem, 3vh, 1.75rem);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .secondary-link {
-  font-size: clamp(0.75rem, 1.8vw, 0.95rem);
-  letter-spacing: 0.1em;
+  font-size: clamp(0.8rem, 2vw, 1.1rem);
+  letter-spacing: 0.08em;
   font-weight: 500;
   color: #4a4640;
   text-decoration: none;
@@ -308,7 +312,8 @@ body {
 
 .divider {
   color: #6a655d;
-  font-size: clamp(0.65rem, 1.5vw, 0.85rem);
+  font-size: clamp(0.6rem, 1.3vw, 0.75rem);
+  opacity: 0.55;
 }
 
 /* ============================================
@@ -316,9 +321,9 @@ body {
    ============================================ */
 @media (min-width: 768px) {
   body {
-    /* Switch to landscape background */
+    /* Switch to landscape background — slightly stronger overlay for center calm */
     background: 
-      linear-gradient(rgba(250, 247, 242, 0.55), rgba(250, 247, 242, 0.55)),
+      linear-gradient(rgba(250, 247, 242, 0.60), rgba(250, 247, 242, 0.60)),
       url('assets/mosaic-background-landscape.png') center/cover no-repeat fixed,
       #f5f2ed;
   }
