@@ -633,25 +633,15 @@
     statusSec.className = 'editor-section';
     statusSec.innerHTML = '<div class="editor-section-title">Status & Messages</div>';
 
-    var statusRow = document.createElement('div');
+   var statusRow = document.createElement('div');
     statusRow.className = 'editor-row';
-    var statusDisplay = document.createElement('div');
-    statusDisplay.innerHTML = '<span style="color:var(--muted);font-size:12px;text-transform:uppercase;">Current Status:</span> <strong>' + esc(gift.status) + '</strong>';
-    statusRow.appendChild(statusDisplay);
-
-    if (gift.status === 'ClaimPendingConfirmation') {
-      var confirmBtn = document.createElement('button');
-      confirmBtn.type = 'button';
-      confirmBtn.className = 'btn btn--primary';
-      confirmBtn.textContent = 'Confirm \u2192 Claimed';
-      confirmBtn.addEventListener('click', function () {
-        saveSnapshot();
-        gift.status = 'Claimed';
-        renderGiftEditor(gift);
-        renderGiftsList();
-      });
-      statusRow.appendChild(confirmBtn);
-    }
+    statusRow.appendChild(makeSelect('Status', ['Available', 'ClaimPendingConfirmation', 'Claimed', 'Hidden'], gift.status, function (v) {
+      saveSnapshot();
+      gift.status = v;
+      renderGiftEditor(gift);
+      renderGiftsList();
+      updateDirtyIndicator();
+    }));
     statusSec.appendChild(statusRow);
 
     if (!gift.isGroupGift) {
