@@ -400,6 +400,7 @@
       var statusCls = 'gift-row__status';
       if (g.status === 'Available') statusCls += ' gift-row__status--available';
       else if (g.status === 'ClaimPendingConfirmation') statusCls += ' gift-row__status--pending';
+      else if (g.status === 'Hidden') statusCls += ' gift-row__status--hidden';
       else statusCls += ' gift-row__status--claimed';
 
       var status = document.createElement('span');
