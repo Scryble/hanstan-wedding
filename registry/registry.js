@@ -382,6 +382,7 @@
 
   function renderOutsideBudget() {
     var chipOnly = state.gifts.filter(function (g) {
+      if (g.status === 'Hidden') return false;
       return state.activeChips.size === 0 ? true : passesAnyChip(g, state.activeChips);
     });
     var eligible = getEligibleOutsideBudget(chipOnly);
@@ -406,6 +407,7 @@
 
   function renderPriceUnknown() {
     var chipOnly = state.gifts.filter(function (g) {
+      if (g.status === 'Hidden') return false;
       return state.activeChips.size === 0 ? true : passesAnyChip(g, state.activeChips);
     });
     var unknown = chipOnly.filter(function (g) {
