@@ -132,6 +132,7 @@ body {
 .gift-row__status--available { background: rgba(74,222,128,0.15); color: var(--success); }
 .gift-row__status--pending { background: rgba(216,181,91,0.15); color: var(--gold); }
 .gift-row__status--claimed { background: rgba(255,90,122,0.15); color: var(--danger); }
+.gift-row__status--hidden { background: rgba(136,136,136,0.15); color: #888; opacity: 0.6; }
 
 .gift-row__price { font-size: 13px; color: var(--gold); font-weight: 600; min-width: 60px; text-align: right; }
 
