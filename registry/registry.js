@@ -305,7 +305,8 @@
     var low = cfg.rangeLowMultiplier * B;
     var high = cfg.rangeHighMultiplier * B;
 
-    return state.gifts.filter(function (g) {
+   return state.gifts.filter(function (g) {
+      if (g.status === 'Hidden') return false;
       var chipPass = chips.size === 0 ? true : passesAnyChip(g, chips);
       var hasPrice = typeof g.price === 'number' && g.price > 0;
       var budgetPass = g.isGroupGift || (hasPrice && (g.price >= low) && (g.price <= high));
