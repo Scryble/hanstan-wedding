@@ -706,12 +706,12 @@
 
     var delBtn = document.createElement('button');
     delBtn.type = 'button'; delBtn.className = 'btn btn--danger'; delBtn.textContent = 'Delete';
-    if (gift.status !== 'Available') {
-      delBtn.disabled = true;
-      delBtn.title = 'Delete only allowed for Available gifts (preserves pending/claimed truth)';
-    }
     delBtn.addEventListener('click', function () {
-      if (gift.status !== 'Available') return;
+      var msg = 'Delete "' + (gift.title || gift.giftId) + '"?';
+      if (gift.status !== 'Available') {
+        msg += '\n\nThis gift has status: ' + gift.status + '. Claim data will be lost.';
+      }
+      if (!confirm(msg)) return;
       saveSnapshot();
       data.gifts = data.gifts.filter(function (g) { return g.giftId !== gift.giftId; });
       removeFromOrdering(gift.giftId);
