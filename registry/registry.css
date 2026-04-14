@@ -1013,3 +1013,16 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.payGrid{margin:12px 0;padding:12px;border:1px solid rgba(216,181,91,0.18);border-radius:12px;background:rgba(255,255,255,0.03);}
+.payGrid__title{font-weight:600;font-size:14px;margin-bottom:8px;}
+.payGrid__amountLabel{display:block;font-size:12px;color:#cbb9dd;margin-bottom:6px;}
+.payGrid__amountInput{width:100%;padding:8px;border-radius:8px;border:1px solid #444;background:rgba(0,0,0,0.2);color:#f3ecff;font-size:14px;margin-top:4px;box-sizing:border-box;}
+.payGrid__chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px;}
+.payGrid__chip{padding:6px 12px;border:1px solid #666;border-radius:14px;background:rgba(255,255,255,0.05);color:#f3ecff;cursor:pointer;font-size:13px;}
+.payGrid__btnRow{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
+.payGrid__btn{padding:12px 16px;border:none;border-radius:10px;font-weight:600;font-size:14px;color:#fff;cursor:pointer;}
+.payGrid__btn:disabled{cursor:not-allowed;}
+.payGrid__btn--venmo{background:#3D95CE;}
+.payGrid__btn--paypal{background:#003087;}
+.payGrid__btn--zelle{background:#6D1ED4;}

@@ -21,6 +21,11 @@
   const PATH_GIFTS = '/.netlify/functions/data-gifts';
   const PATH_ORDERING = '/.netlify/functions/data-ordering-registry';
 
+  const PAYMENT_CONFIG = { venmoHandle:'YOUR_VENMO_HANDLE', paypalMeLink:'https://paypal.me/YOUR_PAYPAL_ME_LINK', zelleContact:'YOUR_ZELLE_CONTACT' };
+  function payMemo(g){return 'HanStan Wedding: '+(g&&g.title?g.title:'Gift');}
+  function payFmt(n){var v=Number(n);return (!isFinite(v)||v<=0)?'0':v.toFixed(2).replace(/\.00$/,'');}
+  function buildPayLinks(g,a){var amt=payFmt(a),memo=encodeURIComponent(payMemo(g));return{venmo:'https://venmo.com/'+encodeURIComponent(PAYMENT_CONFIG.venmoHandle)+'?txn=pay&amount='+amt+'&note='+memo,paypal:PAYMENT_CONFIG.paypalMeLink.replace(/\/+$/,'')+'/'+amt+'USD',zelle:PAYMENT_CONFIG.zelleContact};}
+
   const CHIP_KEYS = ['Dream', 'Home', 'Adventure', 'Hobby', 'Group'];
 
   const STATUS = {
@@ -712,10 +717,21 @@
     });
     merch.appendChild(list);
 
+    var payWrap=document.createElement('div');payWrap.className='payGrid';
+    var pT=document.createElement('div');pT.className='payGrid__title';pT.textContent=(state.copy.right.payGridTitle||'Send via payment app');payWrap.appendChild(pT);
+    var amtInput=null;
+    if(gift.isGroupGift){var lab=document.createElement('label');lab.className='payGrid__amountLabel';lab.textContent=(state.copy.right.payGridAmountLabel||'Contribution amount (USD, min $5)');amtInput=document.createElement('input');amtInput.type='number';amtInput.min='5';amtInput.step='1';amtInput.className='payGrid__amountInput';lab.appendChild(amtInput);payWrap.appendChild(lab);var chipsDiv=document.createElement('div');chipsDiv.className='payGrid__chips';['25','50','100','250'].forEach(function(v){var c=document.createElement('button');c.type='button';c.className='payGrid__chip';c.textContent='$'+v;c.addEventListener('click',function(){amtInput.value=v;refreshPB();});chipsDiv.appendChild(c);});payWrap.appendChild(chipsDiv);}
+    var pRow=document.createElement('div');pRow.className='payGrid__btnRow';var payBtns=[];
+    [{k:'venmo',l:'Venmo',c:'payGrid__btn--venmo'},{k:'paypal',l:'PayPal',c:'payGrid__btn--paypal'},{k:'zelle',l:'Zelle',c:'payGrid__btn--zelle'}].forEach(function(m){var b=document.createElement('button');b.type='button';b.className='payGrid__btn '+m.c;b.textContent=m.l;b.addEventListener('click',function(){var amt=gift.isGroupGift?(Number(amtInput.value)||0):(Number(gift.price)||0);if(amt<(gift.isGroupGift?5:1)){alert('Please enter a valid amount.');return;}var lk=buildPayLinks(gift,amt);if(m.k==='venmo')window.open(lk.venmo,'_blank');else if(m.k==='paypal')window.open(lk.paypal,'_blank');else alert('Send via Zelle to: '+lk.zelle+'\nAmount: $'+amt+'\nMemo: '+payMemo(gift));setTimeout(function(){openModal(gift.giftId,'SendFunds');},120);});pRow.appendChild(b);payBtns.push(b);});
+    payWrap.appendChild(pRow);
+    var pH=document.createElement('p');pH.className='cta__hint';pH.textContent=(state.copy.right.payGridHint||'Opens your app with amount prefilled. Fill the form after to record your gift.');payWrap.appendChild(pH);
+    function refreshPB(){var amt=gift.isGroupGift?(Number(amtInput&&amtInput.value)||0):(Number(gift.price)||0);var ok=amt>=(gift.isGroupGift?5:1);payBtns.forEach(function(b){b.disabled=!ok;b.style.opacity=ok?'1':'0.4';});}
+    if(gift.isGroupGift&&amtInput){amtInput.addEventListener('input',refreshPB);}refreshPB();
     blk.appendChild(title);
     blk.appendChild(intro);
     blk.appendChild(btn1);
     blk.appendChild(hint1);
+    blk.appendChild(payWrap);
     blk.appendChild(btn2);
     blk.appendChild(hint2);
     blk.appendChild(expectTitle);

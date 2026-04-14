@@ -26,7 +26,7 @@
     "sectionAdventure": "Adventure",
     "sectionHobby": "Hobby",
     "outsideBudgetTitle": "Just outside budget",
-    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budget\u2026 shown because they're special picks."
+    "outsideBudgetBlurb": "These are just a teensy bit outside your approx budget… shown because they're special picks."
   },
   "right": {
     "statusAvailable": "Available",
@@ -49,7 +49,10 @@
     "claimedMessageTitle": "Message from gifter",
     "replyTitle": "Reply from Hannah & Ranjit",
     "groupThankYouTitle": "Group thank-you note",
-    "claimSuccessMessage": "Thank you! Your intent-to-gift has been recorded."
+    "claimSuccessMessage": "Thank you! Your intent-to-gift has been recorded.",
+    "payGridTitle": "Send via payment app",
+    "payGridAmountLabel": "Contribution amount (USD, min $5)",
+    "payGridHint": "Opens your app with amount prefilled. Fill the form after to record your gift."
   },
   "overlay": {
     "title": "Gifting details",
