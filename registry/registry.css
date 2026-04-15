@@ -51,8 +51,8 @@
   --shadow-tile: 0 10px 26px rgba(0,0,0,0.35);
   --shadow-modal: 0 22px 90px rgba(0,0,0,0.55);
 
-  --font-heading: "Cormorant Garamond", serif;
-  --font-body: "Cormorant Garamond", serif;
+  --font-heading: "Cormorant Garamond", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-accent: "Allura", cursive;
 }
 
@@ -964,19 +964,19 @@ body {
   }
 
   .tile__title {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .tile__desc {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .tile__price {
-    font-size: 12px;
+    font-size: 15px;
   }
 
   .badge {
-    font-size: 9px;
+    font-size: 10px;
     padding: 2px 5px;
   }
 

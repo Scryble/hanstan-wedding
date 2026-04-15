@@ -3,6 +3,14 @@
    Primary: 390Ã—844 | Secondary: 1366Ã—768
    ============================================ */
 
+/* Global font tokens (shared across pages) */
+:root {
+  --font-heading: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-script: 'Allura', cursive;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+}
+
 /* CSS Reset & Base */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -96,7 +104,7 @@ body {
 }
 
 .day-name {
-  font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+  font-size: clamp(0.82rem, 1.8vw, 0.9rem);
   font-style: italic;
   font-weight: 400;
   color: #5a5650;
@@ -163,7 +171,7 @@ body {
 }
 
 .invited-line {
-  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
   letter-spacing: 0.25em;
   font-weight: 500;
   color: #4a4640;
@@ -198,7 +206,7 @@ body {
 }
 
 .datetime {
-  font-size: clamp(0.75rem, 2vw, 1.05rem);
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
   letter-spacing: 0.2em;
   font-weight: 500;
   color: #3d3a36;
@@ -215,7 +223,7 @@ body {
 }
 
 .venue {
-  font-size: clamp(0.75rem, 2vw, 1.05rem);
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
   letter-spacing: 0.16em;
   font-weight: 600;
   color: #3d3a36;
@@ -224,7 +232,7 @@ body {
 }
 
 .address {
-  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  font-size: clamp(0.88rem, 1.8vw, 0.95rem);
   letter-spacing: 0.12em;
   font-weight: 400;
   color: #4a4640;
@@ -233,7 +241,7 @@ body {
 }
 
 .reception {
-  font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
   letter-spacing: 0.2em;
   font-weight: 500;
   color: #4a4640;
@@ -312,7 +320,7 @@ body {
 
 .divider {
   color: #6a655d;
-  font-size: clamp(0.6rem, 1.3vw, 0.75rem);
+  font-size: clamp(0.72rem, 1.3vw, 0.8rem);
   opacity: 0.55;
 }
 

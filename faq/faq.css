@@ -109,11 +109,12 @@
 .faq-answer {
   padding: 0 0 1.15rem;
   color: #3d3a36;
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
 }
 
 .faq-answer p {
-  font-size: 1.05rem;
-  line-height: 1.65;
+  font-size: 1.02rem;
+  line-height: 1.7;
   margin: 0.6rem 0;
   max-width: 62ch;
 }
@@ -124,7 +125,8 @@
 
 .faq-answer li {
   margin: 0.25rem 0;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-size: 1rem;
 }
 
 .faq-cta {
