@@ -329,6 +329,52 @@ No robots.txt, no sitemap, no schema.org markup. Favicon `/assets/favicon.png` o
 
 ---
 
+## 14. Email Infrastructure
+
+Guest-facing email at the `hanstan.wedding` domain. Set up 2026-04-14.
+
+**Provider:** Zoho Mail, Forever Free plan. 5 users max, 5 GB per user, 1 domain, 5 addresses per user cap. Web + Zoho mobile apps only (no IMAP/POP on free tier).
+
+**Account model:** two users.
+- **Stan (Super Administrator)** — `stan@hanstan.wedding`. Holds the shared guest-facing aliases; both partners log into this account to handle guest correspondence.
+- **Hannah** — `hannah@hanstan.wedding`. Personal branded address; separate inbox.
+
+**Aliases on Stan's account:**
+- `stan@hanstan.wedding` (primary)
+- `hello@hanstan.wedding` (general inbound)
+- `rsvp@hanstan.wedding`
+- `registry@hanstan.wedding`
+- `travel@hanstan.wedding` — **deferred.** Site has no Travel page yet; alias will be added once that content exists. Current slot count: 4 of 5 used.
+
+**DNS records (Namecheap, Advanced DNS):**
+
+| Purpose | Type | Host | Value | Priority |
+|---|---|---|---|---|
+| Ownership verification | TXT | @ | `zoho-verification=zb51932190.zmverify.zoho.com` | — |
+| MX 1 | MX | @ | `mx.zoho.com` | 10 |
+| MX 2 | MX | @ | `mx2.zoho.com` | 20 |
+| MX 3 | MX | @ | `mx3.zoho.com` | 50 |
+| SPF | TXT | @ | `v=spf1 include:zohomail.com ~all` | — |
+| DKIM | TXT | `zmail._domainkey` | `v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCU/PMt0YXzHjcSsoYGpDep9Kd1lT0eZeZPljDnTESqnACz/P+Gnf2T55exRPNA88goasKNxHYje5orTFmS8siVCNJ/yjWk9jNR0AQxMCGajK0jnhxZ7Bm6MWnLtbFXfe5cBHlqyT1s1DyVB+snzY2nrMI/nODppEFZ2oXuZ/EUY5wIDAQAB` | — |
+| DMARC | TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:hello@hanstan.wedding` | — |
+
+All records verified green in Zoho admin console.
+
+**Mail flow confirmed:** inbound test (Gmail → hello@hanstan.wedding) arrived. Outbound test (hello@ → Hannah's Gmail) landed in spam — expected for a new domain with zero sender reputation.
+
+**Sender reputation warmup** (in progress): send test messages to ~10 trusted recipients over the next 2 weeks, ask each to mark Not Spam. Reputation is per-domain, so all aliases inherit the reputation once built. DMARC remains at `p=none` for monitoring; tighten to `p=quarantine` after 2 weeks of clean reports.
+
+**What's still pending:**
+- Install Zoho Mail app on both phones; both partners sign into Stan's account
+- Share Stan's account credentials between partners (via password manager)
+- Add signature to Stan's account once guest correspondence begins
+- Add `travel@` alias when the Travel page ships
+- Promote DMARC policy from `p=none` to `p=quarantine` ~2 weeks post-launch
+
+**Cost:** $0. Zoho free tier is permanent at this usage level.
+
+---
+
 ## 13. Summary
 
 | | |
