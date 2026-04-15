@@ -329,7 +329,7 @@ No robots.txt, no sitemap, no schema.org markup. Favicon `/assets/favicon.png` o
 
 ---
 
-## 14. Email Infrastructure
+## 13. Email Infrastructure
 
 Guest-facing email at the `hanstan.wedding` domain. Set up 2026-04-14.
 
@@ -375,7 +375,7 @@ All records verified green in Zoho admin console.
 
 ---
 
-## 13. Summary
+## 14. Summary
 
 | | |
 |---|---|
