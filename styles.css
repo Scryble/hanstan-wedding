@@ -1,434 +1,330 @@
 /* ============================================
-   WEDDING CARD SITE - MOBILE-FIRST CSS
-   Primary: 390Ã—844 | Secondary: 1366Ã—768
+   HANNAH & RANJIT — ENGRAVED INVITATION
+   One typeface. Considered silence. No ornament
+   that isn't earned.
    ============================================ */
 
-/* Global font tokens (shared across pages) */
 :root {
-  --font-heading: 'Cormorant Garamond', Georgia, serif;
-  --font-body: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  --font-script: 'Allura', cursive;
-  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-display: 'Cormorant Garamond', 'Adobe Caslon', Georgia, serif;
+
+  /* Warm ivory paper, ink, and a single muted accent */
+  --ivory:   #f4ede0;
+  --ivory-2: #ece3d2;
+  --ink:     #1f1d1b;
+  --ink-2:   #4a4641;
+  --ink-3:   #7a7369;
+  --sage:    #7d8a75;
+  --rule:    #bdb2a0;
 }
 
-/* CSS Reset & Base */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-}
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
 
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  color: #3d3a36;
-  
-  /* Layered background: ivory overlay on top of mosaic */
-  background: 
-    linear-gradient(rgba(250, 247, 242, 0.65), rgba(250, 247, 242, 0.65)),
-    url('assets/mosaic-background-portrait.png') center/cover no-repeat fixed,
-    #f5f2ed;
+  font-family: var(--font-display);
+  color: var(--ink);
+  background: var(--ivory);
+  /* Paper grain — faint, never competing */
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.55), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(125,138,117,0.08), transparent 60%),
+    url('assets/mosaic-background-portrait.png');
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-attachment: scroll, scroll, fixed;
+  background-blend-mode: normal, normal, luminosity;
+  position: relative;
+  font-feature-settings: "liga", "dlig", "onum";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove separate overlay - now combined in body background */
-.background-overlay {
-  display: none;
+/* Ivory veil that mutes the mosaic to a texture */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  background: linear-gradient(rgba(244,237,224,0.88), rgba(244,237,224,0.92));
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ============================================
-   THE CONTENT (no card - integrated with background)
+   THE INVITATION
    ============================================ */
-.card {
+.invite {
   position: relative;
   z-index: 1;
-  width: 100%;
-  max-width: 680px;
-  min-height: 100vh;
-  min-height: 100dvh;
-  
-  /* Translucent paper-glass panel over mosaic */
-  background: rgba(250, 247, 242, 0.38);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(61, 58, 54, 0.08);
-  border-radius: 24px;
-  
-  padding: clamp(2.5rem, 6vh, 4.5rem) clamp(2rem, 6vw, 3.5rem);
-  
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 10vh, 7rem) clamp(1.5rem, 6vw, 4rem);
   text-align: center;
+
+  /* Engraved border frame, thin and confident */
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-top: clamp(1rem, 4vh, 2.5rem);
+  margin-bottom: clamp(1rem, 4vh, 2.5rem);
+
+  animation: rise 1100ms cubic-bezier(.2,.6,.2,1) both;
 }
 
-/* ============================================
-   CALENDAR HEADER
-   ============================================ */
-.calendar-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: clamp(0.25rem, 1vh, 0.75rem);
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.month {
-  font-size: clamp(0.85rem, 2.2vw, 1.1rem);
-  letter-spacing: 0.35em;
-  font-weight: 500;
-  color: #3d3a36;
-  margin-bottom: clamp(0.4rem, 1.2vh, 0.7rem);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-}
-
-.calendar-week {
-  display: flex;
-  gap: clamp(0.7rem, 3vw, 1.4rem);
-  align-items: flex-start;
-}
-
-.day-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.day-name {
-  font-size: clamp(0.82rem, 1.8vw, 0.9rem);
-  font-style: italic;
-  font-weight: 400;
-  color: #5a5650;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
-}
-
-.day-num {
-  font-size: clamp(1.1rem, 2.8vw, 1.4rem);
-  font-weight: 500;
-  color: #3d3a36;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
-}
-
-.day-col.highlight .day-name {
-  color: #3d3a36;
-}
-
-.day-num.circled {
-  position: relative;
-  font-weight: 600;
-  color: #2d2a26;
-}
-
-.day-num.circled::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: clamp(1.8rem, 4.5vw, 2.4rem);
-  height: clamp(1.6rem, 4vw, 2.1rem);
-  border: 2px dotted #5a5650;
-  border-radius: 50% 50% 50% 50% / 45% 45% 55% 55%;
-}
-
-/* Heart line below calendar */
-.heart-line {
-  width: 2px;
-  height: clamp(2rem, 5vh, 3.5rem);
-  background: linear-gradient(
-    to bottom,
-    #7a756d 0%,
-    #7a756d 40%,
-    transparent 40%,
-    transparent 50%,
-    #7a756d 50%,
-    #7a756d 100%
-  );
-  background-size: 100% 8px;
-  margin-top: 0.3rem;
+@media (min-width: 720px) {
+  .invite {
+    margin: clamp(2rem, 6vh, 4rem) auto;
+    padding: clamp(5rem, 12vh, 8rem) clamp(4rem, 8vw, 6rem);
+    border: 1px solid var(--rule);
+    outline: 1px solid var(--rule);
+    outline-offset: 6px;
+  }
 }
 
 /* ============================================
    TYPOGRAPHY
    ============================================ */
-.save-the-date {
-  font-family: 'Allura', cursive;
-  font-size: clamp(2.8rem, 9vw, 4.5rem);
+.eyebrow {
+  font-family: var(--font-display);
+  font-style: italic;
   font-weight: 400;
-  color: #3d3a36;
-  margin: clamp(0.5rem, 2vh, 1rem) 0;
-  line-height: 1.1;
-  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
-}
-
-.invited-line {
-  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
-  letter-spacing: 0.25em;
-  font-weight: 500;
-  color: #4a4640;
-  margin-bottom: clamp(0.6rem, 1.5vh, 1rem);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  color: var(--ink-2);
+  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  letter-spacing: 0.04em;
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
 }
 
 .names {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  margin-bottom: clamp(1rem, 2.5vh, 1.5rem);
+  gap: clamp(0.4rem, 1.2vh, 0.8rem);
+  margin-bottom: clamp(2rem, 5vh, 3rem);
 }
 
-.name {
-  font-size: clamp(1.5rem, 5.5vw, 2.6rem);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  color: #2d2a26;
-  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
-}
-
-.ampersand {
-  font-size: clamp(1.2rem, 4vw, 1.8rem);
+.name-line {
+  font-family: var(--font-display);
   font-weight: 400;
-  color: #4a4640;
-  line-height: 1.1;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+  font-size: clamp(2.2rem, 7vw, 4.25rem);
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  color: var(--ink);
+  font-feature-settings: "dlig", "liga", "swsh";
 }
 
-.datetime {
-  font-size: clamp(0.9rem, 2vw, 1.05rem);
-  letter-spacing: 0.2em;
-  font-weight: 500;
-  color: #3d3a36;
-  margin-bottom: clamp(0.8rem, 2vh, 1.25rem);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+.amp {
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  line-height: 1;
+  color: var(--sage);
+  margin: 0.1em 0;
 }
 
-.location {
+.invite-body {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-2);
+  font-size: clamp(1rem, 1.9vw, 1.25rem);
+  line-height: 1.7;
+  margin-bottom: clamp(2rem, 5vh, 3rem);
+}
+
+/* Engraved rule — the only ornament */
+.rule {
+  display: block;
+  width: clamp(9rem, 22vw, 14rem);
+  height: auto;
+  margin: clamp(1.5rem, 4vh, 2.5rem) auto;
+  color: var(--rule);
+}
+
+.date {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  font-style: normal;
-  margin-bottom: clamp(0.6rem, 1.5vh, 1rem);
+  gap: 0.35rem;
+  margin-bottom: clamp(2rem, 5vh, 3rem);
+  color: var(--ink);
+}
+
+.date-day {
+  font-size: clamp(0.78rem, 1.4vw, 0.92rem);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: 0.3rem;
+}
+
+.date-full {
+  font-size: clamp(1.35rem, 3.2vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.date-year {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-2);
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+}
+
+.date-time {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-2);
+  font-size: clamp(0.95rem, 1.7vw, 1.1rem);
+  margin-top: 0.25rem;
 }
 
 .venue {
-  font-size: clamp(0.9rem, 2vw, 1.05rem);
-  letter-spacing: 0.16em;
-  font-weight: 600;
-  color: #3d3a36;
-  margin-bottom: 0.25rem;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: clamp(1rem, 3vh, 1.5rem);
 }
 
-.address {
-  font-size: clamp(0.88rem, 1.8vw, 0.95rem);
-  letter-spacing: 0.12em;
-  font-weight: 400;
-  color: #4a4640;
-  line-height: 1.5;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+.venue-name {
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.venue-addr {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-2);
+  font-size: clamp(0.95rem, 1.7vw, 1.05rem);
 }
 
 .reception {
-  font-size: clamp(0.85rem, 1.8vw, 0.95rem);
-  letter-spacing: 0.2em;
-  font-weight: 500;
-  color: #4a4640;
-  margin-bottom: clamp(1.25rem, 3vh, 2rem);
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-3);
+  font-size: clamp(0.9rem, 1.6vw, 1rem);
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
 }
 
 /* ============================================
-   RSVP BUTTON
+   RSVP — hairline, not a button
    ============================================ */
-.rsvp-btn {
-  display: inline-flex;
-  align-items: center;
+.actions {
+  display: flex;
   justify-content: center;
-  
-  padding: clamp(0.9rem, 2vh, 1.15rem) clamp(3rem, 12vw, 5rem);
-  
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
-  font-weight: 600;
-  letter-spacing: 0.3em;
+  margin-bottom: clamp(2rem, 5vh, 3rem);
+}
+
+.rsvp {
+  display: inline-block;
+  padding: 1rem clamp(2.25rem, 6vw, 3.5rem);
+  font-family: var(--font-display);
+  font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+  letter-spacing: 0.45em;
   text-transform: uppercase;
   text-decoration: none;
-  
-  color: #fdfbf7;
-  background: linear-gradient(135deg, #5a5450 0%, #3d3a36 100%);
-  
-  border: none;
-  border-radius: 4px;
-  
-  box-shadow: 
-    0 4px 16px rgba(61, 58, 54, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  
-  transition: all 0.2s ease;
-  cursor: pointer;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink);
+  position: relative;
+  transition: color 220ms ease, background-color 220ms ease, letter-spacing 220ms ease;
 }
 
-.rsvp-btn:hover {
-  background: linear-gradient(135deg, #6b665f 0%, #4a4640 100%);
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 20px rgba(61, 58, 54, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.rsvp span { position: relative; z-index: 1; }
+
+.rsvp::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid transparent;
+  transition: border-color 220ms ease;
+  pointer-events: none;
 }
 
-.rsvp-btn:active {
-  transform: translateY(0);
+.rsvp:hover,
+.rsvp:focus-visible {
+  background: var(--ink);
+  color: var(--ivory);
+  letter-spacing: 0.5em;
+  outline: none;
+}
+.rsvp:hover::before,
+.rsvp:focus-visible::before {
+  border-color: var(--ivory);
 }
 
 /* ============================================
-   SECONDARY ACTIONS
+   SECONDARY NAV — tracked, quiet
    ============================================ */
-.secondary-actions {
-  margin-top: clamp(1.25rem, 3vh, 1.75rem);
+.secondary {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1.25rem, 4vw, 2.5rem);
 }
 
-.secondary-link {
-  font-size: clamp(0.8rem, 2vw, 1.1rem);
-  letter-spacing: 0.08em;
-  font-weight: 500;
-  color: #4a4640;
+.secondary a {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
   text-decoration: none;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
-  transition: color 0.2s ease;
+  position: relative;
+  padding-bottom: 2px;
+  transition: color 200ms ease;
 }
 
-.secondary-link:hover {
-  color: #2d2a26;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.secondary a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 260ms ease;
 }
 
-.divider {
-  color: #6a655d;
-  font-size: clamp(0.72rem, 1.3vw, 0.8rem);
-  opacity: 0.55;
+.secondary a:hover,
+.secondary a:focus-visible {
+  color: var(--ink);
+  outline: none;
 }
 
-/* ============================================
-   DESKTOP BREAKPOINT (768px+)
-   ============================================ */
-@media (min-width: 768px) {
-  body {
-    /* Switch to landscape background — slightly stronger overlay for center calm */
-    background: 
-      linear-gradient(rgba(250, 247, 242, 0.60), rgba(250, 247, 242, 0.60)),
-      url('assets/mosaic-background-landscape.png') center/cover no-repeat fixed,
-      #f5f2ed;
-  }
-  
-  .card {
-    max-width: 800px;
-  }
-  
-  .calendar-week {
-    gap: clamp(1.2rem, 3vw, 1.8rem);
-  }
-  
-  .heart-line {
-    height: clamp(3rem, 6vh, 4.5rem);
-  }
-  
-  .name {
-    font-size: clamp(2rem, 4vw, 3rem);
-  }
-  
-  .save-the-date {
-    font-size: clamp(3.5rem, 6vw, 5rem);
-  }
-}
-
-/* ============================================
-   LARGE DESKTOP (1200px+)
-   ============================================ */
-@media (min-width: 1200px) {
-  .card {
-    max-width: 900px;
-  }
-  
-  .name {
-    font-size: 3.2rem;
-  }
-  
-  .save-the-date {
-    font-size: 5.5rem;
-  }
-  
-  .datetime,
-  .venue {
-    font-size: 1.15rem;
-  }
-  
-  .address,
-  .reception {
-    font-size: 1.05rem;
-  }
-}
-
-/* ============================================
-   VERY SMALL SCREENS (<360px)
-   Tighten everything for tiny phones
-   ============================================ */
-@media (max-width: 359px) {
-  .card {
-    padding: 1.5rem 1rem;
-  }
-  
-  .calendar-week {
-    gap: 0.4rem;
-  }
-  
-  .save-the-date {
-    font-size: 2.2rem;
-  }
-  
-  .name {
-    font-size: 1.2rem;
-    letter-spacing: 0.08em;
-  }
+.secondary a:hover::after,
+.secondary a:focus-visible::after {
+  transform: scaleX(1);
 }
 
 /* ============================================
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  .rsvp-btn {
-    transition: none;
-  }
-  
-  .secondary-link {
-    transition: none;
-  }
+  .invite { animation: none; }
+  .rsvp, .secondary a, .secondary a::after { transition: none; }
 }
 
 /* ============================================
-   HIGH CONTRAST MODE
+   TINY SCREENS
    ============================================ */
-@media (prefers-contrast: high) {
-  .card {
-    border: 2px solid #3d3a36;
-  }
-  
-  .rsvp-btn {
-    border: 2px solid #2d2a26;
-  }
+@media (max-width: 359px) {
+  .invite { padding: 2.5rem 1.25rem; }
+  .name-line { letter-spacing: 0; }
+  .date-day, .venue-name { letter-spacing: 0.3em; }
+  .rsvp { letter-spacing: 0.35em; padding: 0.85rem 1.75rem; }
 }

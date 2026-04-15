@@ -21,7 +21,7 @@
   const PATH_GIFTS = '/.netlify/functions/data-gifts';
   const PATH_ORDERING = '/.netlify/functions/data-ordering-registry';
 
-  const PAYMENT_CONFIG = { venmoHandle:'YOUR_VENMO_HANDLE', paypalMeLink:'https://paypal.me/YOUR_PAYPAL_ME_LINK', zelleContact:'YOUR_ZELLE_CONTACT' };
+  const PAYMENT_CONFIG = { venmoHandle:'Hannah-Shipman-10', paypalMeLink:'https://paypal.me/HShipman20', zelleContact:'hannah7of9@gmail.com' };
   function payMemo(g){return 'HanStan Wedding: '+(g&&g.title?g.title:'Gift');}
   function payFmt(n){var v=Number(n);return (!isFinite(v)||v<=0)?'0':v.toFixed(2).replace(/\.00$/,'');}
   function buildPayLinks(g,a){var amt=payFmt(a),memo=encodeURIComponent(payMemo(g));return{venmo:'https://venmo.com/'+encodeURIComponent(PAYMENT_CONFIG.venmoHandle)+'?txn=pay&amount='+amt+'&note='+memo,paypal:PAYMENT_CONFIG.paypalMeLink.replace(/\/+$/,'')+'/'+amt+'USD',zelle:PAYMENT_CONFIG.zelleContact};}
