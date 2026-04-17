@@ -116,7 +116,7 @@ Token-protected coordinator planning tool. Multi-user shared state via Netlify B
 
 **Offline behavior:** Edits queue in localStorage `hanstan_planner_offline_queue` if a save fails. Background timer retries every 15s when `navigator.onLine`.
 
-**Bootstrap:** First-ever load — if `planner/coordinators.json` Blob does not exist, the auth function uses `PLANNER_MASTER_BOOTSTRAP_TOKEN` env var (= `stanshan`) to recognize the master token and seeds the registry. The env var also serves as a fallback if the registry is ever deleted.
+**Bootstrap:** First-ever load — if `planner/coordinators.json` Blob does not exist, the auth function uses the `PLANNER_MASTER_BOOTSTRAP_TOKEN` env var to recognize the master token and seeds the registry. The env var also serves as a fallback if the registry is ever deleted.
 
 **Seed data:** First-ever load — if `planner/state-current.json` does not exist, function reads `data/planner-seed.json` (Stan's exported v5 state, 70 tasks, 27 contacts) and writes it as the initial state.
 
