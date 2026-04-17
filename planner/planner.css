@@ -150,9 +150,18 @@ input[type="date"], textarea, select { font-size: 16px; }
 /* §3.2 SECONDARY DOMAIN TABS */
 .group-tabs {
   display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
-  background: var(--bg-elevated); border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
   padding: 0 12px; gap: 2px; position: sticky; top: 47px; z-index: 79;
   scrollbar-width: none;
+  /* Scroll-shadow: fade edges hint at horizontal scroll,
+     auto-hidden when content doesn't overflow that direction */
+  background:
+    linear-gradient(90deg, var(--bg-elevated) 30%, rgba(236,237,224,0)) left / 32px 100% no-repeat local,
+    linear-gradient(-90deg, var(--bg-elevated) 30%, rgba(236,237,224,0)) right / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(32,49,43,0.10), transparent) left / 14px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(32,49,43,0.10), transparent) right / 14px 100% no-repeat,
+    var(--bg-elevated);
+  background-attachment: local, local, scroll, scroll;
 }
 .group-tabs::-webkit-scrollbar { display: none; }
 .group-tab {
@@ -732,9 +741,6 @@ input[type="date"], textarea, select { font-size: 16px; }
 
 /* RESPONSIVE */
 @media (max-width: 480px) {
-  .hdr-brand { font-size: 17px; }
-  .hdr-days { font-size: 12px; }
-  .tc-title { font-size: 16px; }
   .ff-row { grid-template-columns: 1fr; }
   .modal-body { max-height: 80vh; }
 }
@@ -1221,10 +1227,113 @@ input[type="date"], textarea, select { font-size: 16px; }
   }
 }
 
-/* Responsive: keep the ornament presence on small screens */
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE SIZING — Rivendell Garden v1.1 (2026-04-16)
+   Sizing + spacing only. No color/layout/family/ornament changes.
+   Restores typographic hierarchy at 320–480px viewports and hits
+   WCAG/HIG/Material touch-target and legibility minimums.
+   ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .hdr-brand { font-size: 24px; letter-spacing: 0.12em; }
-  .leaf-fan { --size: 32px; }
-  .tc-title { font-size: 21px; }
-  .section-hdr { font-size: 24px; }
+  /* Header — tighten padding; keep ornament + brand presence */
+  .app-header { padding: 14px 16px 10px; }
+  .hdr-brand { font-size: 22px; letter-spacing: 0.10em; }
+  .hdr-brand em { font-size: 1.25em; padding: 0 2px; }
+  .leaf-fan { --size: 30px; }
+  .hdr-row1 { gap: 10px; }
+  .hdr-days { font-size: 15px; }
+  .hdr-row2 { font-size: 14px; gap: 14px; }
+  .hdr-row2 strong { font-size: 18px; }
+  .hdr-meta-row { margin-top: 4px !important; }
+  .hdr-sync { font-size: 12px; }
+  .hdr-sync::before { width: 6px; height: 6px; }
+  .hdr-identity .signout, .hdr-meta-row .signout { font-size: 11px; }
+
+  /* Main nav — shrink type, preserve 44px touch height */
+  .main-nav button {
+    padding: 13px 2px; font-size: 14px; letter-spacing: 0.02em;
+  }
+  .main-nav .nav-badge { min-width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
+
+  /* Group tabs — 44px touch target, scroll fade already active via bg */
+  .group-tab {
+    font-size: 14px; padding: 12px 12px; letter-spacing: 0.02em;
+    min-height: 44px; display: inline-flex; align-items: center;
+  }
+  .group-tab .tab-count { font-size: 11px; margin-left: 3px; }
+  .group-tab-add { font-size: 18px; padding: 12px 10px; min-height: 44px; }
+
+  /* Query bar — compact, keep 16px input to avoid iOS zoom */
+  .query-bar { padding: 6px 12px; gap: 6px; }
+  .query-search { font-size: 16px; padding: 10px 12px; }
+  .query-btn { width: 40px; height: 40px; font-size: 15px; }
+
+  /* Filter tray — smaller pills, tighter */
+  .filter-tray { padding: 4px 12px 6px; gap: 5px; }
+  .filter-pill { font-size: 13px; padding: 4px 10px; }
+
+  /* View padding */
+  .view { padding: 14px 14px 110px; }
+
+  /* Section header — restored hierarchy, breathing room */
+  .section-hdr {
+    font-size: 22px; margin: 26px 0 12px; gap: 10px;
+  }
+  .section-hdr:first-child { margin-top: 6px; }
+  .section-hdr .cnt { font-size: 15px; }
+
+  /* Task cards — tighter inner, smaller chips restore rank */
+  .task-card { margin-bottom: 8px; }
+  .tc-inner { padding: 10px 12px 10px 16px; }
+  .tc-row1 { gap: 6px; }
+  .tc-check { width: 22px; height: 22px; }
+  .tc-id { font-size: 11px; letter-spacing: 0.12em; }
+  .tc-title { font-size: 20px; line-height: 1.22; }
+  .tc-status {
+    font-size: 11px; padding: 3px 9px; letter-spacing: 0.06em;
+  }
+  .tc-meta { gap: 4px; margin-top: 5px; }
+  .mc { font-size: 13px; padding: 3px 9px; }
+  .mc-more { font-size: 11px; }
+  .tc-note { font-size: 14px; margin-top: 6px; line-height: 1.45; }
+  .tc-subtasks { font-size: 13px; margin-top: 6px; }
+
+  /* Quick add — compact without sacrificing 16px input */
+  .quick-add { padding: 10px 14px; gap: 6px; }
+  .quick-add input { font-size: 16px; padding: 10px 14px; }
+  .quick-add button {
+    font-size: 13px; letter-spacing: 0.10em; padding: 10px 16px;
+  }
+
+  /* Person card — match card rhythm */
+  .person-card { padding: 12px 14px; gap: 10px; }
+  .person-avatar { width: 38px; height: 38px; font-size: 14px; }
+  .person-name { font-size: 18px; }
+  .person-role { font-size: 11px; }
+
+  /* Modals / sheets — more screen real estate */
+  .modal-bg { padding: 1vh 4px; }
+  .modal-hdr { padding: 12px 16px 10px; }
+  .modal-body { padding: 12px 16px 16px; max-height: 82vh; }
+  .modal-footer { padding: 10px 16px 14px; }
+  .sheet-hdr { padding: 6px 16px 10px; font-size: 14px; }
+  .sheet-body { padding: 0 16px 18px; }
+
+  /* Onboarding banner */
+  .onboard-banner { padding: 12px 14px; font-size: 13px; }
+}
+
+/* Extra-narrow tier: iPhone SE (320) + Android small (360) */
+@media (max-width: 360px) {
+  .hdr-brand { font-size: 20px; letter-spacing: 0.08em; }
+  .leaf-fan { --size: 26px; }
+  .hdr-row1 { gap: 8px; }
+  .hdr-days { font-size: 14px; }
+  .main-nav button { font-size: 13px; padding: 12px 2px; letter-spacing: 0.01em; }
+  .group-tab { font-size: 13px; padding: 11px 10px; }
+  .tc-title { font-size: 19px; }
+  .tc-status { font-size: 10px; padding: 3px 8px; }
+  .mc { font-size: 12px; padding: 2px 8px; }
+  .section-hdr { font-size: 20px; }
+  .view { padding: 12px 12px 110px; }
+  .quick-add button { padding: 10px 14px; letter-spacing: 0.08em; }
 }
