@@ -1,0 +1,2761 @@
+{
+  "tasks": [
+    {
+      "id": "t1",
+      "taskId": "A1",
+      "workstream": "a",
+      "title": "Registry — Get All 32 Gifts Live with Real Images",
+      "desc": "Live site has 6 sample gifts with placeholders. 26-gift batch JSON exists but never imported. Hannah's image sheet (32 items) is authoritative.",
+      "priority": "critical",
+      "status": "done",
+      "quadrant": "q1",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "Stan",
+      "tags": [
+        "registry",
+        "website"
+      ],
+      "blockedBy": "Stan decision on deployment path",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:45:16.995Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:12:06.556Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:45:16.995Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t2",
+      "taskId": "A2",
+      "workstream": "a",
+      "title": "Refresh Spec Anchors Against Live Repo",
+      "desc": "All three v0.1 spec layers grounded against stale project files. Must fetch live, diff, update before ticket execution.",
+      "priority": "high",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "specs",
+        "technical"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:12:09.180Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:12:09.180Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t3",
+      "taskId": "A3",
+      "workstream": "a",
+      "title": "Execute Registry Bugfix Bundle (HW-012A–F)",
+      "desc": "6 tickets, 6 files, 14 fixes. Registry UX overhaul, dream section removal, visual polish.",
+      "priority": "high",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "bugfix",
+        "technical"
+      ],
+      "blockedBy": "A2",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:12:10.348Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:12:10.348Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t4",
+      "taskId": "A4",
+      "workstream": "a",
+      "title": "Execute Standalone Bugfix Tickets (T1–T6)",
+      "desc": "T1–T4 code produced (deploy unknown). T5 homepage link + T6 admin fixes never executed.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "bugfix",
+        "technical"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:12:14.003Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:12:14.003Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t5",
+      "taskId": "A5",
+      "workstream": "a",
+      "title": "FAQ — Rewrite Plus-One/Children Answer",
+      "desc": "Draft copy ready from Hannah's Discord. Covers invitation scope, plus-one RSVP, children caveats.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "Hannah",
+      "tags": [
+        "faq",
+        "website"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:13:43.242Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:13:43.242Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t6",
+      "taskId": "A6",
+      "workstream": "a",
+      "title": "FAQ — Add \"What Should I Bring?\"",
+      "desc": "Weather clothing, casual clothes, lawn games, potluck food item.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "Hannah",
+      "tags": [
+        "faq",
+        "website"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:14:03.212Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:14:03.212Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t7",
+      "taskId": "A7",
+      "workstream": "a",
+      "title": "FAQ — Verify Symbol Fix",
+      "desc": "Emoji fix was deployed. Verify if additional symbol issues remain.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "faq",
+        "verify"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T14:58:42.712Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T14:58:42.712Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t8",
+      "taskId": "A8",
+      "workstream": "a",
+      "title": "Build Day-of Schedule Page",
+      "desc": "Nothing exists yet. Ceremony order now drafted (B25) — partially unblocked.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Claude, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "website",
+        "schedule"
+      ],
+      "blockedBy": "B25",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:33:00.990Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:33:00.990Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t9",
+      "taskId": "A9",
+      "workstream": "a",
+      "title": "Generate Build Tickets from Specs",
+      "desc": "Three-layer spec complete, 36 decisions locked. Ready after anchor refresh.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "technical"
+      ],
+      "blockedBy": "A2",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:14:09.005Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:14:09.005Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t10",
+      "taskId": "A10",
+      "workstream": "a",
+      "title": "dialogueXR §10 Failure Modes",
+      "desc": "File divergence, skipping gel layer, premature ticket authoring.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Stan, Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:14:14.147Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:14:14.147Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t11",
+      "taskId": "B1",
+      "workstream": "b",
+      "title": "Honeymoon/Move — 3 Linked Decisions",
+      "desc": "Two candidates: Highway 101 drive (10 days) or live Hamilton trip. Plus packing/shipping + vehicle decisions.",
+      "priority": "high",
+      "status": "blocked",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "Hannah, Stan",
+      "tags": [
+        "honeymoon"
+      ],
+      "blockedBy": "Joint H+S decision",
+      "group": "HanStan Logistics",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:33:57.276Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:33:57.276Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t12",
+      "taskId": "B2",
+      "workstream": "b",
+      "title": "Send Invitations (Physical + Digital)",
+      "desc": "Stan's #1 priority. Hannah finishing hers. Stan needs full invitee list (incl unlikely). Three steps: list → address → send. Form matters less than reaching people.",
+      "priority": "critical",
+      "status": "in-progress",
+      "quadrant": "q1",
+      "deadline": "2026-04-01",
+      "persona": "guest",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "invitations",
+        "immediate"
+      ],
+      "blockedBy": "",
+      "group": "Guest List",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:35:11.113Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:43.206Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:35:11.113Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t13",
+      "taskId": "B3",
+      "workstream": "b",
+      "title": "International Friends' Visa Follow-Up",
+      "desc": "Friends have applied. Status unknown. Must follow up — lead times could prevent attendance.",
+      "priority": "critical",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-03-25",
+      "persona": "guest",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "visa",
+        "critical"
+      ],
+      "blockedBy": "",
+      "group": "Guests",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:30:39.505Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:39.505Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t14",
+      "taskId": "B4",
+      "workstream": "b",
+      "title": "Zubey — Confirm Attendance & Buy Tickets",
+      "desc": "Decision made to buy. Need confirmation. Earlier = cheaper.",
+      "priority": "high",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-04-01",
+      "persona": "guest",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "Zubey",
+      "tags": [
+        "travel"
+      ],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:49:07.797Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:34:07.627Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:49:00.642Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:49:04.322Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:49:07.797Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t15",
+      "taskId": "B5",
+      "workstream": "b",
+      "title": "Canopy + Furniture Rental + Park Setup",
+      "desc": "RENTAL BOOKED: Order #589401 (A to Z Party, Elsie). 8 canopies, 24 tables, 144 chairs + tablecloths. Delivery 9am, pickup 9pm on 6/6/2026. Hannah owes Elsie $545 reimbursement. SUP fee $250 (check to OPRD): mail to Attn Park Specialist, 10991 Wheatland Road NE, Gervais OR 97026 — confirm if sent. Open questions to park: max shelter amperage, helium balloon placement, smoking in cars. Port-a-potties: plan 1-2 (min 1 ADA) — vendor not yet contacted.",
+      "priority": "critical",
+      "status": "in-progress",
+      "quadrant": "q1",
+      "deadline": "2026-04-20",
+      "persona": "organizer",
+      "assignee": "Hannah, Zita",
+      "location": "Willamette Mission State Park, Shelter A",
+      "contacts": "Hannah, Zita, Elsie",
+      "tags": [
+        "canopy",
+        "park",
+        "venue",
+        "deposit"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:22.860Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:14:28.986Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:22.860Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t16",
+      "taskId": "B6",
+      "workstream": "b",
+      "title": "Food & Catering Plan",
+      "desc": "Mike: chicken/fish. Stan's parents: chicken+beef+rice. Bonnie: food coordinator. Carol Edel: 2-3 sheet cakes. Luke: wine+coolers. 2 cases sparkling cider. Potluck base. Trudy has warming pans. Zita researching food prep.",
+      "priority": "high",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "2026-05-01",
+      "persona": "guest",
+      "assignee": "Stan, Bonnie",
+      "location": "Willamette Mission State Park",
+      "contacts": "Mike, Bonnie, Carol Edel, Trudy, Zita, Luke",
+      "tags": [
+        "food",
+        "catering"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:34:15.359Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:14:40.281Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:34:15.359Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t17",
+      "taskId": "B7",
+      "workstream": "b",
+      "title": "Smoke Shuttle Coordination",
+      "desc": "Vehicle + driver for park-boundary runs. Smoking prohibited on grounds.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "logistics"
+      ],
+      "blockedBy": "",
+      "group": "All",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:15:48.065Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:15:48.065Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t18",
+      "taskId": "B8",
+      "workstream": "b",
+      "title": "Stan Family Outreach (Aunt, Cousin, Stepbrother)",
+      "desc": "",
+      "priority": "high",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-04-01",
+      "persona": "family",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "family",
+        "invitations"
+      ],
+      "blockedBy": "",
+      "group": "Guest List",
+      "subtasks": [
+        {
+          "text": "Aunt: reconnect first (~20 yrs), then invite.",
+          "done": false
+        },
+        {
+          "text": "Cousin: straight invite.",
+          "done": false
+        },
+        {
+          "text": "Stepbrother (NZ): straight invite, visa-waiver eligible.",
+          "done": false
+        },
+        {
+          "text": "Peter",
+          "done": false
+        },
+        {
+          "text": "Aarti",
+          "done": false
+        }
+      ],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:34:22.511Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T14:58:25.263Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:34:22.511Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t19",
+      "taskId": "B9",
+      "workstream": "c",
+      "title": "Premarital Counseling + Wes Books + Officiant",
+      "desc": "Wes Walls confirmed officiant (friend, house church pastor). Short speech + traditional directions. Study his two books chapter by chapter before next meeting.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "Wes Walls",
+      "tags": [
+        "counseling",
+        "officiant"
+      ],
+      "blockedBy": "",
+      "group": "Organizers",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:30:24.024Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:24.024Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t20",
+      "taskId": "B10",
+      "workstream": "b",
+      "title": "Covenant Card v2",
+      "desc": "v1 done. v2 ticket written: two-panel interactive card, tabbed UI, scripture popups.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "covenant"
+      ],
+      "blockedBy": "",
+      "group": "All",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:18:57.950Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:18:57.950Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t21",
+      "taskId": "B11",
+      "workstream": "b",
+      "title": "Festival Programming — 23 Elements",
+      "desc": "Live music, folk dancing (Lori Tauscher), reenactment, tag tournament, lawn games, board games, babysitting, knightly tournament (Thomas), trampoline, smoke shuttle, cigars, favors, first aid, changing canopies, Colleen comfort kit, co-MCs, Indian dance, popsicle craft, guest sign-in, reception lights, ribbons, decorations/flowers, entrance signs.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "2026-05-15",
+      "persona": "guest",
+      "assignee": "Hannah, Stan",
+      "location": "Willamette Mission State Park",
+      "contacts": "Thomas, Elsie, Lori Tauscher",
+      "tags": [
+        "festival",
+        "activities"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Day",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:36:43.997Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:12.247Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:36:43.997Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t22",
+      "taskId": "B12",
+      "workstream": "b",
+      "title": "Musical Guest Survey",
+      "desc": "Identify which guests play instruments and would perform at open stage.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "music",
+        "survey"
+      ],
+      "blockedBy": "Guest list needed",
+      "group": "Guests",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:30:53.232Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:53.232Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t23",
+      "taskId": "B13",
+      "workstream": "b",
+      "title": "Wedding Playlist",
+      "desc": "Confirmed tracks: Putting on the Ritz, Crazy Little Thing Called Love, Tangled snippet. Categories: pre-ceremony, procession, bride entrance, post-ceremony, reception, Lori dance tracks, Indian music. Add to YT Premium.",
+      "priority": "medium",
+      "status": "in-progress",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "music",
+        "playlist"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:38:13.775Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:58.442Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:38:13.775Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t24",
+      "taskId": "B14",
+      "workstream": "a",
+      "title": "Wedding Party Communication Channel",
+      "desc": "WhatsApp or Discord. Everyone flexible. Members: MoH, 2+ sisters, best friends, Thomas, brother.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-04-01",
+      "persona": "organizer",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "communication"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:29:44.244Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:44.244Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t25",
+      "taskId": "B15",
+      "workstream": "b",
+      "title": "Guest Allergy Survey",
+      "desc": "Collect dietary restrictions. Feeds into catering.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "food",
+        "survey"
+      ],
+      "blockedBy": "Guest list + RSVP",
+      "group": "Guests",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:29:20.189Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:20.189Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t26",
+      "taskId": "B16",
+      "workstream": "b",
+      "title": "Advance Coordination Week (May 31–Jun 6)",
+      "desc": "H&S arrive ~1 week before. Need daily logistics plan.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "2026-05-25",
+      "persona": "organizer",
+      "assignee": "Hannah, Stan",
+      "location": "Oregon",
+      "contacts": "",
+      "tags": [
+        "logistics"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Week",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:37:36.120Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:12.314Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:37:36.120Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t27",
+      "taskId": "B17",
+      "workstream": "b",
+      "title": "Parents' Travel Itinerary",
+      "desc": "Stan's parents + friend group renting Airbnb, road trip vacation.",
+      "priority": "low",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "family",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "family",
+        "travel"
+      ],
+      "blockedBy": "",
+      "group": "Guest List",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:38:42.048Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:38:42.048Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t28",
+      "taskId": "B18",
+      "workstream": "c",
+      "title": "Brother & Sister-in-Law Involvement",
+      "desc": "Give meaningful roles. Make attractive, not a chore.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "family",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "family",
+        "roles"
+      ],
+      "blockedBy": "",
+      "group": "Organizers",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:29:30.754Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:30.753Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t29",
+      "taskId": "B19",
+      "workstream": "b",
+      "title": "Brother's Guest List Input",
+      "desc": "Ask who else should be invited.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "family",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "invitations",
+        "family"
+      ],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:28:22.835Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:28:22.835Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t30",
+      "taskId": "B20",
+      "workstream": "c",
+      "title": "Photographer Coordination",
+      "desc": "Daniel Thomas: CONTRACT SIGNED, deposit paid, ~$1,500 total. On duty from 2pm Jun 7, photos right after ceremony while reception begins. Grace confirmed as 2nd photographer (~$1,800/6hrs). Golden hour timing critical. Connect Daniel + Grace.",
+      "priority": "medium",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "service",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "Daniel Thomas, Grace",
+      "tags": [
+        "photography"
+      ],
+      "blockedBy": "",
+      "group": "Organizers",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:29:07.431Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:29:07.431Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t31",
+      "taskId": "B21",
+      "workstream": "b",
+      "title": "Grace — 2nd Photographer (coordinator role declined)",
+      "desc": "Grace DECLINED day-of coordinator role. CONFIRMED as 2nd photographer (~$1,800/6hrs). Still need a day-of coordinator — searching. Elsie = general coordinator only.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "service",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "Grace, Elsie",
+      "tags": [
+        "coordinator",
+        "photography"
+      ],
+      "blockedBy": "",
+      "group": "All",
+      "subtasks": [],
+      "comments": [],
+      "history": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T14:36:34.770Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t32",
+      "taskId": "B22",
+      "workstream": "b",
+      "title": "Wind Protection for Canopies",
+      "desc": "Figure out solution + verify handled/procured.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "canopy",
+        "weather"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:30:57.507Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:30:57.507Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t33",
+      "taskId": "B23",
+      "workstream": "a",
+      "title": "Google Drive Coordination Folder",
+      "desc": "Mostly complete (joint H+S). Hannah behind on to-do updates. Bridesmaids have edit access.",
+      "priority": "medium",
+      "status": "mostly-done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "organizer",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "planning",
+        "documents"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:37:56.023Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:28:54.797Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:37:56.023Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t34",
+      "taskId": "B24",
+      "workstream": "a",
+      "title": "Wedding Program / Schedule (Print + Mobile)",
+      "desc": "Design based on ceremony order from Master doc. Print via Staples. Also on website. Needs volunteer designer.",
+      "priority": "high",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "2026-05-20",
+      "persona": "guest",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "design",
+        "print"
+      ],
+      "blockedBy": "B25",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:28:45.673Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:28:45.673Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t35",
+      "taskId": "B25",
+      "workstream": "b",
+      "title": "Day-of Sequence Optimization",
+      "desc": "CEREMONY ORDER DRAFTED: Setup 9am. Guests arrive 2pm. Ceremony 2:30pm: signs → seating → 10min music → processional → prayer → officiant speech → vows → rings → prayer tunnel → reception → potluck buffet → cake → dancing (Lori folk dances + Indian music). Golden hour photos late. Last call 7:30pm, wine packed 8pm. Cleanup 7:30pm. Out by 8:45pm. 9PM hard stop.",
+      "priority": "medium",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "2026-05-01",
+      "persona": "organizer",
+      "assignee": "Hannah, Stan",
+      "location": "Willamette Mission State Park",
+      "contacts": "Daniel Thomas, Grace, Wes Walls, Lori Tauscher",
+      "tags": [
+        "schedule",
+        "ceremony"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Day",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:36:59.275Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:28:59.837Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:36:59.275Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t36",
+      "taskId": "B26",
+      "workstream": "b",
+      "title": "Post-Park Accommodation + Transportation",
+      "desc": "Where should parents/friends stay? Who does pickups/dropoffs? Van available for ferrying? What do guests do after 9PM?",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "accommodation",
+        "transport"
+      ],
+      "blockedBy": "",
+      "group": "Venue",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:36:39.092Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:31:02.243Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:35:27.527Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:36:39.092Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t37",
+      "taskId": "B27",
+      "workstream": "b",
+      "title": "Groomsmen Attire + Tailoring",
+      "desc": "Stan decides attire. Tailoring needs lead time. Tanvi = backup groomsman.",
+      "priority": "high",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-04-15",
+      "persona": "groom",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "attire",
+        "tailoring"
+      ],
+      "blockedBy": "",
+      "group": "Guests",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:34:36.361Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:34:36.361Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t38",
+      "taskId": "B28",
+      "workstream": "b",
+      "title": "Schedule Phone Call with Elsie",
+      "desc": "She offered Tuesday March 17. Deadline passed — verify if call happened. If not, reschedule.",
+      "priority": "medium",
+      "status": "done",
+      "quadrant": "q2",
+      "deadline": "2026-03-17",
+      "persona": "organizer",
+      "assignee": "Stan",
+      "location": "",
+      "contacts": "Elsie",
+      "tags": [
+        "phone",
+        "coordination"
+      ],
+      "blockedBy": "",
+      "group": "All",
+      "subtasks": [],
+      "comments": [],
+      "history": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T14:36:34.770Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t39",
+      "taskId": "B29",
+      "workstream": "c",
+      "title": "Elsie's To-Do Items (Delegated)",
+      "desc": "Luke wine+coolers. To-get wedding list. Choker+bracelet sets. Popsicle stick craft. Bottles. Favor magnets.",
+      "priority": "medium",
+      "status": "delegated",
+      "quadrant": "q3",
+      "deadline": "2026-05-30",
+      "persona": "bridal",
+      "assignee": "Elsie",
+      "location": "",
+      "contacts": "Elsie, Luke",
+      "tags": [
+        "crafts",
+        "favors",
+        "delegated"
+      ],
+      "blockedBy": "",
+      "group": "Organizers",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:40:37.443Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:40:37.443Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t40",
+      "taskId": "B30",
+      "workstream": "b",
+      "title": "Bridesmaid White Jackets (Cassie)",
+      "desc": "Searching for matching short white jackets over dresses.",
+      "priority": "medium",
+      "status": "delegated",
+      "quadrant": "q3",
+      "deadline": "2026-05-15",
+      "persona": "bridal",
+      "assignee": "Cassie",
+      "location": "",
+      "contacts": "Cassie",
+      "tags": [
+        "attire",
+        "delegated"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:05.476Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:05.475Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t41",
+      "taskId": "B31",
+      "workstream": "a",
+      "title": "Website FAQ Additions",
+      "desc": "Needed: wedding colors+attire freedom, drink info, activity release, outdoor/weather/sun note, transport/logistics, driving directions+map, parking instructions.",
+      "priority": "medium",
+      "status": "mostly-done",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "website"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:40:21.209Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:40:21.209Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t42",
+      "taskId": "B32",
+      "workstream": "b",
+      "title": "Marriage License",
+      "desc": "Legal requirement. Stan and Hannah picking up in Oregon on way to California. Confirm OR requirements.",
+      "priority": "critical",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-05-30",
+      "persona": "",
+      "assignee": "Hannah, Stan",
+      "location": "Oregon",
+      "contacts": "",
+      "tags": [
+        "legal",
+        "critical"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Week",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:40:03.501Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:40:03.501Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t43",
+      "taskId": "B33",
+      "workstream": "b",
+      "title": "Sound System (Daniel Barksdale) ",
+      "desc": "Daniel Barksdale: full PA system — 6 speakers (3 main + 3 sub), soundboard + computer + 8 plugins. Shelter has only 2 outlets — max amperage question sent to park, AWAITING REPLY. Fallback: 1 speaker + soundboard, or rented generator. Lori Tauscher: folk dance caller + dance tracks ONLY (separate from PA).",
+      "priority": "high",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "service",
+      "assignee": "Hannah",
+      "location": "Willamette Mission State Park",
+      "contacts": "Daniel Barksdale, Lori Tauscher",
+      "tags": [
+        "music",
+        "sound"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:27.044Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:08:13.829Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:27.044Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t44",
+      "taskId": "B34",
+      "workstream": "b",
+      "title": "Parking + Transportation Logistics",
+      "desc": "Offsite parking needed. Communicate carpooling+walking on FAQ+directly. Van for ferrying? Greeter for parking.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Hannah",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "parking",
+        "logistics"
+      ],
+      "blockedBy": "",
+      "group": "Venue",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:09.886Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:09.886Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t45",
+      "taskId": "B35",
+      "workstream": "b",
+      "title": "Pre-Wedding Dinner With Parents",
+      "desc": "Before or after wedding? Who organizes? Stan to decide.",
+      "priority": "low",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "guest",
+      "assignee": "Merry",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "party",
+        "social"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Week",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:39:21.619Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:39:21.619Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t46",
+      "taskId": "B36",
+      "workstream": "b",
+      "title": "Procession Planning",
+      "desc": "Draft order exists. Open: how does Stan arrive? Flower girl/nephews order? Bride entrance music? MOH carries rings?",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "bridal",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "ceremony",
+        "procession"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Day",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:39:51.812Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:39:51.812Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t47",
+      "taskId": "B37",
+      "workstream": "b",
+      "title": "Teardown + Cleaning",
+      "desc": "Announce at event asking guests to help. Park closes 9PM. Need teardown captain.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "organizer",
+      "assignee": "",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "logistics",
+        "teardown"
+      ],
+      "blockedBy": "",
+      "group": "Venue",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:42:57.569Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:39:44.421Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:42:57.569Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t48",
+      "taskId": "B38",
+      "workstream": "b",
+      "title": "Decorations + Flowers + CAD Layout",
+      "desc": "Shuba's friend modeling site in CAD. Flowers+decorations still need purchasing. Elsie making to-get list.",
+      "priority": "medium",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Shuba's Friend, Elsie",
+      "location": "",
+      "contacts": "Elsie",
+      "tags": [
+        "decorations",
+        "flowers",
+        "design"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:39:36.398Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:39:36.398Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t49",
+      "taskId": "B39",
+      "workstream": "b",
+      "title": "Wedding Colors Reference",
+      "desc": "Green #1A6C24, Blue #201761, Ivory #fffff6, Red #6C241A, Sand #ebd8bd. David's Bridal: Marine, Juniper, Wine. Add to website + invitations.",
+      "priority": "low",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "colors",
+        "reference"
+      ],
+      "blockedBy": "",
+      "group": "Wedding Day",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:38:21.279Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:38:21.279Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t50",
+      "taskId": "B40",
+      "workstream": "b",
+      "title": "Consumables Shopping List",
+      "desc": "Ice (day-of), disposable silverware/plates/cups, flowers/decorations, guest book+pens, 2 cases sparkling cider. From family: bridge (Dad), water dispensers (Mom/Dad), folding tables.",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q3",
+      "deadline": "2026-05-30",
+      "persona": "",
+      "assignee": "Hannah, Stan",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "shopping",
+        "consumables"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:39:30.796Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:39:30.796Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t51",
+      "taskId": "C1",
+      "workstream": "a",
+      "title": "dialogueXR v0.3 Changelog Gap",
+      "desc": "Scrybal tweaked between Sessions 6–7. Changes not logged.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "Claude",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:16.376Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:08:53.441Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:16.376Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t52",
+      "taskId": "C2",
+      "workstream": "a",
+      "title": "Workshop STL Template",
+      "desc": "Across project contexts.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:21.122Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:08:54.377Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:21.122Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t53",
+      "taskId": "C3",
+      "workstream": "a",
+      "title": "System Architecture Map",
+      "desc": "Artifact inventory + integration gaps.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:24.013Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:36:50.186Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:24.013Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t54",
+      "taskId": "C4",
+      "workstream": "a",
+      "title": "Unify Canonical Files",
+      "desc": "Integrate all into governance system.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:27.017Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:08:57.458Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:27.017Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t55",
+      "taskId": "C5",
+      "workstream": "a",
+      "title": "Extract Invariant Templates",
+      "desc": "Needs uploads from cross-project artifacts.",
+      "priority": "low",
+      "status": "done",
+      "quadrant": "q4",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [
+        "governance"
+      ],
+      "blockedBy": "",
+      "group": "Website",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:29.785Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:08:58.697Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:29.785Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t56",
+      "taskId": "B41",
+      "workstream": "b",
+      "title": "OLCC certified server (NOT necessary)",
+      "desc": "RESOLVED! A liquor license is NOT needed at special events where alcohol is available but there is no payment or purchase required and no donations of money are accepted for alcohol, entry, or admission. The explicit example given is a wedding reception where you make alcohol available but don't require payment or accept donations. es — the OLCC exemption applies to all alcohol types (wine, beer, spirits) equally. The exemption is triggered by the payment/donation condition, not by what kind of alcohol is being served. Free hard liquor at a private wedding = same legal standing as free wine. The only wrinkle worth flagging: some city park rules restrict alcohol content to 14% or less for private events Salem — but that's a City of Salem parks rule, not Oregon State Parks. Willamette Mission is an Oregon State Park, so that restriction doesn't apply to you. The park manager call (503-393-1172) is still the place to get this confirmed in writing for your specific event. That one call covers everything — wine, coolers, and your dad's whiskey.https://www.oregon.gov/olcc/lic/pages/special-event-licensing.aspx\n\nFind out if we Need an OLCC-certified server to pour wine. Elsie and Fen CANNOT serve (confirmed). Options: hire a licensed server, or ask a guest who is OLCC certified. Park requires: 1-2 licensed servers separate from the sober monitor. Fruit wine only, no hard alcohol.",
+      "priority": "critical",
+      "status": "done",
+      "quadrant": "q1",
+      "deadline": "2026-05-01",
+      "persona": "organizer",
+      "assignee": "Hannah, Stan",
+      "location": "Willamette Mission State Park",
+      "contacts": "Elsie",
+      "tags": [
+        "alcohol",
+        "legal",
+        "critical"
+      ],
+      "blockedBy": "",
+      "group": "Venue",
+      "subtasks": [],
+      "comments": [
+        {
+          "text": "A liquor license is NOT needed at special events where alcohol is available but there is no payment or purchase required and no donations of money are accepted for alcohol, entry, or admission. The explicit example given is a wedding reception where you make alcohol available but don't require payment or accept donations. es — the OLCC exemption applies to all alcohol types (wine, beer, spirits) equally. The exemption is triggered by the payment/donation condition, not by what kind of alcohol is being served. Free hard liquor at a private wedding = same legal standing as free wine. The only wrinkle worth flagging: some city park rules restrict alcohol content to 14% or less for private events Salem — but that's a City of Salem parks rule, not Oregon State Parks. Willamette Mission is an Oregon State Park, so that restriction doesn't apply to you. The park manager call (503-393-1172) is still the place to get this confirmed in writing for your specific event. That one call covers everything — wine, coolers, and your dad's whiskey.https://www.oregon.gov/olcc/lic/pages/special-event-licensing.aspx",
+          "time": "2026-04-15T14:40:53.607Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:46:44.939Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T14:41:23.352Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T14:44:51.508Z"
+        },
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T14:44:55.344Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:46:44.939Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t57",
+      "taskId": "B42",
+      "workstream": "b",
+      "title": "Port-a-Potty Vendor — Book + Schedule",
+      "desc": "Park requires: 2 chemical toilets per 100 participants (at least 1 ADA). Vendor not yet contacted. Delivery/pickup approximately same as rental times (8:30am/8:30pm). Get quotes and book ASAP.",
+      "priority": "critical",
+      "status": "not-started",
+      "quadrant": "q1",
+      "deadline": "2026-04-30",
+      "persona": "organizer",
+      "assignee": "Hannah",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "logistics",
+        "venue",
+        "critical"
+      ],
+      "blockedBy": "",
+      "group": "Procurement",
+      "subtasks": [],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:15.353Z",
+      "history": [
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:15.353Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t58",
+      "taskId": "B43",
+      "workstream": "b",
+      "title": "Reimburse Elsie — $545 (Rental Deposit)",
+      "desc": "Hannah owes Elsie $545 reimbursement for A to Z Party Rental deposit (Order #589401). Pay as soon as possible.",
+      "priority": "high",
+      "status": "done",
+      "quadrant": "q1",
+      "deadline": "2026-04-20",
+      "persona": "organizer",
+      "assignee": "Hannah",
+      "location": "",
+      "contacts": "Elsie",
+      "tags": [
+        "finance",
+        "reimbursement"
+      ],
+      "blockedBy": "",
+      "group": "All",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T15:23:12.975Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:23:12.975Z",
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t59",
+      "taskId": "B44",
+      "workstream": "b",
+      "title": "Park Open Questions — Await + Follow Up",
+      "desc": "Three questions sent to park, awaiting response: (1) Max amperage/current on shelter electrical (critical for 6-speaker PA). (2) Helium balloons at park entrance/Shelter A loop/overflow lot — approval needed. (3) Smoking rules: cars on park grounds. If no reply by Apr 21, follow up with OPRD (503-393-1172 opt 5).",
+      "priority": "high",
+      "status": "in-progress",
+      "quadrant": "q2",
+      "deadline": "2026-04-21",
+      "persona": "organizer",
+      "assignee": "Hannah",
+      "location": "Willamette Mission State Park",
+      "contacts": "",
+      "tags": [
+        "park",
+        "logistics"
+      ],
+      "blockedBy": "",
+      "group": "Guests",
+      "subtasks": [
+        {
+          "text": "Max amperage/current on shelter electrical (critical for 6-speaker PA) — AWAITING PARK REPLY",
+          "done": false
+        },
+        {
+          "text": "Helium balloons at park entrance/Shelter A loop/overflow lot — NOT APPROVED by park",
+          "done": true
+        }
+      ],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:42:37.587Z",
+      "history": [
+        {
+          "action": "Status → Done",
+          "time": "2026-04-15T14:36:52.419Z"
+        },
+        {
+          "action": "Status → Not Started",
+          "time": "2026-04-15T15:08:23.099Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:08:30.682Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:42:37.587Z"
+        }
+      ],
+      "created": "2026-04-15T14:36:34.770Z"
+    },
+    {
+      "id": "t1776265716814",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Dance Calling (Lori)",
+      "desc": "Discuss dances with Lori! And the music too!",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Wedding Day",
+      "subtasks": [
+        {
+          "text": "Which dances?",
+          "done": false
+        }
+      ],
+      "comments": [],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:44:43.524Z",
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:08:36.814Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:09:32.593Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:41:11.105Z"
+        },
+        {
+          "action": "Edited",
+          "time": "2026-04-15T15:44:43.524Z"
+        }
+      ],
+      "created": "2026-04-15T15:08:36.814Z"
+    },
+    {
+      "id": "t1776266763813",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Zubey",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:03.813Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:03.813Z",
+      "created": "2026-04-15T15:26:03.813Z"
+    },
+    {
+      "id": "t1776266767998",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Ronnie",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:07.998Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:07.998Z",
+      "created": "2026-04-15T15:26:07.998Z"
+    },
+    {
+      "id": "t1776266772701",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Peter",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:12.701Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:12.701Z",
+      "created": "2026-04-15T15:26:12.701Z"
+    },
+    {
+      "id": "t1776266776099",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Aarti",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:16.099Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:16.099Z",
+      "created": "2026-04-15T15:26:16.099Z"
+    },
+    {
+      "id": "t1776266781521",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Tanvee & Aung",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:21.521Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:21.521Z",
+      "created": "2026-04-15T15:26:21.521Z"
+    },
+    {
+      "id": "t1776266791952",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Deyvaansh",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:31.952Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:31.952Z",
+      "created": "2026-04-15T15:26:31.952Z"
+    },
+    {
+      "id": "t1776266798656",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Abhinav",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:38.656Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:38.656Z",
+      "created": "2026-04-15T15:26:38.656Z"
+    },
+    {
+      "id": "t1776266808759",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Urmi",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:48.759Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:48.759Z",
+      "created": "2026-04-15T15:26:48.759Z"
+    },
+    {
+      "id": "t1776266816949",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Rumi Didi",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:26:56.949Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:26:56.949Z",
+      "created": "2026-04-15T15:26:56.949Z"
+    },
+    {
+      "id": "t1776266849057",
+      "taskId": "",
+      "workstream": "b",
+      "title": "Babu Mamu & Deepa Aunty",
+      "desc": "",
+      "priority": "medium",
+      "status": "not-started",
+      "quadrant": "q2",
+      "deadline": "",
+      "persona": "",
+      "assignee": "",
+      "location": "",
+      "contacts": "",
+      "tags": [],
+      "blockedBy": "",
+      "group": "Stan's Rolodex",
+      "subtasks": [],
+      "comments": [],
+      "history": [
+        {
+          "action": "Created",
+          "time": "2026-04-15T15:27:29.057Z"
+        }
+      ],
+      "recurring": "",
+      "reminder": "",
+      "modified": "2026-04-15T15:27:29.057Z",
+      "created": "2026-04-15T15:27:29.057Z"
+    }
+  ],
+  "contacts": [
+    {
+      "id": "p1",
+      "name": "Hannah",
+      "role": "bridal",
+      "specificRole": "Bride",
+      "phone": "",
+      "email": "hannah7of9@gmail.com",
+      "notes": "Co-planning. Handling park logistics, event insurance, SUP filing, invitations."
+    },
+    {
+      "id": "p2",
+      "name": "Stan (Scrybal)",
+      "role": "groom",
+      "specificRole": "Groom",
+      "phone": "",
+      "email": "",
+      "notes": "Co-planning. Leading food plan, invitation list, website, playlist."
+    },
+    {
+      "id": "p3",
+      "name": "Elsie",
+      "role": "organizer",
+      "specificRole": "General Coordinator + Bridesmaid",
+      "phone": "",
+      "email": "crankyfood@gmail.com",
+      "notes": "Hannah's older sister. Coordinator all along. Making choker+bracelet sets, favor magnets, popsicle stick craft, bottles. Coordinating Luke's wine."
+    },
+    {
+      "id": "p4",
+      "name": "Thomas",
+      "role": "family",
+      "specificRole": "Co-MC (Oregonian crowd) + Knight Tournament Anchor",
+      "phone": "",
+      "email": "",
+      "notes": "Hannah's teenage nephew. Roman centurion outfit."
+    },
+    {
+      "id": "p5",
+      "name": "Zita",
+      "role": "bridal",
+      "specificRole": "Maid of Honor",
+      "phone": "",
+      "email": "",
+      "notes": "Researching walled canopies + food prep items."
+    },
+    {
+      "id": "p6",
+      "name": "Cassie",
+      "role": "bridal",
+      "specificRole": "Bridesmaid",
+      "phone": "",
+      "email": "",
+      "notes": "Searching for matching short white jackets for bridesmaids."
+    },
+    {
+      "id": "p7",
+      "name": "Grace",
+      "role": "service",
+      "specificRole": "2nd Photographer (confirmed)",
+      "phone": "",
+      "email": "",
+      "notes": "Declined day-of coordinator role. Confirmed as 2nd photographer at ~$1,800/6hrs."
+    },
+    {
+      "id": "p8",
+      "name": "Daniel Thomas",
+      "role": "service",
+      "specificRole": "Lead Photographer",
+      "phone": "206-307-5208",
+      "email": "",
+      "notes": "Contract SIGNED, deposit PAID. ~$1,500 total. On duty from ~2pm Jun 7. Pre-wedding style call completed Mar 15."
+    },
+    {
+      "id": "p9",
+      "name": "Merry",
+      "role": "family",
+      "specificRole": "Hannah's Mother",
+      "phone": "",
+      "email": "",
+      "notes": "Colleen's primary caregiver. Needs real chair, shade, dignity at venue. Water dispensers from Mom/Dad."
+    },
+    {
+      "id": "p10",
+      "name": "Colleen",
+      "role": "family",
+      "specificRole": "Bridesmaid (by nature)",
+      "phone": "",
+      "email": "",
+      "notes": "Hannah's youngest sister. Bridesmaid protocol: welcome at ceremony, don't redirect. Mobile comfort kit goes to her."
+    },
+    {
+      "id": "p11",
+      "name": "Stan's Best Friend",
+      "role": "groom",
+      "specificRole": "Co-MC (Indian guests)",
+      "phone": "",
+      "email": "",
+      "notes": "Flying from India. Co-MC with invisible domain split."
+    },
+    {
+      "id": "p12",
+      "name": "Wes Walls",
+      "role": "service",
+      "specificRole": "Officiant + Premarital Counselor",
+      "phone": "",
+      "email": "",
+      "notes": "Friend, house church pastor. Short speech + traditional directions. Gave H&S two books to study."
+    },
+    {
+      "id": "p13",
+      "name": "Mike",
+      "role": "service",
+      "specificRole": "Catering — Chicken/Fish",
+      "phone": "",
+      "email": "",
+      "notes": "Making chicken + fish for main dish. Bringing 2-3 folding tables and 2×5-gal water dispensers."
+    },
+    {
+      "id": "p14",
+      "name": "Trudy",
+      "role": "family",
+      "specificRole": "",
+      "phone": "",
+      "email": "",
+      "notes": "Has metal warming pans for keeping food hot."
+    },
+    {
+      "id": "p15",
+      "name": "Zubey",
+      "role": "guest",
+      "specificRole": "Friend",
+      "phone": "",
+      "email": "",
+      "notes": "Stan funding travel. Needs attendance confirmation → ticket purchase."
+    },
+    {
+      "id": "p16",
+      "name": "Bonnie",
+      "role": "service",
+      "specificRole": "Food Coordinator",
+      "phone": "",
+      "email": "",
+      "notes": "Coordinating potluck + food logistics on the day."
+    },
+    {
+      "id": "p17",
+      "name": "Carol Edel",
+      "role": "service",
+      "specificRole": "Dessert — Sheet Cakes",
+      "phone": "",
+      "email": "",
+      "notes": "Making 2-3 sheet cakes for dessert."
+    },
+    {
+      "id": "p18",
+      "name": "Luke",
+      "role": "family",
+      "specificRole": "Wine Supply",
+      "phone": "",
+      "email": "",
+      "notes": "Bringing wine + coolers/ice. Elsie coordinating."
+    },
+    {
+      "id": "p19",
+      "name": "Lori Tauscher",
+      "role": "service",
+      "specificRole": "Folk Dance Caller",
+      "phone": "",
+      "email": "",
+      "notes": "Calling folk dances + supplying dance tracks ONLY. NOT the PA/sound lead — Daniel Barksdale handles the full PA system."
+    },
+    {
+      "id": "p20",
+      "name": "Sarah",
+      "role": "family",
+      "specificRole": "Flowers + Decor",
+      "phone": "",
+      "email": "",
+      "notes": "Buying flowers (baby's breath etc). Possibly handling aisle runner and arch sourcing."
+    },
+    {
+      "id": "p21",
+      "name": "Shuba's Friend",
+      "role": "service",
+      "specificRole": "CAD Site Layout",
+      "phone": "",
+      "email": "",
+      "notes": "Modeling wedding site in CAD for decoration/setup planning."
+    },
+    {
+      "id": "p22",
+      "name": "Shuba Murthy",
+      "role": "bridal",
+      "specificRole": "Bridesmaid",
+      "phone": "",
+      "email": "",
+      "notes": "Making the full wedding playlist (all categories). Building 3 wooden risers (3-6\" tall) for couple + pastor."
+    },
+    {
+      "id": "p23",
+      "name": "Christa Shipman",
+      "role": "bridal",
+      "specificRole": "Bridesmaid",
+      "phone": "",
+      "email": "",
+      "notes": "Hannah's sister. Sourcing one of the 2 ceremony arches. Has leftover disposable plates/silverware."
+    },
+    {
+      "id": "p24",
+      "name": "Daniel Barksdale",
+      "role": "service",
+      "specificRole": "Sound/DJ Lead",
+      "phone": "",
+      "email": "",
+      "notes": "Full PA system: 6 speakers (3 main + 3 sub), soundboard + computer + 8 audio plugins. Separate from Lori Tauscher."
+    },
+    {
+      "id": "p25",
+      "name": "Jenny",
+      "role": "family",
+      "specificRole": "Guest Travel Coordinator + Runner",
+      "phone": "",
+      "email": "",
+      "notes": "Likely Jenny Shipman (listed as on-site contact on SUP). Coordinating guest rides + hotels. Ferrying items from mom's house."
+    },
+    {
+      "id": "p26",
+      "name": "Josiah",
+      "role": "guest",
+      "specificRole": "Lost & Found Coordinator (candidate)",
+      "phone": "",
+      "email": "",
+      "notes": "Potential candidate to collect lost items on a centralized table."
+    },
+    {
+      "id": "p27",
+      "name": "Lucas",
+      "role": "family",
+      "specificRole": "Cassie's Partner",
+      "phone": "",
+      "email": "",
+      "notes": "With Cassie: bringing blue tent for Colleen's day-of comfort setup."
+    }
+  ],
+  "groups": [
+    "All",
+    "Guests",
+    "Website",
+    "Venue",
+    "Wedding Day",
+    "Organizers",
+    "Stan's Rolodex",
+    "Procurement",
+    "Wedding Week",
+    "Guest List",
+    "HanStan Logistics",
+    "Catering"
+  ],
+  "tags": [
+    "accommodation",
+    "activities",
+    "alcohol",
+    "attire",
+    "bugfix",
+    "canopy",
+    "catering",
+    "ceremony",
+    "colors",
+    "communication",
+    "consumables",
+    "coordination",
+    "coordinator",
+    "counseling",
+    "covenant",
+    "crafts",
+    "critical",
+    "decorations",
+    "delegated",
+    "deposit",
+    "design",
+    "documents",
+    "family",
+    "faq",
+    "favors",
+    "festival",
+    "finance",
+    "flowers",
+    "food",
+    "governance",
+    "honeymoon",
+    "immediate",
+    "invitations",
+    "legal",
+    "logistics",
+    "music",
+    "officiant",
+    "park",
+    "parking",
+    "party",
+    "phone",
+    "photography",
+    "planning",
+    "playlist",
+    "print",
+    "procession",
+    "reference",
+    "registry",
+    "reimbursement",
+    "roles",
+    "schedule",
+    "shopping",
+    "social",
+    "sound",
+    "specs",
+    "survey",
+    "tailoring",
+    "teardown",
+    "technical",
+    "transport",
+    "travel",
+    "venue",
+    "verify",
+    "visa",
+    "weather",
+    "website"
+  ],
+  "savedViews": [],
+  "prefs": {
+    "advExpanded": false,
+    "onboardSeen": false,
+    "sortBy": "priority",
+    "groupByField": "group"
+  },
+  "exported": "2026-04-17T00:23:10.999Z"
+}

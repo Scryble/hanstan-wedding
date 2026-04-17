@@ -96,6 +96,34 @@ Conflicts return 409 — no auto-merge. No session timeout; admin is desktop-onl
 
 ---
 
+### 3.5 Planner — `/planner/`
+
+Token-protected coordinator planning tool. Multi-user shared state via Netlify Blobs. Each coordinator has a unique token Stan distributes manually; token = identity (server-side lookup maps token → name). Single gate covers read + write. No device binding.
+
+**Architecture:**
+- Static page (`planner/index.html` + `planner.css` + `planner.js`)
+- 5 functions: `planner-auth`, `planner-state`, `planner-snapshots`, `planner-coordinators`, `planner-audit`
+- 1 shared lib: `_planner_lib/auth.mjs`
+- State Blob: `planner/state-current.json` (one shared state for all coordinators, schemaVersion 6)
+- Snapshot Blobs: `planner/snapshots/{ISO-ts}-{editor}.json` (one per save, last 200 retained)
+- Coordinators registry Blob: `planner/coordinators.json` (server-side only, never sent to browsers)
+- Audit log Blob: `planner/audit-log.json` (last 5000 entries)
+
+**Tabs:** Focus, Tasks, People, History, Settings.
+**Settings (master only) gains:** Coordinators panel (add/rename/remove with token entry), Snapshots panel (restore from any snapshot).
+
+**Concurrency:** Last-write-wins. Auto-refresh every 30s when tab is foregrounded. Stale-edit banner appears if remote state changes while user has an editor modal open.
+
+**Offline behavior:** Edits queue in localStorage `hanstan_planner_offline_queue` if a save fails. Background timer retries every 15s when `navigator.onLine`.
+
+**Bootstrap:** First-ever load — if `planner/coordinators.json` Blob does not exist, the auth function uses `PLANNER_MASTER_BOOTSTRAP_TOKEN` env var (= `stanshan`) to recognize the master token and seeds the registry. The env var also serves as a fallback if the registry is ever deleted.
+
+**Seed data:** First-ever load — if `planner/state-current.json` does not exist, function reads `data/planner-seed.json` (Stan's exported v5 state, 70 tasks, 27 contacts) and writes it as the initial state.
+
+**Auth pattern:** `Authorization: Bearer <token>` header validated against `process.env.PLANNER_MASTER_BOOTSTRAP_TOKEN` (master fallback) or registry Blob lookup. Same pattern as `admin-write-registry.mjs`. NOT shared with admin token — separate auth domain.
+
+---
+
 ## 4. Data
 
 ### Gift schema
