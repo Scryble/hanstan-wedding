@@ -1,40 +1,85 @@
 /* ══════════════════════════════════════════
-   §15.2 COLOR SYSTEM — warm paper palette
+   §15.2 COLOR SYSTEM — Rivendell Garden (v1)
+   Soft sage earth, phial-of-Galadriel gold, forest emerald.
    ══════════════════════════════════════════ */
 :root {
-  --bg: #F6F2EA;
-  --bg-elevated: #F3EEE5;
-  --card: #FFFCF8;
-  --text-primary: #2E2926;
-  --text-secondary: #6C655E;
-  --text-muted: #8A827A;
-  --border: #DDD4C8;
-  --divider: #E8E0D5;
-  --gold: #B59A43;
-  --gold-dark: #8A7227;
-  --gold-fill: rgba(181,154,67,0.12);
-  --gold-soft: rgba(181,154,67,0.06);
-  /* chip families */
-  --chip-date-bg: #E9D8F1; --chip-date-fg: #74518A;
-  --chip-assignee-bg: #DCEBF8; --chip-assignee-fg: #3D6587;
-  --chip-dep-bg: #F2D6D8; --chip-dep-fg: #9A454D;
-  --chip-neutral-bg: #ECE7E0; --chip-neutral-fg: #615A54;
-  --chip-tag-bg: #E5EDE6; --chip-tag-fg: #3D5E40;
-  --chip-group-bg: #FFF3E0; --chip-group-fg: #8A6520;
-  /* status */
-  --s-done: #5A8A5E; --s-done-bg: #E5EDE6;
-  --s-progress: #B59A43; --s-progress-bg: rgba(181,154,67,0.1);
-  --s-blocked: #9A454D; --s-blocked-bg: #F2D6D8;
-  --s-delegated: #74518A; --s-delegated-bg: #E9D8F1;
-  --s-overdue: #C45; --s-overdue-bg: #FAE0E0;
-  /* priority */
-  --p-critical: #B8393B; --p-high: #C9883A; --p-medium: #5A7FA0; --p-low: #A09A92;
-  /* layout */
-  --r: 12px; --r-sm: 8px; --r-pill: 20px;
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-elevated: 0 4px 16px rgba(0,0,0,0.08);
-  --shadow-sheet: 0 -4px 24px rgba(0,0,0,0.12);
+  /* Surfaces */
+  --bg: #e6ebe1;
+  --bg-elevated: #ecede0;
+  --bg-warm: #ecede0;
+  --panel: #f1f2e7;
+  --card: #faf9ef;
+  --card-rich: #f4f4e8;
+
+  /* Ink (text) */
+  --ink: #1d2d26;
+  --ink-2: #445a4f;
+  --ink-3: #78867c;
+  --ink-4: #a3aea3;
+  --text-primary: #1d2d26;
+  --text-secondary: #445a4f;
+  --text-muted: #78867c;
+
+  /* Hairlines + metals */
+  --border: #d6d6c5;
+  --divider: #d6d6c5;
+  --hair: #d6d6c5;
+  --hair-gold: #d4bf82;
+  --mithril: #c9cfc4;
+
+  /* Phial-of-Galadriel gold */
+  --gold: #c19a3c;
+  --gold-dark: #8a6d22;
+  --gold-deep: #8a6d22;
+  --gold-light: #ead89b;
+  --gold-glow: #ffe8a6;
+  --gold-wash: rgba(193,154,60,0.08);
+  --gold-tint: rgba(193,154,60,0.16);
+  --gold-fill: rgba(193,154,60,0.12);
+  --gold-soft: rgba(193,154,60,0.06);
+
+  /* Forest deep */
+  --emerald: #2e5a45;
+  --emerald-glow: #5fb089;
+  --emerald-soft: rgba(46,90,69,0.10);
+  --teal: #4a8680;
+
+  /* Garden at dusk — accent pops */
+  --blush: #c58877;    --blush-bg: #f2d7cc;
+  --lavender: #8a7eab; --lavender-bg: #e4dff0;
+  --sky: #6684a6;      --sky-bg: #d7e1eb;
+  --rose-deep: #a1424f;--rose-bg: #f0d2d5;
+
+  /* Chip families (Rivendell-remapped) */
+  --chip-date-bg: #d7e1eb;     --chip-date-fg: #6684a6;
+  --chip-assignee-bg: #e4dff0; --chip-assignee-fg: #8a7eab;
+  --chip-dep-bg: #f2d7cc;      --chip-dep-fg: #c58877;
+  --chip-neutral-bg: #e3e3d3;  --chip-neutral-fg: #445a4f;
+  --chip-tag-bg: #d9e6d7;      --chip-tag-fg: #2e5a45;
+  --chip-group-bg: #f4e3b6;    --chip-group-fg: #8a6d22;
+
+  /* Status */
+  --s-done: #568670;      --s-done-bg: #d9e6d7;
+  --s-progress: #c19a3c;  --s-progress-bg: rgba(193,154,60,0.16);
+  --s-blocked: #a1424f;   --s-blocked-bg: #f0d2d5;
+  --s-delegated: #8a7eab; --s-delegated-bg: #e4dff0;
+  --s-overdue: #a1424f;   --s-overdue-bg: #f0d2d5;
+
+  /* Priority accent bars */
+  --p-critical: #a1424f; --p-high: #c58877; --p-medium: #6684a6; --p-low: #a3aea3;
+
+  /* Layout + shadow */
+  --r: 14px; --r-sm: 8px; --r-pill: 99px;
+  --shadow-card: 0 1px 2px rgba(32,49,43,0.04), 0 2px 10px rgba(32,49,43,0.05);
+  --shadow-elevated: 0 2px 4px rgba(32,49,43,0.06), 0 12px 28px rgba(32,49,43,0.10);
+  --shadow-sheet: 0 -4px 24px rgba(32,49,43,0.12);
   --transition: 0.15s ease;
+
+  /* Glows */
+  --glow-gold:     0 0 8px rgba(234,216,155,0.55), 0 0 18px rgba(234,216,155,0.28);
+  --glow-gold-sm:  0 0 6px rgba(234,216,155,0.45);
+  --glow-emerald:  0 0 10px rgba(95,176,137,0.35), 0 0 24px rgba(95,176,137,0.15);
+  --glow-mithril:  0 0 6px rgba(201,207,196,0.7), 0 0 14px rgba(201,207,196,0.4);
 }
 
 /* RESET + BASE — §15.3 Typography */
@@ -42,8 +87,13 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 16px; line-height: 1.5;
-  background: var(--bg); color: var(--text-primary);
+  font-size: 18px; line-height: 1.55;
+  background:
+    radial-gradient(900px 500px at 20% -10%, rgba(234,216,155,0.18), transparent 55%),
+    radial-gradient(800px 460px at 110% 20%, rgba(95,176,137,0.08), transparent 55%),
+    radial-gradient(1200px 700px at 50% 120%, rgba(193,154,60,0.06), transparent 60%),
+    var(--bg);
+  color: var(--text-primary);
   min-height: 100vh; min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -876,9 +926,305 @@ input[type="date"], textarea, select { font-size: 16px; }
 
 /* PATCH 14: custom input sheet field */
 .input-sheet-field {
-  width: 100%; padding: 10px 12px;
+  width: 100%; padding: 12px 14px;
   border: 1px solid var(--border); border-radius: var(--r-sm);
-  font-size: 16px; margin-bottom: 12px;
+  font-size: 18px; margin-bottom: 12px;
   background: var(--card); color: var(--text-primary);
   font-family: inherit;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RIVENDELL GARDEN v1 — visual theme overrides
+   Ornament, typography, Tier-1 magic (ambient light + semantic pulse).
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Elvish leaf-fan ornament flanking the brand */
+.leaf-fan {
+  --size: 40px;
+  width: var(--size); height: calc(var(--size) / 1.8);
+  position: relative; display: inline-block; flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(234,216,155,0.45));
+  vertical-align: middle;
+}
+.leaf-fan::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    conic-gradient(from 200deg at 50% 100%,
+      transparent 0deg,
+      var(--gold) 2deg, var(--gold-glow) 6deg, var(--gold) 10deg, transparent 12deg,
+      transparent 24deg,
+      var(--gold) 32deg, var(--gold-glow) 36deg, var(--gold) 40deg, transparent 42deg,
+      transparent 54deg,
+      var(--gold) 62deg, var(--gold-glow) 66deg, var(--gold) 70deg, transparent 72deg,
+      transparent 84deg,
+      var(--gold) 92deg, var(--gold-glow) 96deg, var(--gold) 100deg, transparent 102deg,
+      transparent 114deg,
+      var(--gold) 122deg, var(--gold-glow) 126deg, var(--gold) 130deg, transparent 132deg,
+      transparent 160deg);
+  mask: radial-gradient(ellipse 100% 180% at 50% 100%, black 4px, black 95%, transparent 100%);
+  -webkit-mask: radial-gradient(ellipse 100% 180% at 50% 100%, black 4px, black 95%, transparent 100%);
+}
+.leaf-fan::after {
+  content: ''; position: absolute; left: 50%; bottom: -2px;
+  width: 8px; height: 8px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, var(--gold-glow), var(--gold) 60%);
+  border-radius: 50%;
+  box-shadow: var(--glow-gold);
+}
+
+/* Keyframes — breath and flicker */
+@keyframes ampersand-breath {
+  0%, 100% { text-shadow: 0 0 6px rgba(255,232,166,0.75), 0 0 16px rgba(234,216,155,0.45), 0 0 30px rgba(193,154,60,0.25); }
+  50%      { text-shadow: 0 0 9px rgba(255,232,166,0.95), 0 0 22px rgba(234,216,155,0.70), 0 0 40px rgba(193,154,60,0.45); }
+}
+@keyframes pulse-rose {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+@keyframes flicker-gold {
+  0%, 100% { opacity: 0.40; }
+  30%      { opacity: 0.95; }
+  65%      { opacity: 0.20; }
+}
+@keyframes hearth-breath {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.95; }
+}
+
+/* ════════ HEADER ════════ */
+.app-header {
+  background:
+    radial-gradient(380px 160px at 50% 110%, rgba(234,216,155,0.25), transparent 70%),
+    linear-gradient(180deg, var(--card) 0%, var(--card-rich) 100%);
+  border-bottom: 1px solid var(--hair);
+  padding: 18px 20px 14px;
+  position: relative; overflow: hidden;
+}
+.app-header::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(600px 200px at 50% 0%, rgba(95,176,137,0.06), transparent 70%);
+  pointer-events: none;
+}
+.hdr-row1 {
+  position: relative; z-index: 1;
+  gap: 14px;
+}
+.hdr-brand {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 30px; font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  text-shadow: 0 0 14px rgba(234,216,155,0.35);
+}
+.hdr-brand em {
+  font-family: 'Cormorant Garamond', serif; font-weight: 500;
+  color: var(--gold); font-size: 1.3em; padding: 0 4px;
+  text-shadow:
+    0 0 6px rgba(255,232,166,0.85),
+    0 0 16px rgba(234,216,155,0.55),
+    0 0 30px rgba(193,154,60,0.35);
+  animation: ampersand-breath 4s ease-in-out infinite;
+}
+.hdr-days {
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: 18px; color: var(--emerald);
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 6px rgba(95,176,137,0.25);
+}
+.hdr-row2 { font-size: 16px; color: var(--ink-3); gap: 20px; }
+.hdr-row2 strong { color: var(--ink-2); font-weight: 600; font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+.hdr-identity { font-size: 16px; color: var(--ink-3); }
+.hdr-identity .who {
+  color: var(--gold-deep); font-weight: 500;
+  font-family: 'Cormorant Garamond', serif; font-size: 18px; font-style: italic;
+  text-shadow: var(--glow-gold-sm);
+}
+.hdr-sync { font-size: 15px; font-weight: 500; color: var(--emerald); display: flex; align-items: center; gap: 6px; }
+.hdr-sync::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--emerald-glow);
+  box-shadow: var(--glow-emerald), 0 0 0 2px var(--s-done-bg);
+}
+
+/* ════════ MAIN NAV ════════ */
+.main-nav { box-shadow: 0 1px 0 rgba(234,216,155,0.5); }
+.main-nav button {
+  padding: 16px 0;
+  font-family: 'Cinzel', serif;
+  font-size: 18px; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+.main-nav button:hover { background: var(--gold-wash); color: var(--ink-2); }
+.main-nav button[aria-selected="true"] {
+  color: var(--gold-deep); font-weight: 800;
+  text-shadow: var(--glow-gold-sm);
+  border-bottom-color: var(--gold);
+}
+
+/* ════════ GROUP TABS ════════ */
+.group-tab { font-family: 'Cinzel', serif; font-size: 16px; letter-spacing: 0.03em; text-transform: none; }
+.group-tab[aria-selected="true"] {
+  color: var(--gold-deep); font-weight: 700;
+  border-bottom-color: var(--gold);
+  text-shadow: var(--glow-gold-sm);
+}
+
+/* ════════ QUERY BAR ════════ */
+.query-search { font-size: 18px; padding: 12px 16px; }
+.query-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-wash), var(--glow-gold-sm); }
+.query-btn { width: 44px; height: 44px; font-size: 18px; }
+.query-btn:hover { border-color: var(--gold); background: var(--gold-wash); color: var(--gold-deep); box-shadow: var(--glow-gold-sm); }
+
+/* ════════ FILTER TRAY ════════ */
+.filter-pill { font-size: 16px; padding: 6px 14px; border-radius: var(--r-pill); }
+
+/* ════════ SECTION HEADERS — chevron-divider treatment ════════ */
+.section-hdr {
+  font-family: 'Cinzel', serif;
+  font-size: 32px; font-weight: 700; letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--gold-deep);
+  margin: 34px 0 18px;
+  text-shadow: 0 0 10px rgba(234,216,155,0.35);
+  display: flex; align-items: center; gap: 14px;
+}
+.section-hdr::after {
+  background: linear-gradient(90deg, transparent, var(--hair-gold) 25%, var(--gold-light) 50%, var(--hair-gold) 75%, transparent);
+  box-shadow: 0 0 4px rgba(234,216,155,0.45);
+}
+.section-hdr .cnt {
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: 20px; color: var(--ink-3); font-weight: 400; letter-spacing: 0;
+}
+
+/* ════════ TASK CARDS ════════ */
+.task-card { border-radius: var(--r); margin-bottom: 10px; }
+.task-card:hover {
+  box-shadow: var(--shadow-elevated), 0 0 22px rgba(234,216,155,0.18);
+  border-color: var(--gold-light);
+  transform: translateY(-1px);
+}
+.tc-id {
+  font-family: 'Cinzel', serif;
+  font-size: 14px; font-weight: 800;
+  color: var(--gold-deep); letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: var(--glow-gold-sm);
+}
+.tc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 600;
+  line-height: 1.25;
+}
+.tc-status {
+  font-family: 'Cinzel', serif;
+  font-size: 16px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+}
+.tc-status-not-started { font-weight: 400; }
+.tc-status-in-progress { font-weight: 600; border-color: var(--gold-light); box-shadow: var(--glow-gold-sm); }
+.tc-status-blocked { font-weight: 700; }
+.tc-status-delegated { font-weight: 500; }
+.tc-status-mostly-done { font-weight: 600; }
+.tc-status-done { font-weight: 700; box-shadow: var(--glow-emerald); color: #fff; background: var(--s-done); }
+.mc { font-size: 16px; padding: 5px 12px; border-radius: var(--r-pill); }
+.mc-overdue { box-shadow: 0 0 8px rgba(161,66,79,0.35); }
+.tc-note { font-size: 16px; font-family: 'Cormorant Garamond', serif; font-style: italic; line-height: 1.5; margin-top: 8px; }
+.tc-subtasks { font-size: 16px; margin-top: 8px; }
+.tc-subtasks > span { font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* ════════ QUICK ADD ════════ */
+.quick-add {
+  background:
+    radial-gradient(500px 150px at 50% 120%, rgba(234,216,155,0.15), transparent 60%),
+    linear-gradient(180deg, var(--card-rich) 0%, var(--card) 100%);
+  border-top: 1px solid var(--hair);
+  padding: 12px 20px;
+}
+.quick-add input { font-size: 18px; padding: 12px 16px; }
+.quick-add input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-wash), var(--glow-gold-sm); }
+.quick-add button {
+  font-family: 'Cinzel', serif;
+  font-size: 16px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  background: var(--emerald); color: var(--card);
+  border-radius: var(--r-sm);
+  position: relative; isolation: isolate;
+}
+.quick-add button:hover { background: #245544; }
+.quick-add button::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: inherit;
+  pointer-events: none; z-index: -1;
+  box-shadow: 0 0 20px 0 rgba(95,176,137,0.40), 0 0 40px 0 rgba(95,176,137,0.20);
+  opacity: 0.5;
+  animation: hearth-breath 4s ease-in-out infinite;
+  transition: opacity 0.25s;
+}
+.quick-add button:hover::after { animation: none; opacity: 1; }
+
+/* ════════ TIER 1 MAGIC — ambient light + semantic pulses ════════ */
+
+/* Inner gradient — every chip holds a small light */
+.tc-status, .mc, .filter-pill, .query-btn {
+  position: relative;
+  isolation: isolate;
+}
+.tc-status::before,
+.mc::before,
+.filter-pill::before,
+.query-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.32) 0%,
+    rgba(255,255,255,0.06) 45%,
+    rgba(0,0,0,0.05) 100%);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+/* Opt-outs: matte states stay matte */
+.tc-status-not-started::before { display: none; }
+.filter-pill-clear::before { display: none; }
+
+/* Outer aura — semantic pulses */
+.tc-status::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -2;
+}
+.tc-status-blocked::after {
+  box-shadow: 0 0 14px 0 rgba(161,66,79,0.55), 0 0 28px 0 rgba(161,66,79,0.28);
+  animation: pulse-rose 3s ease-in-out infinite;
+}
+.tc-status-in-progress::after {
+  box-shadow: 0 0 10px 0 rgba(234,216,155,0.7), 0 0 22px 0 rgba(234,216,155,0.35);
+  animation: flicker-gold 4.5s ease-in-out infinite;
+}
+
+/* Reduced motion — stop the pulses */
+@media (prefers-reduced-motion: reduce) {
+  .hdr-brand em { animation: none; }
+  .tc-status-blocked::after, .tc-status-in-progress::after, .quick-add button::after {
+    animation: none; opacity: 0.7;
+  }
+}
+
+/* Responsive: keep the ornament presence on small screens */
+@media (max-width: 480px) {
+  .hdr-brand { font-size: 24px; letter-spacing: 0.12em; }
+  .leaf-fan { --size: 32px; }
+  .tc-title { font-size: 21px; }
+  .section-hdr { font-size: 24px; }
 }
