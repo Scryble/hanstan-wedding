@@ -803,11 +803,18 @@ input[type="date"], textarea, select { font-size: 16px; }
   display: flex; align-items: center; gap: 8px;
 }
 .hdr-identity .who { color: var(--gold-dark); font-weight: 500; }
-.hdr-identity .signout {
-  font-size: 11px; color: var(--text-muted);
+.hdr-identity .signout,
+.hdr-meta-row .signout,
+.signout {
+  font-size: 12px; color: var(--text-muted);
   text-decoration: underline; cursor: pointer;
-  background: none; border: none; padding: 0; font-family: inherit;
+  background: none; border: none; padding: 2px 6px; font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: color var(--transition);
 }
+.hdr-identity .signout:hover,
+.hdr-meta-row .signout:hover,
+.signout:hover { color: var(--gold-dark); }
 .hdr-sync {
   font-size: 12px; color: var(--text-muted);
   display: flex; align-items: center; gap: 4px;

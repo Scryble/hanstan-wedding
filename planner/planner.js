@@ -173,11 +173,11 @@ async function initApp(){
   // Try cache first for instant render
   try{
     const cached = JSON.parse(localStorage.getItem(LAST_STATE_CACHE_KEY) || 'null');
-    if(cached){applyServerState(cached); render()}
+    if(cached){applyServerState(cached, false); render()}
   } catch(e){}
   // Then fetch live
   const live = await fetchState();
-  if(live){applyServerState(live); render()}
+  if(live){applyServerState(live, true); render()}
   setSyncStatus('idle');
   // Drain offline queue if present
   drainOfflineQueue();
@@ -203,7 +203,7 @@ async function fetchState(){
   }
 }
 
-function applyServerState(s){
+function applyServerState(s, isLive){
   T = (s.tasks || []).map(t => ({...t}));
   C = (s.contacts || []).map(c => ({...c}));
   G = s.groups ? [...s.groups] : [...DEFAULT_GROUPS];
@@ -225,25 +225,31 @@ function applyServerState(s){
   });
 
   // HW-SCHED: three-way seeding logic (spec §6.1)
+  // Only make seed/empty decisions on LIVE state — cached state loads whatever
+  // SE/SP/SQ the cache holds (set below unconditionally). This prevents the
+  // cache-then-live double-apply from seeding locally, then wiping on the
+  // live apply because PREFS.scheduleSeeded was set in step 1.
   if(s.scheduleEvents !== undefined){
-    // Server has schedule data → use it
     SE = (s.scheduleEvents || []).map(e => ({...e}));
     SP = (s.schedulePhases || []).map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
     SQ = (s.scheduleQuestions || []).map(q => ({...q}));
-  } else if(!PREFS.scheduleSeeded){
-    // Key absent + never seeded → first-ever load, seed from defaults
+  } else if(isLive && !PREFS.scheduleSeeded){
+    // First live load, no schedule data on server, flag clean → seed defaults
     if(window.DEFAULT_SCHEDULE_EVENTS && window.DEFAULT_SCHEDULE_PHASES && window.DEFAULT_SCHEDULE_QUESTIONS){
       SE = window.DEFAULT_SCHEDULE_EVENTS.map(e => ({...e, people: [...(e.people || [])], itemsToBring: [...(e.itemsToBring || [])], notes: [...(e.notes || [])]}));
       SP = window.DEFAULT_SCHEDULE_PHASES.map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
       SQ = window.DEFAULT_SCHEDULE_QUESTIONS.map(q => ({...q}));
       PREFS.scheduleSeeded = true;
+      // Persist seed immediately so the next load sees scheduleEvents on the server
+      setTimeout(() => save(), 100);
     } else {
       SE = []; SP = []; SQ = [];
     }
-  } else {
-    // Key absent + already seeded (snapshot restore to pre-schedule state) → empty
+  } else if(isLive){
+    // Live load, key absent, flag already set → snapshot restore to pre-schedule state
     SE = []; SP = []; SQ = [];
   }
+  // If !isLive and no scheduleEvents key → leave SE/SP/SQ as-is (cache load with no data, wait for live)
 
   sortBy = PREFS.sortBy || 'priority';
   groupByField = PREFS.groupByField || 'none';
@@ -380,7 +386,7 @@ function startPolling(){
       if(editorIsMidEdit){
         showStaleBanner(s.lastModifiedBy, s);
       } else {
-        applyServerState(s);
+        applyServerState(s, true);
         render();
         flashUpdateToast(s.lastModifiedBy);
       }
@@ -395,7 +401,7 @@ function showStaleBanner(who, state){
 }
 function acceptRemoteState(){
   if(_pendingRemoteState){
-    applyServerState(_pendingRemoteState);
+    applyServerState(_pendingRemoteState, true);
     _pendingRemoteState = null;
     $('staleBanner').classList.remove('show');
     render();
@@ -1358,7 +1364,7 @@ async function restoreSnapshot(id){
     toast('Snapshot restored', false);
     const live = await fetchState();
     if(live){
-      applyServerState(live);
+      applyServerState(live, true);
       // Audit fix B-8a: reset runtime UI state so stale filters/search don't reference removed data
       filters = {status:[], tags:[], assignees:[], groups:[]};
       search = ''; $('searchInput').value = '';
