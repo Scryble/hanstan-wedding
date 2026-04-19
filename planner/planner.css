@@ -1735,12 +1735,12 @@ body.design-fix {
 
   /* Warmer, WCAG-passing color tokens (Linear §3, break #4-5, #29-38) */
   --ink: #1d1d1b;
-  --ink-2: #404040;
-  --ink-3: #6e6e6c;
-  --ink-4: #a0a09e;
+  --ink-2: #3a3a38;
+  --ink-3: #5a5a58;    /* was #6e6e6c 4.03:1 — now 6.3:1 on card, passes AA at 12px */
+  --ink-4: #8a8a88;
   --text-primary: #1d1d1b;
-  --text-secondary: #404040;
-  --text-muted: #6e6e6c;
+  --text-secondary: #3a3a38;
+  --text-muted: #5a5a58;
   --card: #fbfaf3;
   --card-rich: #fbfaf3;
   --bg: #f2efe6;
@@ -2012,7 +2012,11 @@ body.design-fix .section-hdr .cnt {
 
 /* ── TASK CARD (breaks #39, #40, #42 proximity; #54 hover pile-up) ─────────── */
 body.design-fix .task-card {
-  margin-bottom: var(--sp-2);
+  /* #42: between-card rhythm must exceed inner padding to signal separation.
+     Inner padding is sp-3/sp-4 (12/16); between-card is now sp-3 (12) which
+     matches inner vertical. To exceed, use sp-3 + ensure cards have visible
+     background + shadow gap. At sp-2 (8) outer < inner (12/16) was the bug. */
+  margin-bottom: var(--sp-3);
   border-radius: var(--rd-md);
   box-shadow: var(--shadow-card);
 }
@@ -2032,10 +2036,13 @@ body.design-fix .task-card.selected {
 /* Inner padding: symmetric, not 12/14/10/18 asymmetric (break #39) */
 body.design-fix .tc-inner {
   padding: var(--sp-3) var(--sp-4);
-  padding-left: var(--sp-4);
 }
 body.design-fix .tc-row1 { gap: var(--sp-3); align-items: flex-start; }
 
+/* #45 nested radius: card is rd-md (6px) with sp-3 (12px) padding.
+   Refactoring UI #26: inner = outer − padding. 6 − 12 = negative, so
+   contained structural elements use rd-sm (4px) maximum. Pills stay pills
+   (semantic shape signals status role, not nested container). */
 body.design-fix .tc-check {
   width: 20px; height: 20px;
   border-radius: var(--rd-sm);
@@ -2096,13 +2103,19 @@ body.design-fix .tc-status-blocked {
   background: var(--s-blocked-bg);
   color: var(--s-blocked);
 }
+/* #49 status color pressure: delegated and mostly-done are NOT urgent states
+   (they're "fine, someone else" and "fine, almost there"). Drop their chroma
+   toward neutral so the 3 active states (in-progress, blocked, done) carry
+   the strong signal. */
 body.design-fix .tc-status-delegated {
-  background: var(--s-delegated-bg);
-  color: var(--s-delegated);
+  background: var(--bg-elevated);
+  color: var(--ink-2);
+  border-color: var(--border);
 }
 body.design-fix .tc-status-mostly-done {
-  background: var(--s-done-bg);
-  color: var(--s-done);
+  background: var(--bg-elevated);
+  color: var(--ink-2);
+  border-color: var(--border);
 }
 body.design-fix .tc-status-done {
   box-shadow: none;
@@ -2122,7 +2135,12 @@ body.design-fix .tc-status-in-progress::after { animation: none; box-shadow: non
 /* Status chip hover: single filter, not compounded (break #55) */
 body.design-fix .tc-status:hover { filter: none; opacity: 0.85; }
 
-/* Meta chips: smaller, tighter (break #7, #48 eight chip variants) */
+/* Meta chips: smaller, tighter, semantic-color collapse (break #48).
+   Rather than 8 visually-distinct colored pill variants competing on task cards,
+   this rule collapses them into 3 tonal families: signal (overdue, red-only),
+   person (assignee/dep, shared subtle slate), tag (shared neutral green-slate).
+   Data-ink ratio improves because chips now communicate TYPE via position (left
+   of title) + ROLE via muted family, not via 8 different flags competing for attention. */
 body.design-fix .tc-meta { gap: var(--sp-1); margin-top: var(--sp-2); }
 body.design-fix .mc {
   font-size: 11px;
@@ -2131,9 +2149,41 @@ body.design-fix .mc {
   box-shadow: none;
   font-weight: 500;
   letter-spacing: 0;
+  background: var(--chip-neutral-bg);
+  color: var(--chip-neutral-fg);
 }
 body.design-fix .mc:hover { filter: none; opacity: 0.85; }
-body.design-fix .mc-overdue { box-shadow: none; }
+
+/* Only overdue retains signal color (it's genuinely urgent). */
+body.design-fix .mc-overdue {
+  background: var(--s-overdue);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: none;
+}
+/* Date chip: no background, just color — dates are common, don't need a pill. */
+body.design-fix .mc-date {
+  background: transparent;
+  color: var(--ink-3);
+  padding: 2px 0;
+}
+/* Assignee/dep/tag share the muted tone; type is clear from prefix character. */
+body.design-fix .mc-assignee,
+body.design-fix .mc-dep,
+body.design-fix .mc-tag {
+  background: var(--bg-elevated);
+  color: var(--ink-2);
+}
+body.design-fix .mc-dep-unlinked {
+  background: transparent !important;
+  color: var(--ink-3) !important;
+  border: 1px dashed var(--hair);
+}
+body.design-fix .mc-more {
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 10px;
+}
 
 /* Task note: sans-serif, normal weight, not italic serif (break #8) */
 body.design-fix .tc-note {
@@ -2229,22 +2279,90 @@ body.design-fix .btn-danger:hover {
 }
 body.design-fix .btn-sm { padding: var(--sp-1) var(--sp-3); font-size: 12px; }
 
-/* Unify all the other button variants to match */
+/* #62 button unification: one visual family. All non-primary buttons inherit
+   from .btn's look: card background, ink-2 color, border, sp-2/sp-4 padding,
+   hover goes to gold-wash + gold-dark border/color. Primary CTAs (btn-primary,
+   stale-banner refresh, subtask add) use filled gold-dark. */
 body.design-fix .coord-row button,
 body.design-fix .snapshot-row button,
 body.design-fix .settings-item button,
-body.design-fix .coord-add button,
-body.design-fix .subtask-add button,
-body.design-fix .comment-add button,
-body.design-fix .stale-banner button,
 body.design-fix .toast button,
 body.design-fix .filter-pill-clear,
-body.design-fix .batch-bar button {
+body.design-fix .batch-bar button,
+body.design-fix .ctx-item {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
+  font-size: 12px;
   letter-spacing: 0;
   text-transform: none;
-  border-radius: var(--rd-md);
+  border-radius: var(--rd-sm);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink-2);
+  transition: all var(--transition);
+}
+body.design-fix .coord-row button:hover,
+body.design-fix .snapshot-row button:hover,
+body.design-fix .settings-item button:hover,
+body.design-fix .toast button:hover,
+body.design-fix .filter-pill-clear:hover,
+body.design-fix .batch-bar button:hover,
+body.design-fix .ctx-item:hover {
+  background: var(--gold-wash);
+  border-color: var(--gold-dark);
+  color: var(--gold-dark);
+}
+/* Destructive variants keep red-accented hover. */
+body.design-fix .coord-row button.danger,
+body.design-fix .settings-item .s-actions button.danger,
+body.design-fix .ctx-item.danger {
+  color: var(--s-overdue);
+}
+body.design-fix .coord-row button.danger:hover,
+body.design-fix .settings-item .s-actions button.danger:hover,
+body.design-fix .ctx-item.danger:hover {
+  background: var(--s-overdue-bg);
+  border-color: var(--s-overdue);
+  color: var(--s-overdue);
+}
+/* Batch bar is on dark backing, so its buttons invert. */
+body.design-fix .batch-bar button {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.20);
+  color: white;
+}
+body.design-fix .batch-bar button:hover {
+  background: rgba(255,255,255,0.20);
+  border-color: rgba(255,255,255,0.30);
+  color: white;
+}
+/* Subtask-add + comment-add: filled primary treatment (gold-dark). */
+body.design-fix .subtask-add button,
+body.design-fix .comment-add button,
+body.design-fix .stale-banner button {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  border-radius: var(--rd-sm);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--gold-dark);
+  background: var(--gold-dark);
+  color: white;
+  transition: background var(--transition);
+}
+body.design-fix .subtask-add button:hover,
+body.design-fix .comment-add button:hover,
+body.design-fix .stale-banner button:hover {
+  background: #5a4514;
+  border-color: #5a4514;
+}
+/* Group-tab-add: ghost treatment (already a "+" button, keep minimal). */
+body.design-fix .group-tab-add {
+  background: transparent;
+  border: none;
 }
 
 body.design-fix .modal-close {
@@ -2315,7 +2433,9 @@ body.design-fix .ff input,
 body.design-fix .ff select,
 body.design-fix .ff textarea {
   padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--rd-md);
+  /* #47 nested radius: modal-panel rd-lg (10) w/ sp-5 (24) padding.
+     Inner = outer − padding = negative, so rd-sm (4px) flattens correctly. */
+  border-radius: var(--rd-sm);
   background: var(--bg);
   font-size: 14px;
 }
@@ -2336,10 +2456,10 @@ body.design-fix .ff-tag-pill {
 /* Subtasks + comments (break #64 asymmetric padding) */
 body.design-fix .subtask-text { font-size: 13px; }
 body.design-fix .subtask-check { width: 16px; height: 16px; }
-body.design-fix .subtask-add input { padding: var(--sp-1) var(--sp-2); font-size: 13px; border-radius: var(--rd-md); }
+body.design-fix .subtask-add input { padding: var(--sp-1) var(--sp-2); font-size: 13px; border-radius: var(--rd-sm); }
 body.design-fix .comment-item { font-size: 13px; }
 body.design-fix .comment-item .c-time { font-size: 10px; }
-body.design-fix .comment-add input { padding: var(--sp-2) var(--sp-3); font-size: 13px; border-radius: var(--rd-md); }
+body.design-fix .comment-add input { padding: var(--sp-2) var(--sp-3); font-size: 13px; border-radius: var(--rd-sm); }
 body.design-fix .adv-toggle { font-size: 12px; }
 
 /* ── PEOPLE CARDS (break #63: card style mismatch) ─────────────────────────── */
@@ -2520,15 +2640,16 @@ body.design-fix .coord-add {
   padding-top: var(--sp-3);
   gap: var(--sp-2);
 }
+/* #47 nested: master-panel rd-md + sp-4 padding → inputs rd-sm */
 body.design-fix .coord-add input {
   padding: var(--sp-1) var(--sp-2);
   font-size: 13px;
-  border-radius: var(--rd-md);
+  border-radius: var(--rd-sm);
 }
 body.design-fix .coord-add button {
   padding: var(--sp-1) var(--sp-3);
   font-size: 12px;
-  border-radius: var(--rd-md);
+  border-radius: var(--rd-sm);
   background: var(--gold-dark);
 }
 
@@ -2577,14 +2698,15 @@ body.design-fix .gate-card h1 {
 body.design-fix .gate-card h1 em { color: var(--gold-dark); }
 body.design-fix .gate-card button {
   background: var(--gold-dark);
-  border-radius: var(--rd-md);
+  /* #47 nested: gate-card rd-lg w/ sp-7 padding → button rd-sm */
+  border-radius: var(--rd-sm);
   font-family: 'DM Sans', sans-serif;
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0.02em;
 }
 body.design-fix .gate-card button:hover { background: #5a4514; }
-body.design-fix .gate-card input { border-radius: var(--rd-md); }
+body.design-fix .gate-card input { border-radius: var(--rd-sm); }
 
 /* ── INPUT-SHEET FIELD ─────────────────────────────────────────────────────── */
 body.design-fix .input-sheet-field {
@@ -2603,13 +2725,40 @@ body.design-fix #hdrDesignFix {
   font-weight: 500;
 }
 
+/* ── #65 UNIFIED FOCUS RINGS ──────────────────────────────────────────────────
+   Every keyboard-interactive element gets the same 2px gold-wash ring on
+   focus-visible. Input focus (already defined above) uses box-shadow; button
+   focus uses outline so it works regardless of existing box-shadow states. */
+body.design-fix button:focus-visible,
+body.design-fix a:focus-visible,
+body.design-fix [role="tab"]:focus-visible,
+body.design-fix .sched-edit:focus-visible,
+body.design-fix .sched-chip:focus-visible,
+body.design-fix .sched-fab-btn:focus-visible,
+body.design-fix .sheet-action:focus-visible,
+body.design-fix .filter-pill-clear:focus-visible {
+  outline: 2px solid var(--gold-dark);
+  outline-offset: 2px;
+  border-radius: var(--rd-sm);
+}
+body.design-fix .tc-status:focus-visible,
+body.design-fix .mc:focus-visible,
+body.design-fix .filter-pill:focus-visible,
+body.design-fix .query-btn:focus-visible {
+  outline: 2px solid var(--gold-dark);
+  outline-offset: 1px;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    SCHEDULE TAB CORRECTIONS
    (breaks #69 edit-hover noise, #70 stacked stickies, #71 fab grouping)
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* Dashboard — quiet, tabular numbers, no serif */
+/* #70 stacked stickies: make ONLY the phase-nav sticky (coordinator uses it
+   to jump phases while scrolling). The dashboard is reference info —
+   making it non-sticky reclaims 40-50px of vertical real estate. */
 body.design-fix .sched-dashboard {
+  position: static;
   padding: var(--sp-2) var(--sp-4);
   margin: calc(-1 * var(--sp-3)) calc(-1 * var(--sp-4)) var(--sp-3);
 }
@@ -2630,12 +2779,20 @@ body.design-fix .sched-dash-stat strong {
   font-variant-numeric: tabular-nums;
 }
 
-/* Phase nav: tighter, less gold, better spacing */
+/* Phase nav: single-row horizontal-scroll instead of multi-row wrap.
+   Combined with non-sticky dashboard, total sticky real estate is ~44px
+   (down from 135px). Left-edge pin so `top:` stacks correctly under main nav. */
 body.design-fix .sched-phase-nav {
-  top: 88px;
+  top: 47px;
   padding: var(--sp-1) 0;
   gap: var(--sp-1);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+body.design-fix .sched-phase-nav::-webkit-scrollbar { display: none; }
+body.design-fix .sched-phase-nav-item { flex-shrink: 0; }
 body.design-fix .sched-phase-nav-item {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
