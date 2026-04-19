@@ -1337,3 +1337,354 @@ input[type="date"], textarea, select { font-size: 16px; }
   .view { padding: 12px 12px 110px; }
   .quick-add button { padding: 10px 14px; letter-spacing: 0.08em; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   HW-SCHED — Schedule tab styles
+   Scoped to .sched-* classes + #viewSchedule to avoid bleed.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Main nav overflow (6 tabs may not fit narrow phones) */
+.main-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.main-nav::-webkit-scrollbar { display: none; }
+.main-nav button { flex: 0 0 auto; min-width: 80px; }
+
+/* Dashboard (sticky above timeline) */
+.sched-dashboard {
+  position: sticky; top: 47px; z-index: 70;
+  background: var(--card); border-bottom: 1px solid var(--divider);
+  padding: 10px 14px; margin: -12px -16px 12px;
+  box-shadow: 0 2px 6px rgba(32,49,43,0.04);
+}
+.sched-dash-row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  font-size: 13px; color: var(--text-muted);
+}
+.sched-dash-stat {
+  padding: 4px 10px; border-radius: var(--r-pill);
+  background: var(--bg-elevated); border: 1px solid var(--divider);
+}
+.sched-dash-stat strong { color: var(--text-primary); font-weight: 700; font-family: 'Cormorant Garamond', serif; font-size: 16px; }
+.sched-dash-stat-tentative { color: var(--gold-dark); }
+.sched-dash-stat-tbd { color: var(--text-secondary); }
+.sched-dash-stat-warn { background: var(--s-overdue-bg); color: var(--s-overdue); border-color: var(--s-overdue); }
+.sched-dash-stat-q { background: var(--gold-fill); color: var(--gold-dark); border-color: var(--gold); }
+
+/* Sticky phase nav */
+.sched-phase-nav {
+  position: sticky; top: 103px; z-index: 65;
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--divider);
+  margin-bottom: 12px;
+}
+.sched-phase-nav-item {
+  padding: 4px 10px; font-size: 11px; font-family: 'Cinzel', serif; letter-spacing: 0.04em;
+  border: 1px solid var(--divider); border-radius: var(--r-pill);
+  background: var(--card); color: var(--text-muted); cursor: pointer;
+  transition: all var(--transition);
+}
+.sched-phase-nav-item:hover { border-color: var(--gold); color: var(--gold-dark); }
+.sched-phase-nav-item.sched-phase-nav-active {
+  background: var(--gold-fill); border-color: var(--gold); color: var(--gold-dark); font-weight: 600;
+}
+.sched-phase-nav-cnt {
+  display: inline-block; min-width: 16px; padding: 0 4px;
+  font-size: 10px; background: var(--bg-elevated); border-radius: var(--r-pill);
+  margin-left: 4px;
+}
+
+/* Phases */
+.sched-timeline { display: flex; flex-direction: column; gap: 12px; }
+.sched-phase {
+  background: var(--card); border: 1px solid var(--divider);
+  border-radius: var(--r); overflow: hidden;
+  border-left: 4px solid var(--phase-color, var(--sage));
+  scroll-margin-top: 180px;
+}
+.sched-phase-hdr {
+  padding: 14px 16px; cursor: pointer;
+  background: linear-gradient(90deg, var(--card) 0%, var(--card-rich) 100%);
+  border-bottom: 1px solid var(--divider);
+  transition: background var(--transition);
+}
+.sched-phase-hdr:hover { background: var(--bg-elevated); }
+.sched-phase-title-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.sched-phase-number {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px;
+  color: var(--phase-color, var(--gold-dark)); letter-spacing: 0.2em;
+  background: var(--bg-elevated); padding: 3px 8px; border-radius: 4px;
+}
+.sched-phase-title {
+  flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600;
+  color: var(--text-primary);
+}
+.sched-phase-count {
+  font-size: 12px; color: var(--text-muted);
+  background: var(--bg-elevated); padding: 2px 8px; border-radius: var(--r-pill);
+}
+.sched-phase-time {
+  font-family: 'Cormorant Garamond', serif; font-style: italic;
+  font-size: 14px; color: var(--emerald);
+}
+.sched-phase-chev { color: var(--text-muted); font-size: 14px; margin-left: 4px; }
+.sched-phase-note {
+  font-size: 13px; color: var(--text-muted); font-style: italic;
+  margin-top: 6px; margin-left: 44px;
+}
+.sched-phase-collapsed .sched-phase-hdr { border-bottom: none; }
+.sched-phase-orphan { border-left-color: var(--s-overdue); background: var(--s-overdue-bg); }
+
+/* Events container */
+.sched-events { padding: 8px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.sched-phase-actions {
+  display: flex; gap: 8px; margin-top: 8px; padding-top: 10px;
+  border-top: 1px dashed var(--divider);
+}
+
+/* Event card */
+.sched-event {
+  display: flex; gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--divider);
+  border-radius: var(--r-sm);
+  position: relative;
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.sched-event:hover { border-color: var(--gold-light); box-shadow: var(--shadow-card); }
+.sched-event-milestone { border-left: 3px solid var(--gold); background: var(--gold-soft); }
+.sched-event-guest::after {
+  content: '👁'; position: absolute; top: 6px; right: 6px; font-size: 11px; opacity: 0.4;
+}
+.sched-event-warn { border-color: var(--s-overdue); }
+.sched-event-dragging { opacity: 0.5; }
+.sched-drop-target { border-color: var(--gold); border-width: 2px; }
+
+.sched-event-grip {
+  color: var(--text-muted); cursor: grab; font-size: 14px;
+  padding: 2px 0; user-select: none; letter-spacing: -2px;
+  align-self: flex-start; margin-top: 4px;
+}
+.sched-event-grip:active { cursor: grabbing; }
+.sched-event-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.sched-event-row1 {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.sched-event-time {
+  font-family: 'Cinzel', serif; font-weight: 600; font-size: 13px;
+  color: var(--gold-dark); letter-spacing: 0.06em;
+  min-width: 72px;
+}
+.sched-event-duration {
+  font-size: 11px; color: var(--text-muted); padding: 2px 6px;
+  background: var(--bg-elevated); border-radius: var(--r-pill);
+}
+.sched-event-status {
+  font-size: 11px; padding: 2px 10px; border-radius: var(--r-pill);
+  font-family: 'Cinzel', serif; letter-spacing: 0.08em; text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.sched-status-confirmed { background: var(--s-done-bg); color: var(--s-done); border-color: rgba(86,134,112,0.2); }
+.sched-status-tentative { background: var(--s-progress-bg); color: var(--gold-dark); border-color: rgba(193,154,60,0.2); }
+.sched-status-tbd { background: var(--chip-neutral-bg); color: var(--chip-neutral-fg); }
+.sched-event-zone {
+  font-size: 11px; color: var(--chip-date-fg); padding: 2px 8px;
+  background: var(--chip-date-bg); border-radius: var(--r-pill);
+  text-transform: lowercase;
+}
+.sched-event-toggle {
+  width: 24px; height: 24px; padding: 0; border: 1px solid var(--divider);
+  background: var(--card); color: var(--text-muted); border-radius: 4px;
+  cursor: pointer; font-size: 12px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.sched-event-toggle:hover { border-color: var(--gold); color: var(--gold); }
+.sched-event-toggle.on { background: var(--gold-fill); border-color: var(--gold); color: var(--gold-dark); }
+.sched-event-delete {
+  width: 24px; height: 24px; padding: 0; border: 1px solid transparent;
+  background: transparent; color: var(--text-muted); border-radius: 4px;
+  cursor: pointer; font-size: 16px; line-height: 1; margin-left: auto;
+  transition: all var(--transition);
+}
+.sched-event-delete:hover { background: var(--s-overdue-bg); color: var(--s-overdue); border-color: var(--s-overdue); }
+
+.sched-event-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600;
+  color: var(--text-primary); line-height: 1.3;
+}
+.sched-event-details {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.4;
+}
+.sched-empty { color: var(--text-muted); font-style: italic; opacity: 0.6; }
+
+/* Chips */
+.sched-chips {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: center;
+}
+.sched-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; font-size: 12px; border-radius: var(--r-pill);
+}
+.sched-chip small { font-size: 10px; opacity: 0.7; }
+.sched-chip-rm {
+  border: none; background: none; cursor: pointer; color: inherit;
+  font-size: 14px; opacity: 0.5; padding: 0 2px; line-height: 1;
+}
+.sched-chip-rm:hover { opacity: 1; }
+.sched-chip-person { background: var(--chip-assignee-bg); color: var(--chip-assignee-fg); }
+.sched-chip-role-pic { background: var(--chip-group-bg); color: var(--chip-group-fg); font-weight: 600; }
+.sched-chip-role-helper { background: var(--chip-assignee-bg); color: var(--chip-assignee-fg); }
+.sched-chip-role-present { background: var(--chip-neutral-bg); color: var(--chip-neutral-fg); }
+.sched-chip-item { background: var(--chip-tag-bg); color: var(--chip-tag-fg); }
+.sched-chip-add {
+  border: 1px dashed var(--divider); background: transparent;
+  padding: 2px 8px; font-size: 11px; color: var(--text-muted);
+  border-radius: var(--r-pill); cursor: pointer;
+}
+.sched-chip-add:hover { border-color: var(--gold); color: var(--gold-dark); }
+.sched-chip-add-note { margin-top: 4px; }
+
+/* Notes */
+.sched-notes { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.sched-note {
+  font-size: 12px; color: var(--text-muted); font-style: italic;
+  padding: 3px 8px; background: var(--bg-elevated); border-radius: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sched-note .sched-chip-rm { margin-left: auto; }
+
+/* Questions */
+.sched-questions { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.sched-question {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  border-radius: var(--r-sm); font-size: 12px;
+}
+.sched-question-open { background: var(--gold-fill); border: 1px solid var(--gold); color: var(--gold-dark); }
+.sched-question-resolved { background: var(--s-done-bg); border: 1px solid rgba(86,134,112,0.3); color: var(--s-done); }
+.sched-q-badge {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-family: 'Cinzel', serif;
+}
+.sched-question-open .sched-q-badge { background: var(--gold); color: white; }
+.sched-question-resolved .sched-q-badge { background: var(--s-done); color: white; }
+.sched-q-text { flex: 1; }
+.sched-q-resolution { font-weight: 600; font-size: 11px; }
+.sched-q-resolve {
+  padding: 2px 8px; font-size: 11px; background: var(--gold); color: white;
+  border: none; border-radius: var(--r-sm); cursor: pointer;
+}
+.sched-q-resolve:hover { background: var(--gold-dark); }
+
+/* Warnings */
+.sched-warnings { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.sched-warning {
+  font-size: 11px; color: var(--s-overdue);
+  padding: 2px 6px; background: var(--s-overdue-bg); border-radius: 4px;
+  display: inline-block;
+}
+
+/* Parallel group */
+.sched-parallel-group {
+  background: var(--linen, var(--bg-elevated));
+  border: 1px dashed var(--mithril); border-radius: var(--r-sm);
+  padding: 8px; margin: 4px 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sched-parallel-label {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-muted); font-family: 'Cinzel', serif;
+}
+
+/* Inline editor inputs */
+.sched-edit {
+  cursor: text; border-radius: 3px;
+  transition: background var(--transition);
+}
+.sched-edit:hover {
+  background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-light);
+}
+.sched-edit-input {
+  font-family: inherit; font-size: inherit; color: inherit;
+  padding: 2px 6px; border: 1px solid var(--gold);
+  border-radius: 3px; background: white;
+  outline: none; min-width: 60px;
+}
+textarea.sched-edit-input { width: 100%; min-height: 50px; }
+.sched-edit-input-num { width: 60px; }
+
+/* Buttons + FAB */
+.sched-btn {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--card); color: var(--text-secondary); cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  transition: all var(--transition);
+}
+.sched-btn:hover { border-color: var(--gold); color: var(--gold-dark); }
+.sched-btn-sm { padding: 4px 10px; font-size: 12px; }
+.sched-btn-add { background: var(--gold-fill); border-color: var(--gold); color: var(--gold-dark); font-weight: 600; }
+.sched-btn-ghost { background: transparent; color: var(--text-muted); border-style: dashed; }
+.sched-add-phase-wrap { margin: 14px 0; text-align: center; }
+
+.sched-fab {
+  position: fixed; right: 16px; bottom: 16px; z-index: 80;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 200px;
+}
+.sched-fab-btn {
+  padding: 10px 14px; border: 1px solid var(--gold); border-radius: var(--r);
+  background: var(--card); color: var(--gold-dark);
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.04em; cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition);
+  text-align: left;
+}
+.sched-fab-btn:hover {
+  background: var(--gold); color: white;
+  box-shadow: var(--shadow-elevated), var(--glow-gold-sm);
+}
+
+/* Mobile tweaks */
+@media (max-width: 480px) {
+  .sched-dashboard { padding: 8px 12px; margin: -14px -14px 10px; }
+  .sched-dash-row { gap: 6px; font-size: 11px; }
+  .sched-dash-stat { padding: 3px 8px; }
+  .sched-dash-stat strong { font-size: 14px; }
+  .sched-phase-nav { top: 98px; padding: 6px 0; }
+  .sched-phase-nav-item { font-size: 10px; padding: 3px 8px; min-height: 36px; display: inline-flex; align-items: center; }
+  .sched-phase-hdr { padding: 10px 12px; }
+  .sched-phase-title { font-size: 18px; }
+  .sched-phase-number { font-size: 11px; }
+  .sched-events { padding: 6px 10px 12px; }
+  .sched-event { padding: 8px 10px; gap: 6px; }
+  .sched-event-title { font-size: 15px; }
+  .sched-event-details { font-size: 12px; }
+  .sched-event-time { min-width: 60px; font-size: 12px; }
+  .sched-event-status, .sched-event-zone, .sched-event-duration { font-size: 10px; padding: 2px 7px; }
+  .sched-event-toggle, .sched-event-delete { width: 26px; height: 26px; }
+  .sched-chip { font-size: 11px; padding: 2px 7px; }
+  .sched-fab { right: 8px; bottom: 8px; max-width: 160px; }
+  .sched-fab-btn { padding: 8px 10px; font-size: 11px; }
+}
+
+/* Print — direct Ctrl+P on the schedule tab */
+@media print {
+  .app-header, .main-nav, .group-tabs, .query-bar, .filter-tray,
+  .quick-add, .scroll-top, .toast, .update-toast, .onboard-banner,
+  .stale-banner, .batch-bar, #storageBanner,
+  .sched-phase-nav, .sched-fab, .sched-phase-actions,
+  .sched-event-toggle, .sched-event-delete, .sched-chip-rm, .sched-chip-add, .sched-q-resolve,
+  .sched-btn, .sched-add-phase-wrap, .sched-event-grip {
+    display: none !important;
+  }
+  .view:not(.active) { display: none !important; }
+  body { background: white; }
+  .sched-dashboard { position: static; box-shadow: none; border: 1px solid #ccc; }
+  .sched-phase { break-inside: avoid; page-break-inside: avoid; }
+  .sched-event { break-inside: avoid; page-break-inside: avoid; }
+  .sched-edit:hover { background: transparent; box-shadow: none; }
+  .view { padding: 0; max-width: none; }
+}

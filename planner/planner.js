@@ -15,7 +15,7 @@ const LAST_STATE_CACHE_KEY = 'hanstan_planner_state_cache';
 const POLL_INTERVAL_MS = 30000;
 const RETRY_INTERVAL_MS = 15000;
 const SAVE_DEBOUNCE_MS = 600;
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const WD = new Date('2026-06-07T16:00:00');
 const STATUSES = ['not-started','in-progress','blocked','delegated','mostly-done','done'];
 const STATUS_LABELS = {'not-started':'Not Started','in-progress':'In Progress','blocked':'Blocked','delegated':'Delegated','mostly-done':'Mostly Done','done':'Done'};
@@ -34,7 +34,15 @@ const ENDPOINTS = {
 let identity = null;        // { name, isMaster }
 let token = null;
 let T = [], C = [], G = [], TAGS = [], SV = [];
-let PREFS = {advExpanded:false, onboardSeen:false, sortBy:'priority', groupByField:'group'};
+// HW-SCHED: schedule globals
+let SE = [], SP = [], SQ = [];
+let schedEditActive = false;
+let schedCollapseState = {}; // phaseId → bool override (runtime, not persisted separately from SP[].collapsed)
+let schedActivePhase = null; // currently-visible phase id for sticky nav highlight
+let schedDragState = null;   // {id, sourcePhaseId, startY}
+let schedLongPressTimer = null;
+let schedSwipeStartX = 0, schedSwipeStartY = 0;
+let PREFS = {advExpanded:false, onboardSeen:false, schedOnboardSeen:false, scheduleSeeded:false, sortBy:'priority', groupByField:'group'};
 let lastSeenModified = null;
 let view = 'focus';
 let activeGroup = 'All';
@@ -215,6 +223,28 @@ function applyServerState(s){
     if(!t.modified) t.modified = now();
     if(!t.created) t.created = now();
   });
+
+  // HW-SCHED: three-way seeding logic (spec §6.1)
+  if(s.scheduleEvents !== undefined){
+    // Server has schedule data → use it
+    SE = (s.scheduleEvents || []).map(e => ({...e}));
+    SP = (s.schedulePhases || []).map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
+    SQ = (s.scheduleQuestions || []).map(q => ({...q}));
+  } else if(!PREFS.scheduleSeeded){
+    // Key absent + never seeded → first-ever load, seed from defaults
+    if(window.DEFAULT_SCHEDULE_EVENTS && window.DEFAULT_SCHEDULE_PHASES && window.DEFAULT_SCHEDULE_QUESTIONS){
+      SE = window.DEFAULT_SCHEDULE_EVENTS.map(e => ({...e, people: [...(e.people || [])], itemsToBring: [...(e.itemsToBring || [])], notes: [...(e.notes || [])]}));
+      SP = window.DEFAULT_SCHEDULE_PHASES.map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
+      SQ = window.DEFAULT_SCHEDULE_QUESTIONS.map(q => ({...q}));
+      PREFS.scheduleSeeded = true;
+    } else {
+      SE = []; SP = []; SQ = [];
+    }
+  } else {
+    // Key absent + already seeded (snapshot restore to pre-schedule state) → empty
+    SE = []; SP = []; SQ = [];
+  }
+
   sortBy = PREFS.sortBy || 'priority';
   groupByField = PREFS.groupByField || 'none';
   // Cache for offline first-load
@@ -231,6 +261,10 @@ function buildPayload(){
     tags: TAGS,
     savedViews: SV,
     prefs: PREFS,
+    // HW-SCHED: schedule data persisted alongside task data
+    scheduleEvents: SE,
+    schedulePhases: SP,
+    scheduleQuestions: SQ,
   };
 }
 
@@ -340,6 +374,7 @@ function startPolling(){
     if(!s) return;
     if(s.lastModified && s.lastModified !== lastSeenModified){
       const editorIsMidEdit = tmDirty
+        || schedEditActive
         || $('taskModalBg').classList.contains('open')
         || $('personModalBg').classList.contains('open');
       if(editorIsMidEdit){
@@ -628,11 +663,26 @@ $('moveGroupBg').onclick = function(e){if(e.target === this) this.classList.remo
 /* ════════════════ MAIN RENDER ════════════════ */
 function render(){
   updateHeader();
+  // HW-SCHED AC #24: batch mode is task-specific — exit when leaving Tasks
+  if(view === 'schedule' && batchMode){ exitBatch(); return; }
   renderGroupTabs();
-  renderFilterTray();
+  // HW-SCHED AC #23: task filter pills are meaningless on Schedule tab
+  if(view === 'schedule'){
+    $('filterTray').style.display = 'none';
+  } else {
+    $('filterTray').style.display = '';
+    renderFilterTray();
+  }
   const qa = $('quickAdd'), qb = $('queryBar');
+  // HW-SCHED AC #25: Quick Add creates tasks — keep hidden on Schedule (already was)
   qa.style.display = (view === 'tasks' || view === 'focus') ? 'flex' : 'none';
-  qb.style.display = (view === 'tasks' || view === 'focus') ? 'flex' : 'none';
+  // Query bar (search input): shown on Tasks, Focus, AND Schedule
+  qb.style.display = (view === 'tasks' || view === 'focus' || view === 'schedule') ? 'flex' : 'none';
+  // HW-SCHED AC #26: Sort/GroupBy don't apply to Schedule's fixed ordering (bidirectional — runs every render)
+  $('btnSort').style.display = (view === 'schedule') ? 'none' : '';
+  $('btnGroupBy').style.display = (view === 'schedule') ? 'none' : '';
+  // HW-SCHED AC #24: hide batch bar on Schedule even if somehow still set
+  $('batchBar').style.display = (view === 'schedule') ? 'none' : '';
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   $('view' + view.charAt(0).toUpperCase() + view.slice(1)).classList.add('active');
   if(view === 'focus') renderFocus();
@@ -640,7 +690,11 @@ function render(){
   else if(view === 'people') renderPeople();
   else if(view === 'history') renderHistory();
   else if(view === 'settings') renderSettings();
+  else if(view === 'schedule') renderSchedule();
   if(!PREFS.onboardSeen && (view === 'focus' || view === 'tasks')){$('onboard').style.display = 'flex'}
+  // HW-SCHED AC #20: schedule-specific first-run guidance
+  if(view === 'schedule' && !PREFS.schedOnboardSeen){$('schedOnboard').style.display = 'flex'}
+  else { $('schedOnboard').style.display = 'none'; }
   $('batchBar').classList.toggle('show', batchMode);
   $('batchCount').textContent = batchSelected.size + ' selected';
   setSyncStatus(syncStatus);
@@ -1379,6 +1433,10 @@ async function importData(ev){
         TAGS = d.tags || TAGS;
         SV = d.savedViews || SV;
         T.forEach(t => {if(!Array.isArray(t.tags)) t.tags = []});
+        // HW-SCHED AC #22: replace-or-clear — do NOT re-seed, do NOT retain old
+        SE = d.scheduleEvents || [];
+        SP = d.schedulePhases || [];
+        SQ = d.scheduleQuestions || [];
         save(); render();
         toast('Imported ' + T.length + ' tasks', false);
       }
@@ -1649,6 +1707,1084 @@ $('scrollTop').onclick = () => window.scrollTo({top: 0, behavior: 'smooth'});
 
 /* ════════════════ ONBOARD ════════════════ */
 $('onboardDismiss').onclick = function(){$('onboard').style.display = 'none'; PREFS.onboardSeen = true; save()};
+$('schedOnboardDismiss').onclick = function(){$('schedOnboard').style.display = 'none'; PREFS.schedOnboardSeen = true; save()};
+
+/* ══════════════════════════════════════════════════════════════════
+   HW-SCHED: SCHEDULE MODULE
+   Day-of timeline editor. All functions prefixed `sched*`.
+   ══════════════════════════════════════════════════════════════════ */
+
+const SCHED_STATUSES = ['confirmed', 'tentative', 'tbd'];
+const SCHED_STATUS_LABELS = {confirmed: 'Confirmed', tentative: 'Tentative', tbd: 'TBD'};
+const SCHED_ZONES = ['ceremony', 'shelter', 'reception', 'dance', 'parking', 'off-site'];
+const SCHED_PIC_ROLES = ['pic', 'helper', 'present'];
+
+/* ── Helpers ── */
+
+// Find which phase contains an event (authority = phase.eventIds)
+function schedFindPhaseOfEvent(eventId){
+  return SP.find(p => (p.eventIds || []).includes(eventId)) || null;
+}
+// List orphaned events (in SE but no phase's eventIds contains them)
+function schedOrphanedEvents(){
+  const claimed = new Set(SP.flatMap(p => p.eventIds || []));
+  return SE.filter(e => !claimed.has(e.id));
+}
+// Format HH:MM → "9:45 AM"
+function schedFmtTime(hhmm){
+  if(!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return hhmm || '';
+  const [h, m] = hhmm.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return h12 + ':' + String(m).padStart(2, '0') + ' ' + ap;
+}
+// Add minutes to HH:MM → HH:MM (no cross-day handling needed — wedding is 7am-9pm)
+function schedAddMinutes(hhmm, mins){
+  if(!/^\d{2}:\d{2}$/.test(hhmm)) return hhmm;
+  const [h, m] = hhmm.split(':').map(Number);
+  const total = h * 60 + m + (mins || 0);
+  const nh = Math.floor(total / 60);
+  const nm = total % 60;
+  return String(Math.max(0, Math.min(23, nh))).padStart(2, '0') + ':' + String(Math.max(0, Math.min(59, nm))).padStart(2, '0');
+}
+function schedTimeToMin(hhmm){
+  if(!/^\d{2}:\d{2}$/.test(hhmm)) return 0;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+// New ID generators (timestamp-based, collision-safe within session)
+function schedNewEventId(){
+  let n = 1000;
+  const existing = new Set(SE.map(e => e.id));
+  while(existing.has('se-' + n)) n++;
+  return 'se-' + n;
+}
+function schedNewPhaseId(){
+  let n = 100;
+  const existing = new Set(SP.map(p => p.id));
+  while(existing.has('sp-' + String(n).padStart(2, '0'))) n++;
+  return 'sp-' + String(n).padStart(2, '0');
+}
+function schedNewQuestionId(){
+  let n = 100;
+  const existing = new Set(SQ.map(q => q.id));
+  while(existing.has('sq-' + n)) n++;
+  return 'sq-' + n;
+}
+
+/* ── Time Engine (spec §5.1) ── */
+
+// Recalc start times for a phase. First event is the anchor.
+// Parallel groups: all events in a group share the anchor's time; cascade skips to AFTER the group
+// using the group's longest duration.
+function schedRecalcTimes(phaseId){
+  const phase = SP.find(p => p.id === phaseId);
+  if(!phase || !phase.eventIds || phase.eventIds.length < 2) return;
+  const events = phase.eventIds.map(id => SE.find(e => e.id === id)).filter(Boolean);
+  if(events.length < 2) return;
+
+  // Walk events in order. Track groups we've already processed.
+  const handledGroups = new Set();
+  let cursor = events[0].startTime; // anchor
+  let prevDuration = events[0].duration || 0;
+
+  for(let i = 1; i < events.length; i++){
+    const ev = events[i];
+    const prev = events[i - 1];
+
+    // If prev is in a parallel group, cursor advances past the WHOLE group's longest duration
+    if(prev.parallelGroup && !handledGroups.has(prev.parallelGroup)){
+      const groupEvents = events.filter(e => e.parallelGroup === prev.parallelGroup);
+      const groupAnchor = groupEvents[0].startTime;
+      const maxDur = Math.max(...groupEvents.map(e => e.duration || 0));
+      cursor = schedAddMinutes(groupAnchor, maxDur);
+      handledGroups.add(prev.parallelGroup);
+    } else if(!prev.parallelGroup){
+      cursor = schedAddMinutes(prev.startTime, prev.duration || 0);
+    }
+
+    // If current event shares group with previous, it shares the anchor — don't cascade
+    if(ev.parallelGroup && ev.parallelGroup === prev.parallelGroup){
+      ev.startTime = prev.startTime;
+    } else if(ev.parallelGroup){
+      // First of new group — takes cursor time, group anchor is set
+      ev.startTime = cursor;
+    } else {
+      ev.startTime = cursor;
+    }
+  }
+}
+
+// Boundary + conflict detection
+function schedValidateBoundaries(ev){
+  if(!ev.startTime || !/^\d{2}:\d{2}$/.test(ev.startTime)) return [];
+  const warnings = [];
+  const start = schedTimeToMin(ev.startTime);
+  const end = start + (ev.duration || 0);
+  if(start < schedTimeToMin('07:00')) warnings.push('Starts before 7 AM park open');
+  if(end > schedTimeToMin('21:00')) warnings.push('Ends after 9 PM park close');
+  return warnings;
+}
+function schedDetectPersonConflicts(ev){
+  // Same person in overlapping events in DIFFERENT zones
+  if(!ev.people || !ev.people.length) return [];
+  const evStart = schedTimeToMin(ev.startTime);
+  const evEnd = evStart + (ev.duration || 0);
+  const conflicts = [];
+  ev.people.forEach(p => {
+    if(!p.name) return;
+    SE.forEach(other => {
+      if(other.id === ev.id) return;
+      if(!other.people || !other.people.find(op => op.name && op.name.toLowerCase() === p.name.toLowerCase())) return;
+      if(other.zone === ev.zone) return; // same zone = fine
+      const oStart = schedTimeToMin(other.startTime);
+      const oEnd = oStart + (other.duration || 0);
+      if(oStart < evEnd && oEnd > evStart){
+        conflicts.push(p.name + ' also in "' + (other.title || '') + '" (' + other.zone + ')');
+      }
+    });
+  });
+  return conflicts;
+}
+
+/* ── Renderer ── */
+
+function renderSchedule(){
+  const el = $('viewSchedule');
+  let h = '';
+
+  // Completeness dashboard (spec §6.1: sticky/above-fold)
+  const total = SE.length;
+  const confirmed = SE.filter(e => e.status === 'confirmed').length;
+  const tentative = SE.filter(e => e.status === 'tentative').length;
+  const tbd = SE.filter(e => e.status === 'tbd').length;
+  const unassignedPIC = SE.filter(e => !(e.people || []).some(p => p.role === 'pic')).length;
+  const openQ = SQ.filter(q => q.status === 'open').length;
+  const missingDur = SE.filter(e => !e.duration && !e.isMilestone).length;
+  const orphaned = schedOrphanedEvents();
+
+  h += `<div class="sched-dashboard">
+    <div class="sched-dash-row">
+      <span class="sched-dash-stat"><strong>${confirmed}</strong>/${total} confirmed</span>
+      <span class="sched-dash-stat sched-dash-stat-tentative"><strong>${tentative}</strong> tentative</span>
+      <span class="sched-dash-stat sched-dash-stat-tbd"><strong>${tbd}</strong> TBD</span>
+      ${unassignedPIC ? `<span class="sched-dash-stat sched-dash-stat-warn"><strong>${unassignedPIC}</strong> no PIC</span>` : ''}
+      ${openQ ? `<span class="sched-dash-stat sched-dash-stat-q"><strong>${openQ}</strong> open ?</span>` : ''}
+      ${missingDur ? `<span class="sched-dash-stat sched-dash-stat-warn"><strong>${missingDur}</strong> no duration</span>` : ''}
+      ${orphaned.length ? `<span class="sched-dash-stat sched-dash-stat-warn"><strong>${orphaned.length}</strong> orphaned</span>` : ''}
+    </div>
+  </div>`;
+
+  // Sticky phase nav
+  const sortedPhases = [...SP].sort((a, b) => a.number - b.number);
+  h += `<nav class="sched-phase-nav" id="schedPhaseNav">`;
+  sortedPhases.forEach(p => {
+    const cnt = (p.eventIds || []).length;
+    h += `<button class="sched-phase-nav-item" data-sched-jump="${p.id}">${esc(p.number)}. ${esc(p.title)} <span class="sched-phase-nav-cnt">${cnt}</span></button>`;
+  });
+  h += `</nav>`;
+
+  // Timeline
+  h += `<div class="sched-timeline" id="schedTimeline">`;
+  sortedPhases.forEach(p => {
+    h += schedRenderPhase(p);
+  });
+  // Orphaned section
+  if(orphaned.length){
+    h += `<div class="sched-phase sched-phase-orphan" data-phase-id="__orphan">
+      <div class="sched-phase-hdr">
+        <div class="sched-phase-title-row">
+          <span class="sched-phase-number">⚠</span>
+          <span class="sched-phase-title">Orphaned Events</span>
+          <span class="sched-phase-count">${orphaned.length}</span>
+        </div>
+        <div class="sched-phase-note">These events belong to no phase. Reassign or delete.</div>
+      </div>
+      <div class="sched-events">`;
+    orphaned.forEach(ev => { h += schedRenderEvent(ev, '__orphan'); });
+    h += `</div></div>`;
+  }
+  h += `</div>`;
+
+  // Add-phase button
+  h += `<div class="sched-add-phase-wrap"><button class="sched-btn sched-btn-add" onclick="schedAddPhase()">+ Add Phase</button></div>`;
+
+  // Floating print buttons (P2)
+  h += `<div class="sched-fab">
+    <button class="sched-fab-btn" onclick="schedPrintCoordinator()" title="Print coordinator schedule">🖨 Coordinator</button>
+    <button class="sched-fab-btn" onclick="schedPrintPerPerson()" title="Print per-person sheets">👤 Per-Person</button>
+    <button class="sched-fab-btn" onclick="schedPrintGuest()" title="Print guest program">🎉 Guest</button>
+  </div>`;
+
+  el.innerHTML = h;
+  schedWireHandlers();
+  schedWireStickyNav();
+}
+
+function schedRenderPhase(phase){
+  const cnt = (phase.eventIds || []).length;
+  const events = (phase.eventIds || []).map(id => SE.find(e => e.id === id)).filter(Boolean);
+  // Filter by search
+  const visible = search ? events.filter(e => schedEventMatchesSearch(e)) : events;
+  // Computed time range
+  let timeRange = 'No events';
+  if(events.length){
+    const firstTime = events[0].startTime;
+    const last = events[events.length - 1];
+    const endTime = schedAddMinutes(last.startTime, last.duration || 0);
+    timeRange = schedFmtTime(firstTime) + ' – ' + schedFmtTime(endTime);
+  }
+  const collapsed = phase.collapsed;
+  const color = phase.color || '#6B8E6B';
+
+  let h = `<div class="sched-phase ${collapsed ? 'sched-phase-collapsed' : ''}" data-phase-id="${phase.id}" style="--phase-color:${esc(color)}">`;
+  h += `<div class="sched-phase-hdr" onclick="schedTogglePhase('${phase.id}')">
+    <div class="sched-phase-title-row">
+      <span class="sched-phase-number">${esc(phase.number)}</span>
+      <span class="sched-phase-title sched-edit" data-sched-edit="phase-title" data-phase-id="${phase.id}">${esc(phase.title)}</span>
+      <span class="sched-phase-count">${cnt}</span>
+      <span class="sched-phase-time">${timeRange}</span>
+      <span class="sched-phase-chev">${collapsed ? '▸' : '▾'}</span>
+    </div>
+    ${phase.note ? `<div class="sched-phase-note">${esc(phase.note)}</div>` : ''}
+  </div>`;
+
+  if(!collapsed){
+    h += `<div class="sched-events">`;
+    // Group events by parallelGroup within this phase for rendering
+    const rendered = new Set();
+    visible.forEach(ev => {
+      if(rendered.has(ev.id)) return;
+      if(ev.parallelGroup){
+        const groupMembers = visible.filter(x => x.parallelGroup === ev.parallelGroup);
+        if(groupMembers.length >= 2){
+          h += `<div class="sched-parallel-group"><div class="sched-parallel-label">▸ Parallel</div>`;
+          groupMembers.forEach(m => { h += schedRenderEvent(m, phase.id); rendered.add(m.id); });
+          h += `</div>`;
+          return;
+        }
+      }
+      h += schedRenderEvent(ev, phase.id);
+      rendered.add(ev.id);
+    });
+    // Add event + delete/rename phase controls
+    h += `<div class="sched-phase-actions">
+      <button class="sched-btn sched-btn-sm" onclick="schedAddEvent('${phase.id}')">+ Add event</button>
+      <button class="sched-btn sched-btn-sm sched-btn-ghost" onclick="schedDeletePhase('${phase.id}')">Delete phase</button>
+    </div>`;
+    h += `</div>`;
+  }
+
+  h += `</div>`;
+  return h;
+}
+
+function schedEventMatchesSearch(ev){
+  if(!search) return true;
+  const q = search.toLowerCase();
+  return (ev.title + ' ' + (ev.details || '') + ' ' + (ev.people || []).map(p => p.name).join(' ') + ' ' + (ev.notes || []).join(' ') + ' ' + (ev.itemsToBring || []).join(' ')).toLowerCase().includes(q);
+}
+
+function schedRenderEvent(ev, phaseId){
+  const warnings = schedValidateBoundaries(ev);
+  const conflicts = schedDetectPersonConflicts(ev);
+  const allWarnings = [...warnings, ...conflicts];
+  const questions = SQ.filter(q => q.eventId === ev.id);
+  const openQuestions = questions.filter(q => q.status === 'open');
+  const resolvedQuestions = questions.filter(q => q.status === 'resolved');
+
+  const milestoneCls = ev.isMilestone ? 'sched-event-milestone' : '';
+  const guestCls = ev.isGuestVisible ? 'sched-event-guest' : '';
+  const statusCls = 'sched-status-' + (ev.status || 'tbd');
+  const warnCls = allWarnings.length ? 'sched-event-warn' : '';
+
+  let h = `<div class="sched-event ${milestoneCls} ${guestCls} ${warnCls}" data-event-id="${ev.id}" data-phase-id="${phaseId}" draggable="true"
+    ontouchstart="schedTouchStart(event,'${ev.id}','${phaseId}')"
+    ontouchmove="schedTouchMove(event)"
+    ontouchend="schedTouchEnd(event,'${ev.id}','${phaseId}')">`;
+  h += `<div class="sched-event-grip" title="Drag to reorder">⋮⋮</div>`;
+  h += `<div class="sched-event-body">`;
+  h += `<div class="sched-event-row1">`;
+  h += `<span class="sched-event-time sched-edit" data-sched-edit="event-time" data-event-id="${ev.id}">${schedFmtTime(ev.startTime)}</span>`;
+  h += `<span class="sched-event-duration sched-edit" data-sched-edit="event-duration" data-event-id="${ev.id}">${ev.duration || 0}m</span>`;
+  h += `<span class="sched-event-status ${statusCls} sched-edit" data-sched-edit="event-status" data-event-id="${ev.id}">${SCHED_STATUS_LABELS[ev.status] || ev.status}</span>`;
+  h += `<span class="sched-event-zone sched-edit" data-sched-edit="event-zone" data-event-id="${ev.id}">${esc(ev.zone || 'tbd')}</span>`;
+  h += `<button class="sched-event-toggle ${ev.isMilestone ? 'on' : ''}" onclick="schedToggleBool('${ev.id}','isMilestone')" title="Milestone">★</button>`;
+  h += `<button class="sched-event-toggle ${ev.isGuestVisible ? 'on' : ''}" onclick="schedToggleBool('${ev.id}','isGuestVisible')" title="Guest-visible">👁</button>`;
+  h += `<button class="sched-event-delete" onclick="schedDeleteEvent('${ev.id}')" title="Delete event">×</button>`;
+  h += `</div>`;
+  h += `<div class="sched-event-title sched-edit" data-sched-edit="event-title" data-event-id="${ev.id}">${esc(ev.title)}</div>`;
+  if(ev.details){
+    h += `<div class="sched-event-details sched-edit" data-sched-edit="event-details" data-event-id="${ev.id}">${esc(ev.details)}</div>`;
+  } else {
+    h += `<div class="sched-event-details sched-edit sched-empty" data-sched-edit="event-details" data-event-id="${ev.id}">+ add details</div>`;
+  }
+
+  // People chips
+  h += `<div class="sched-chips sched-chips-people">`;
+  (ev.people || []).forEach((p, i) => {
+    h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(p.role || 'present')}">${esc(p.name)} <small>${esc(p.role || 'present')}</small> <button class="sched-chip-rm" onclick="schedRemovePerson('${ev.id}',${i})">×</button></span>`;
+  });
+  h += `<button class="sched-chip-add" onclick="schedAddPerson('${ev.id}')">+ person</button>`;
+  h += `</div>`;
+
+  // Items to bring
+  if((ev.itemsToBring || []).length || true){
+    h += `<div class="sched-chips sched-chips-items">`;
+    (ev.itemsToBring || []).forEach((item, i) => {
+      h += `<span class="sched-chip sched-chip-item">${esc(item)} <button class="sched-chip-rm" onclick="schedRemoveItem('${ev.id}',${i})">×</button></span>`;
+    });
+    h += `<button class="sched-chip-add" onclick="schedAddItem('${ev.id}')">+ item</button>`;
+    h += `</div>`;
+  }
+
+  // Notes
+  if((ev.notes || []).length){
+    h += `<div class="sched-notes">`;
+    (ev.notes || []).forEach((n, i) => {
+      h += `<div class="sched-note">📝 ${esc(n)} <button class="sched-chip-rm" onclick="schedRemoveNote('${ev.id}',${i})">×</button></div>`;
+    });
+    h += `</div>`;
+  }
+  h += `<div><button class="sched-chip-add sched-chip-add-note" onclick="schedAddNote('${ev.id}')">+ note</button></div>`;
+
+  // Questions
+  if(questions.length){
+    h += `<div class="sched-questions">`;
+    openQuestions.forEach(q => {
+      h += `<div class="sched-question sched-question-open" data-q-id="${q.id}">
+        <span class="sched-q-badge">?</span>
+        <span class="sched-q-text">${esc(q.question)}</span>
+        <button class="sched-q-resolve" onclick="schedResolveQuestion('${q.id}')">Resolve</button>
+      </div>`;
+    });
+    resolvedQuestions.forEach(q => {
+      h += `<div class="sched-question sched-question-resolved">
+        <span class="sched-q-badge">✓</span>
+        <span class="sched-q-text"><s>${esc(q.question)}</s></span>
+        <span class="sched-q-resolution">→ ${esc(q.resolution)}</span>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  // Warnings
+  if(allWarnings.length){
+    h += `<div class="sched-warnings">${allWarnings.map(w => `<span class="sched-warning">⚠ ${esc(w)}</span>`).join('')}</div>`;
+  }
+
+  h += `</div></div>`;
+  return h;
+}
+
+/* ── Wiring handlers after render ── */
+
+function schedWireHandlers(){
+  // Inline edits
+  document.querySelectorAll('#viewSchedule .sched-edit').forEach(el => {
+    el.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      schedStartInlineEdit(el);
+    });
+  });
+  // Phase nav jump
+  document.querySelectorAll('[data-sched-jump]').forEach(btn => {
+    btn.onclick = function(){
+      const id = this.dataset.schedJump;
+      const target = document.querySelector(`.sched-phase[data-phase-id="${id}"]`);
+      if(target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+    };
+  });
+  // Drag-and-drop
+  document.querySelectorAll('#viewSchedule .sched-event').forEach(el => {
+    el.addEventListener('dragstart', schedDragStart);
+    el.addEventListener('dragover', schedDragOver);
+    el.addEventListener('drop', schedDrop);
+    el.addEventListener('dragend', schedDragEnd);
+  });
+}
+
+function schedWireStickyNav(){
+  // Highlight current phase in sticky nav on scroll
+  const timeline = $('schedTimeline');
+  if(!timeline) return;
+  const onScroll = () => {
+    const phases = document.querySelectorAll('#viewSchedule .sched-phase[data-phase-id]');
+    const scrollTop = window.scrollY + 120;
+    let activeId = null;
+    phases.forEach(p => {
+      const top = p.getBoundingClientRect().top + window.scrollY;
+      if(top <= scrollTop) activeId = p.dataset.phaseId;
+    });
+    if(activeId !== schedActivePhase){
+      schedActivePhase = activeId;
+      document.querySelectorAll('[data-sched-jump]').forEach(b => {
+        b.classList.toggle('sched-phase-nav-active', b.dataset.schedJump === activeId);
+      });
+    }
+  };
+  window.removeEventListener('scroll', window._schedScroll);
+  window._schedScroll = onScroll;
+  window.addEventListener('scroll', onScroll, {passive: true});
+  onScroll();
+}
+
+/* ── Inline editing ── */
+
+function schedStartInlineEdit(el){
+  const type = el.dataset.schedEdit;
+  const evId = el.dataset.eventId;
+  const phId = el.dataset.phaseId;
+  schedEditActive = true;
+  lastUserActionAt = Date.now();
+
+  if(type === 'event-title' || type === 'event-details'){
+    schedEditText(el, type, evId);
+  } else if(type === 'event-time'){
+    schedEditTime(el, evId);
+  } else if(type === 'event-duration'){
+    schedEditNumber(el, evId);
+  } else if(type === 'event-status'){
+    schedEditSelect(el, 'status', evId, SCHED_STATUSES, SCHED_STATUS_LABELS);
+  } else if(type === 'event-zone'){
+    const zoneLabels = {}; SCHED_ZONES.forEach(z => zoneLabels[z] = z);
+    schedEditSelect(el, 'zone', evId, SCHED_ZONES, zoneLabels);
+  } else if(type === 'phase-title'){
+    schedEditPhaseTitle(el, phId);
+  }
+}
+
+function schedEditText(el, type, evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const key = type === 'event-title' ? 'title' : 'details';
+  const oldVal = ev[key] || '';
+  const input = document.createElement(type === 'event-details' ? 'textarea' : 'input');
+  if(input.tagName === 'INPUT') input.type = 'text';
+  input.value = oldVal;
+  input.className = 'sched-edit-input';
+  const commit = () => {
+    if(!schedEditActive) return;
+    const newVal = input.value.trim();
+    schedEditActive = false;
+    if(newVal !== oldVal){
+      ev[key] = newVal;
+      save();
+      // Targeted update — replace the cell's text, don't re-render the whole view
+      el.textContent = newVal || (type === 'event-details' ? '+ add details' : '');
+      el.classList.toggle('sched-empty', !newVal && type === 'event-details');
+    }
+    input.replaceWith(el);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && input.tagName === 'INPUT'){ e.preventDefault(); input.blur(); }
+    if(e.key === 'Escape'){ schedEditActive = false; input.replaceWith(el); }
+  });
+  el.replaceWith(input);
+  input.focus();
+  input.select && input.select();
+}
+
+function schedEditTime(el, evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const input = document.createElement('input');
+  input.type = 'time';
+  input.value = ev.startTime || '';
+  input.className = 'sched-edit-input';
+  const commit = () => {
+    if(!schedEditActive) return;
+    schedEditActive = false;
+    const newVal = input.value;
+    if(newVal && newVal !== ev.startTime){
+      const phase = schedFindPhaseOfEvent(evId);
+      const isAnchor = phase && phase.eventIds[0] === evId;
+      ev.startTime = newVal;
+      if(phase) schedRecalcTimes(phase.id);
+      save();
+      renderSchedule(); // full re-render because cascade may have changed many rows
+      return;
+    }
+    input.replaceWith(el);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    if(e.key === 'Escape'){ schedEditActive = false; input.replaceWith(el); }
+  });
+  el.replaceWith(input);
+  input.focus();
+}
+
+function schedEditNumber(el, evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.value = ev.duration || 0;
+  input.className = 'sched-edit-input sched-edit-input-num';
+  const commit = () => {
+    if(!schedEditActive) return;
+    schedEditActive = false;
+    const newVal = Math.max(0, parseInt(input.value) || 0);
+    if(newVal !== ev.duration){
+      ev.duration = newVal;
+      const phase = schedFindPhaseOfEvent(evId);
+      if(phase) schedRecalcTimes(phase.id);
+      save();
+      renderSchedule();
+      return;
+    }
+    input.replaceWith(el);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    if(e.key === 'Escape'){ schedEditActive = false; input.replaceWith(el); }
+  });
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function schedEditSelect(el, key, evId, options, labels){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const select = document.createElement('select');
+  select.className = 'sched-edit-input';
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt;
+    o.textContent = labels[opt] || opt;
+    if(ev[key] === opt) o.selected = true;
+    select.appendChild(o);
+  });
+  const commit = () => {
+    if(!schedEditActive) return;
+    schedEditActive = false;
+    if(select.value !== ev[key]){
+      ev[key] = select.value;
+      save();
+      renderSchedule();
+      return;
+    }
+    select.replaceWith(el);
+  };
+  select.addEventListener('blur', commit);
+  select.addEventListener('change', commit);
+  select.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){ schedEditActive = false; select.replaceWith(el); }
+  });
+  el.replaceWith(select);
+  select.focus();
+}
+
+function schedEditPhaseTitle(el, phId){
+  const p = SP.find(x => x.id === phId);
+  if(!p) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = p.title || '';
+  input.className = 'sched-edit-input';
+  input.onclick = (e) => e.stopPropagation(); // don't trigger collapse toggle
+  const commit = () => {
+    if(!schedEditActive) return;
+    schedEditActive = false;
+    const newVal = input.value.trim();
+    if(newVal && newVal !== p.title){
+      p.title = newVal;
+      save();
+      el.textContent = newVal;
+    }
+    input.replaceWith(el);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    if(e.key === 'Escape'){ schedEditActive = false; input.replaceWith(el); }
+  });
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+/* ── Add/delete operations ── */
+
+async function schedAddEvent(phaseId){
+  const phase = SP.find(p => p.id === phaseId);
+  if(!phase) return;
+  const ev = {
+    id: schedNewEventId(),
+    title: 'New event',
+    details: '',
+    startTime: '12:00',
+    duration: 15,
+    status: 'tbd',
+    zone: 'shelter',
+    people: [],
+    itemsToBring: [],
+    notes: [],
+    isMilestone: false,
+    isGuestVisible: false,
+    parallelGroup: null
+  };
+  SE.push(ev);
+  phase.eventIds = phase.eventIds || [];
+  phase.eventIds.push(ev.id);
+  save();
+  renderSchedule();
+}
+
+async function schedDeleteEvent(evId){
+  const ev = SE.find(e => e.id === evId);
+  if(!ev) return;
+  const ok = await customConfirm('Delete event', 'Delete "' + (ev.title || 'event') + '"? Any open questions for this event will also be removed.');
+  if(!ok) return;
+  SE = SE.filter(e => e.id !== evId);
+  SP.forEach(p => { if(p.eventIds) p.eventIds = p.eventIds.filter(id => id !== evId); });
+  SQ = SQ.filter(q => q.eventId !== evId);
+  save();
+  renderSchedule();
+}
+
+async function schedAddPhase(){
+  const title = await customInput('New phase name', '');
+  if(!title) return;
+  const maxNum = SP.reduce((m, p) => Math.max(m, p.number || 0), 0);
+  SP.push({
+    id: schedNewPhaseId(),
+    number: maxNum + 1,
+    title,
+    color: '#6B8E6B',
+    note: '',
+    collapsed: false,
+    eventIds: []
+  });
+  save();
+  renderSchedule();
+}
+
+async function schedDeletePhase(phId){
+  const p = SP.find(x => x.id === phId);
+  if(!p) return;
+  const cnt = (p.eventIds || []).length;
+  const msg = cnt > 0
+    ? `Delete "${p.title}"? Its ${cnt} event(s) will move to the Orphaned Events section and must be reassigned or deleted.`
+    : `Delete empty phase "${p.title}"?`;
+  const ok = await customConfirm('Delete phase', msg);
+  if(!ok) return;
+  SP = SP.filter(x => x.id !== phId);
+  save();
+  renderSchedule();
+}
+
+function schedTogglePhase(phId){
+  const p = SP.find(x => x.id === phId);
+  if(!p) return;
+  p.collapsed = !p.collapsed;
+  save();
+  renderSchedule();
+}
+
+function schedToggleBool(evId, key){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  ev[key] = !ev[key];
+  save();
+  // Targeted update — find the button and toggle its class
+  const btn = document.querySelector(`[data-event-id="${evId}"] .sched-event-toggle[onclick*="${key}"]`);
+  if(btn) btn.classList.toggle('on', ev[key]);
+}
+
+/* ── Chip list operations ── */
+
+async function schedAddPerson(evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const name = await customInput('Person name', '');
+  if(!name) return;
+  const role = await customInput('Role (pic / helper / present)', 'present');
+  if(!role) return;
+  const normalizedRole = SCHED_PIC_ROLES.includes(role.toLowerCase()) ? role.toLowerCase() : 'present';
+  ev.people = ev.people || [];
+  ev.people.push({name, role: normalizedRole});
+  save();
+  renderSchedule();
+}
+function schedRemovePerson(evId, idx){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev || !ev.people) return;
+  ev.people.splice(idx, 1);
+  save();
+  renderSchedule();
+}
+async function schedAddItem(evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const item = await customInput('Item to bring', '');
+  if(!item) return;
+  ev.itemsToBring = ev.itemsToBring || [];
+  ev.itemsToBring.push(item);
+  save();
+  renderSchedule();
+}
+function schedRemoveItem(evId, idx){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev || !ev.itemsToBring) return;
+  ev.itemsToBring.splice(idx, 1);
+  save();
+  renderSchedule();
+}
+async function schedAddNote(evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const note = await customInput('Planning note', '');
+  if(!note) return;
+  ev.notes = ev.notes || [];
+  ev.notes.push(note);
+  save();
+  renderSchedule();
+}
+function schedRemoveNote(evId, idx){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev || !ev.notes) return;
+  ev.notes.splice(idx, 1);
+  save();
+  renderSchedule();
+}
+
+/* ── Question resolution ── */
+
+async function schedResolveQuestion(qId){
+  const q = SQ.find(x => x.id === qId);
+  if(!q) return;
+  const resolution = await customInput('Resolution for: ' + q.question, '');
+  if(!resolution) return;
+  q.status = 'resolved';
+  q.resolution = resolution;
+  q.resolvedDate = now();
+  save();
+  renderSchedule();
+}
+
+/* ── Drag-and-drop (desktop + touch) ── */
+
+function schedDragStart(e){
+  const evEl = e.target.closest('.sched-event');
+  if(!evEl) return;
+  schedDragState = {
+    id: evEl.dataset.eventId,
+    sourcePhaseId: evEl.dataset.phaseId
+  };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', evEl.dataset.eventId);
+  evEl.classList.add('sched-event-dragging');
+}
+function schedDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const evEl = e.target.closest('.sched-event');
+  if(evEl) evEl.classList.add('sched-drop-target');
+}
+function schedDrop(e){
+  e.preventDefault();
+  if(!schedDragState) return;
+  const targetEl = e.target.closest('.sched-event');
+  if(!targetEl) return;
+  const sourceId = schedDragState.id;
+  const sourcePhaseId = schedDragState.sourcePhaseId;
+  const targetId = targetEl.dataset.eventId;
+  const targetPhaseId = targetEl.dataset.phaseId;
+  if(sourceId === targetId) return;
+
+  const sourcePhase = sourcePhaseId === '__orphan' ? null : SP.find(p => p.id === sourcePhaseId);
+  const targetPhase = targetPhaseId === '__orphan' ? null : SP.find(p => p.id === targetPhaseId);
+
+  // Remove from source
+  if(sourcePhase){
+    sourcePhase.eventIds = sourcePhase.eventIds.filter(id => id !== sourceId);
+  }
+  // Insert at target position
+  if(targetPhase){
+    const targetIdx = targetPhase.eventIds.indexOf(targetId);
+    if(targetIdx >= 0){
+      targetPhase.eventIds.splice(targetIdx + 1, 0, sourceId);
+    } else {
+      targetPhase.eventIds.push(sourceId);
+    }
+    schedRecalcTimes(targetPhase.id);
+  }
+  if(sourcePhase && sourcePhase !== targetPhase) schedRecalcTimes(sourcePhase.id);
+
+  save();
+  schedDragState = null;
+  renderSchedule();
+}
+function schedDragEnd(){
+  document.querySelectorAll('.sched-event-dragging, .sched-drop-target').forEach(el => {
+    el.classList.remove('sched-event-dragging', 'sched-drop-target');
+  });
+  schedDragState = null;
+}
+
+// Touch: long-press to grab, drag via touchmove
+function schedTouchStart(e, evId, phaseId){
+  if(e.target.closest('.sched-edit, button')) return;
+  schedSwipeStartX = e.touches[0].clientX;
+  schedSwipeStartY = e.touches[0].clientY;
+  schedLongPressTimer = setTimeout(() => {
+    schedDragState = {id: evId, sourcePhaseId: phaseId, touch: true};
+    const el = e.target.closest('.sched-event');
+    if(el) el.classList.add('sched-event-dragging');
+    if(navigator.vibrate) navigator.vibrate(50);
+  }, 500);
+}
+function schedTouchMove(e){
+  const dx = Math.abs(e.touches[0].clientX - schedSwipeStartX);
+  const dy = Math.abs(e.touches[0].clientY - schedSwipeStartY);
+  if(dx + dy > 10) clearTimeout(schedLongPressTimer);
+  if(schedDragState && schedDragState.touch){
+    e.preventDefault();
+    // Visual follow via fixed overlay would be nice; for MVP, highlight drop target
+    const touch = e.touches[0];
+    const over = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetEvent = over ? over.closest('.sched-event') : null;
+    document.querySelectorAll('.sched-drop-target').forEach(el => el.classList.remove('sched-drop-target'));
+    if(targetEvent && targetEvent.dataset.eventId !== schedDragState.id){
+      targetEvent.classList.add('sched-drop-target');
+    }
+  }
+}
+function schedTouchEnd(e, evId, phaseId){
+  clearTimeout(schedLongPressTimer);
+  if(schedDragState && schedDragState.touch){
+    const touch = e.changedTouches[0];
+    const over = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetEvent = over ? over.closest('.sched-event') : null;
+    if(targetEvent && targetEvent.dataset.eventId !== schedDragState.id){
+      const targetId = targetEvent.dataset.eventId;
+      const targetPhaseId = targetEvent.dataset.phaseId;
+      const sourcePhase = schedDragState.sourcePhaseId === '__orphan' ? null : SP.find(p => p.id === schedDragState.sourcePhaseId);
+      const targetPhase = targetPhaseId === '__orphan' ? null : SP.find(p => p.id === targetPhaseId);
+      if(sourcePhase) sourcePhase.eventIds = sourcePhase.eventIds.filter(id => id !== schedDragState.id);
+      if(targetPhase){
+        const idx = targetPhase.eventIds.indexOf(targetId);
+        if(idx >= 0) targetPhase.eventIds.splice(idx + 1, 0, schedDragState.id);
+        else targetPhase.eventIds.push(schedDragState.id);
+        schedRecalcTimes(targetPhase.id);
+      }
+      if(sourcePhase && sourcePhase !== targetPhase) schedRecalcTimes(sourcePhase.id);
+      save();
+    }
+    schedDragEnd();
+    renderSchedule();
+  }
+}
+
+/* ── Output generators (P2) ── */
+
+function schedBuildPrintHead(title){
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Cinzel:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+      @page { size: letter; margin: 0.5in; }
+      body { font-family: 'DM Sans', sans-serif; color: #1d2d26; max-width: 7.5in; margin: 0 auto; padding: 0.25in 0; }
+      h1 { font-family: 'Cinzel', serif; font-size: 24pt; font-weight: 600; letter-spacing: 0.08em; text-align: center; margin-bottom: 4pt; }
+      h1 em { color: #c19a3c; font-style: normal; }
+      h2 { font-family: 'Cormorant Garamond', serif; font-size: 16pt; font-weight: 600; color: #8a6d22; margin-top: 18pt; margin-bottom: 8pt; border-bottom: 1pt solid #d4bf82; padding-bottom: 3pt; page-break-after: avoid; }
+      h3 { font-family: 'Cormorant Garamond', serif; font-size: 13pt; font-weight: 600; margin-top: 12pt; margin-bottom: 4pt; page-break-after: avoid; }
+      .subtitle { text-align: center; font-size: 11pt; color: #445a4f; font-style: italic; margin-bottom: 20pt; }
+      .venue { text-align: center; font-size: 9pt; letter-spacing: 0.2em; text-transform: uppercase; color: #78867c; margin-bottom: 24pt; }
+      .event { padding: 6pt 0; border-bottom: 0.5pt solid #e6ebe1; page-break-inside: avoid; }
+      .event-time { font-family: 'Cinzel', serif; font-weight: 600; color: #8a6d22; display: inline-block; min-width: 70pt; }
+      .event-title { font-family: 'Cormorant Garamond', serif; font-size: 12pt; font-weight: 600; display: inline-block; }
+      .event-details { font-size: 10pt; color: #445a4f; margin-left: 70pt; margin-top: 2pt; line-height: 1.4; }
+      .event-meta { font-size: 9pt; color: #78867c; margin-left: 70pt; margin-top: 2pt; }
+      .pic { display: inline-block; font-weight: 600; color: #2e5a45; margin-right: 8pt; }
+      .milestone { background: #fdf6e3; padding: 8pt; border-left: 2pt solid #c19a3c; }
+      .items { font-size: 9pt; color: #445a4f; margin-left: 70pt; font-style: italic; }
+      .note { font-size: 9pt; color: #78867c; margin-left: 70pt; font-style: italic; }
+      .open-q { font-size: 9pt; color: #a1424f; margin-left: 70pt; }
+      .phase-note { font-style: italic; font-size: 10pt; color: #78867c; margin-bottom: 8pt; }
+      .contact-list { font-size: 10pt; margin: 12pt 0; }
+      .contact-list li { margin-bottom: 4pt; }
+      hr.divider { border: none; border-top: 1pt solid #d4bf82; margin: 18pt 0; }
+      .hard-stop { text-align: center; padding: 8pt; background: #9A454D; color: white; font-family: 'Cinzel', serif; letter-spacing: 0.3em; text-transform: uppercase; font-size: 10pt; margin-top: 24pt; }
+      @media screen { body { background: #f5f2ed; } .page { background: white; padding: 0.5in; margin: 1rem auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); } }
+    </style></head><body>`;
+}
+
+function schedPrintCoordinator(){
+  const sortedPhases = [...SP].sort((a, b) => a.number - b.number);
+  let body = schedBuildPrintHead('Coordinator Schedule');
+  body += `<h1>Hannah <em>&</em> Stan</h1>`;
+  body += `<div class="subtitle">Sunday, June 7, 2026 · Day-of Schedule — Coordinator</div>`;
+  body += `<div class="venue">Willamette Mission State Park · Shelter A · Keizer, Oregon</div>`;
+
+  sortedPhases.forEach(phase => {
+    const events = (phase.eventIds || []).map(id => SE.find(e => e.id === id)).filter(Boolean);
+    body += `<h2>Phase ${phase.number} — ${esc(phase.title)}</h2>`;
+    if(phase.note) body += `<div class="phase-note">${esc(phase.note)}</div>`;
+    events.forEach(ev => {
+      const pics = (ev.people || []).filter(p => p.role === 'pic').map(p => p.name).join(', ');
+      const helpers = (ev.people || []).filter(p => p.role === 'helper').map(p => p.name).join(', ');
+      const mCls = ev.isMilestone ? ' milestone' : '';
+      body += `<div class="event${mCls}">
+        <span class="event-time">${schedFmtTime(ev.startTime)}</span>
+        <span class="event-title">${esc(ev.title)}</span>`;
+      if(ev.duration) body += ` <span style="font-size:9pt;color:#78867c">(${ev.duration}m)</span>`;
+      if(ev.details) body += `<div class="event-details">${esc(ev.details)}</div>`;
+      body += `<div class="event-meta">`;
+      if(pics) body += `<span class="pic">PIC: ${esc(pics)}</span>`;
+      if(helpers) body += `<span>Helpers: ${esc(helpers)}</span>`;
+      body += `<span style="margin-left:8pt">Zone: ${esc(ev.zone || 'tbd')}</span>`;
+      body += `<span style="margin-left:8pt">Status: ${esc(SCHED_STATUS_LABELS[ev.status] || ev.status)}</span>`;
+      body += `</div>`;
+      if((ev.itemsToBring || []).length) body += `<div class="items">Items: ${esc(ev.itemsToBring.join(', '))}</div>`;
+      (ev.notes || []).forEach(n => body += `<div class="note">📝 ${esc(n)}</div>`);
+      SQ.filter(q => q.eventId === ev.id && q.status === 'open').forEach(q => {
+        body += `<div class="open-q">? ${esc(q.question)}</div>`;
+      });
+      SQ.filter(q => q.eventId === ev.id && q.status === 'resolved').forEach(q => {
+        body += `<div class="open-q" style="color:#2e5a45">✓ ${esc(q.question)} → ${esc(q.resolution)}</div>`;
+      });
+      body += `</div>`;
+    });
+  });
+
+  // Orphaned
+  const orphaned = schedOrphanedEvents();
+  if(orphaned.length){
+    body += `<h2 style="color:#a1424f">⚠ Orphaned Events</h2>`;
+    orphaned.forEach(ev => {
+      body += `<div class="event"><span class="event-time">${schedFmtTime(ev.startTime)}</span><span class="event-title">${esc(ev.title)}</span></div>`;
+    });
+  }
+
+  body += `<div class="hard-stop">9:00 PM — Park Closes — Hard Stop</div>`;
+  body += `</body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup blocked — allow popups to print', false); return; }
+  w.document.write(body);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+async function schedPrintPerPerson(){
+  // Collect all unique person names
+  const names = new Set();
+  SE.forEach(e => (e.people || []).forEach(p => { if(p.name) names.add(p.name); }));
+  if(!names.size){ toast('No people assigned yet', false); return; }
+  const nameList = [...names].sort();
+  const choice = await customInput('Person name (or "all" for everyone)', nameList[0]);
+  if(!choice) return;
+  const targets = choice.toLowerCase() === 'all' ? nameList : [choice];
+
+  let body = schedBuildPrintHead('Per-Person Schedule');
+  targets.forEach((name, i) => {
+    if(i > 0) body += `<div style="page-break-before: always;"></div>`;
+    const personEvents = SE.filter(e => (e.people || []).some(p => p.name && p.name.toLowerCase() === name.toLowerCase()))
+      .sort((a, b) => schedTimeToMin(a.startTime) - schedTimeToMin(b.startTime));
+    const arrival = personEvents.length ? schedFmtTime(personEvents[0].startTime) : 'TBD';
+    const contact = C.find(c => c.name && c.name.toLowerCase() === name.toLowerCase());
+    body += `<h1>${esc(name)}</h1>`;
+    body += `<div class="subtitle">Personal schedule — June 7, 2026</div>`;
+    body += `<div class="venue">Willamette Mission State Park · Shelter A · Keizer, OR</div>`;
+    body += `<p><strong>Arrival:</strong> ${esc(arrival)}`;
+    if(contact && contact.phone) body += ` · <strong>Phone:</strong> ${esc(contact.phone)}`;
+    if(contact && contact.email) body += ` · <strong>Email:</strong> ${esc(contact.email)}`;
+    body += `</p>`;
+    // All items the person is responsible for (any event where they appear, listing that event's items)
+    const itemsByEvent = personEvents.filter(e => (e.itemsToBring || []).length);
+    if(itemsByEvent.length){
+      body += `<h3>What to bring</h3><ul class="contact-list">`;
+      itemsByEvent.forEach(e => {
+        body += `<li><strong>For ${esc(e.title)}:</strong> ${esc((e.itemsToBring || []).join(', '))}</li>`;
+      });
+      body += `</ul>`;
+    }
+    body += `<h3>Your events</h3>`;
+    personEvents.forEach(ev => {
+      const myRole = ev.people.find(p => p.name && p.name.toLowerCase() === name.toLowerCase())?.role || 'present';
+      const others = (ev.people || []).filter(p => p.name && p.name.toLowerCase() !== name.toLowerCase()).map(p => p.name);
+      body += `<div class="event">
+        <span class="event-time">${schedFmtTime(ev.startTime)}</span>
+        <span class="event-title">${esc(ev.title)}</span>
+        <span style="font-size:9pt;color:#78867c;margin-left:6pt">(${esc(myRole)})</span>`;
+      if(ev.details) body += `<div class="event-details">${esc(ev.details)}</div>`;
+      if(others.length) body += `<div class="event-meta">With: ${esc(others.join(', '))}</div>`;
+      if(ev.zone) body += `<div class="event-meta">Zone: ${esc(ev.zone)}</div>`;
+      body += `</div>`;
+    });
+  });
+  body += `</body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup blocked', false); return; }
+  w.document.write(body);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+function schedPrintGuest(){
+  const sortedPhases = [...SP].sort((a, b) => a.number - b.number);
+  let body = schedBuildPrintHead('Guest Program');
+  body += `<h1>Hannah <em>&</em> Stan</h1>`;
+  body += `<div class="subtitle">Sunday, June 7, 2026</div>`;
+  body += `<div class="venue">Willamette Mission State Park · Keizer, Oregon</div>`;
+  body += `<hr class="divider" />`;
+  body += `<h2 style="text-align:center;border:none;">Order of the Day</h2>`;
+
+  const guestEvents = [];
+  sortedPhases.forEach(phase => {
+    (phase.eventIds || []).forEach(id => {
+      const ev = SE.find(e => e.id === id);
+      if(ev && ev.isGuestVisible) guestEvents.push(ev);
+    });
+  });
+
+  guestEvents.forEach(ev => {
+    body += `<div class="event" style="text-align:center;border:none;padding:8pt 0">
+      <div style="font-family:'Cinzel',serif;font-size:12pt;font-weight:600;color:#8a6d22;letter-spacing:0.08em">${schedFmtTime(ev.startTime)}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:16pt;font-weight:600;margin-top:4pt">${esc(ev.title)}</div>
+    </div>`;
+  });
+
+  body += `<hr class="divider" />`;
+  body += `<div style="text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12pt;color:#445a4f">Thank you for celebrating with us.</div>`;
+  body += `</body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup blocked', false); return; }
+  w.document.write(body);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+/* ── Expose for inline onclick handlers ── */
+window.schedAddEvent = schedAddEvent;
+window.schedDeleteEvent = schedDeleteEvent;
+window.schedAddPhase = schedAddPhase;
+window.schedDeletePhase = schedDeletePhase;
+window.schedTogglePhase = schedTogglePhase;
+window.schedToggleBool = schedToggleBool;
+window.schedAddPerson = schedAddPerson;
+window.schedRemovePerson = schedRemovePerson;
+window.schedAddItem = schedAddItem;
+window.schedRemoveItem = schedRemoveItem;
+window.schedAddNote = schedAddNote;
+window.schedRemoveNote = schedRemoveNote;
+window.schedResolveQuestion = schedResolveQuestion;
+window.schedTouchStart = schedTouchStart;
+window.schedTouchMove = schedTouchMove;
+window.schedTouchEnd = schedTouchEnd;
+window.schedPrintCoordinator = schedPrintCoordinator;
+window.schedPrintPerPerson = schedPrintPerPerson;
+window.schedPrintGuest = schedPrintGuest;
 
 /* ════════════════ KEYBOARD NAV §16.13 ════════════════ */
 document.onkeydown = function(e){

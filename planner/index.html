@@ -59,13 +59,14 @@
   </div>
 </header>
 
-<!-- §5.1 MAIN NAV — five tabs (added History in v6.0) -->
+<!-- §5.1 MAIN NAV — six tabs (added Schedule in HW-SCHED) -->
 <nav class="main-nav" role="tablist" aria-label="Main navigation">
   <button role="tab" aria-selected="true" data-v="focus">Focus</button>
   <button role="tab" aria-selected="false" data-v="tasks">Tasks</button>
   <button role="tab" aria-selected="false" data-v="people">People</button>
   <button role="tab" aria-selected="false" data-v="history">History</button>
   <button role="tab" aria-selected="false" data-v="settings">Settings</button>
+  <button role="tab" aria-selected="false" data-v="schedule">Schedule</button>
 </nav>
 
 <!-- §3.2 GROUP TABS — inside Tasks only -->
@@ -88,6 +89,7 @@
 <div class="view" id="viewPeople" role="tabpanel"></div>
 <div class="view" id="viewHistory" role="tabpanel"></div>
 <div class="view" id="viewSettings" role="tabpanel"></div>
+<div class="view" id="viewSchedule" role="tabpanel"></div>
 
 <!-- §7.6 QUICK ADD -->
 <div class="quick-add" id="quickAdd">
@@ -341,8 +343,20 @@
   <button class="dismiss" id="onboardDismiss" aria-label="Dismiss">×</button>
 </div>
 
+<!-- HW-SCHED: schedule-specific onboarding banner -->
+<div class="onboard-banner" id="schedOnboard" style="display:none">
+  <div>
+    <strong>Schedule tab:</strong> Click any field (time, title, PIC) to edit it inline.
+    Click the <strong>+</strong> to add events. Click a gold <strong>?</strong> badge to resolve an open question.
+    Use the print buttons in the bottom-right to generate coordinator, per-person, and guest documents.
+  </div>
+  <button class="dismiss" id="schedOnboardDismiss" aria-label="Dismiss">×</button>
+</div>
+
 </div><!-- /#appShell -->
 
+<!-- HW-SCHED: defaults data — MUST load BEFORE planner.js (both defer → document order) -->
+<script defer src="./hanstan-schedule-defaults.js"></script>
 <script defer src="./planner.js"></script>
 </body>
 </html>
