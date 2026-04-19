@@ -224,32 +224,32 @@ function applyServerState(s, isLive){
     if(!t.created) t.created = now();
   });
 
-  // HW-SCHED: three-way seeding logic (spec §6.1)
-  // Only make seed/empty decisions on LIVE state — cached state loads whatever
-  // SE/SP/SQ the cache holds (set below unconditionally). This prevents the
-  // cache-then-live double-apply from seeding locally, then wiping on the
-  // live apply because PREFS.scheduleSeeded was set in step 1.
+  // HW-SCHED: schedule seeding — authoritative-key-only rule.
+  // Rule: if s.scheduleEvents exists, it's the truth. If it's absent, we NEVER
+  // overwrite in-memory SE/SP/SQ — the absence means "this state was serialized
+  // before the schedule feature existed" (pre-feature state, or a state written
+  // by a client that doesn't send the key). Treating absent-as-empty caused the
+  // flash-and-vanish bug: seeded state → second applyServerState call without
+  // the key → wiped → next poll brings key back → re-populated.
+  //
+  // Seeding only fires on live load when SE is currently empty AND the flag is
+  // clean AND the defaults are available. setTimeout(save) persists the seed so
+  // subsequent loads see scheduleEvents present on the server.
   if(s.scheduleEvents !== undefined){
     SE = (s.scheduleEvents || []).map(e => ({...e}));
     SP = (s.schedulePhases || []).map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
     SQ = (s.scheduleQuestions || []).map(q => ({...q}));
-  } else if(isLive && !PREFS.scheduleSeeded){
-    // First live load, no schedule data on server, flag clean → seed defaults
+  } else if(isLive && SE.length === 0 && !PREFS.scheduleSeeded){
     if(window.DEFAULT_SCHEDULE_EVENTS && window.DEFAULT_SCHEDULE_PHASES && window.DEFAULT_SCHEDULE_QUESTIONS){
       SE = window.DEFAULT_SCHEDULE_EVENTS.map(e => ({...e, people: [...(e.people || [])], itemsToBring: [...(e.itemsToBring || [])], notes: [...(e.notes || [])]}));
       SP = window.DEFAULT_SCHEDULE_PHASES.map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
       SQ = window.DEFAULT_SCHEDULE_QUESTIONS.map(q => ({...q}));
       PREFS.scheduleSeeded = true;
-      // Persist seed immediately so the next load sees scheduleEvents on the server
       setTimeout(() => save(), 100);
-    } else {
-      SE = []; SP = []; SQ = [];
     }
-  } else if(isLive){
-    // Live load, key absent, flag already set → snapshot restore to pre-schedule state
-    SE = []; SP = []; SQ = [];
   }
-  // If !isLive and no scheduleEvents key → leave SE/SP/SQ as-is (cache load with no data, wait for live)
+  // Any other case: leave SE/SP/SQ as-is. Never overwrite with empty from an
+  // absent-key state.
 
   sortBy = PREFS.sortBy || 'priority';
   groupByField = PREFS.groupByField || 'none';

@@ -1351,9 +1351,13 @@ input[type="date"], textarea, select { font-size: 16px; }
    ══════════════════════════════════════════════════════════════════ */
 
 /* Main nav overflow (6 tabs may not fit narrow phones) */
+/* Main nav: allow horizontal scroll only when content overflows (narrow phones).
+   On wider viewports the original flex:1 rule (line 134) spreads tabs evenly. */
 .main-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .main-nav::-webkit-scrollbar { display: none; }
-.main-nav button { flex: 0 0 auto; min-width: 80px; }
+@media (max-width: 480px) {
+  .main-nav button { flex: 0 0 auto; min-width: 72px; }
+}
 
 /* Dashboard (sticky above timeline) */
 .sched-dashboard {
