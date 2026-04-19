@@ -167,6 +167,25 @@ $('hdrSignout').onclick = () => {
   location.reload();
 };
 
+/* Design-fix toggle — applies audited visual corrections against visualDesign raw material.
+   OFF = original Rivendell Garden v1. ON = body.design-fix override block. */
+(function initDesignFixToggle(){
+  const KEY = 'hanstan_planner_design_fix';
+  const btn = $('hdrDesignFix');
+  if(!btn) return;
+  const apply = (on) => {
+    document.body.classList.toggle('design-fix', on);
+    btn.textContent = 'Design Fix: ' + (on ? 'ON' : 'OFF');
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  };
+  apply(localStorage.getItem(KEY) === '1');
+  btn.onclick = () => {
+    const nextOn = !document.body.classList.contains('design-fix');
+    localStorage.setItem(KEY, nextOn ? '1' : '0');
+    apply(nextOn);
+  };
+})();
+
 /* ════════════════ INITIAL LOAD ════════════════ */
 async function initApp(){
   setSyncStatus('loading');

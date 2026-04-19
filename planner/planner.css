@@ -1699,3 +1699,312 @@ textarea.sched-edit-input { width: 100%; min-height: 50px; }
   .sched-edit:hover { background: transparent; box-shadow: none; }
   .view { padding: 0; max-width: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DESIGN-FIX LAYER — audited corrections per visualDesign-raw-material.md
+   Active only when <body class="design-fix"> is set (toggle in header).
+   Off = original Rivendell Garden v1 (fully preserved).
+   Each block cites the principle it addresses.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+body.design-fix {
+  /* Refactoring UI #3 + Linear warmer-not-bluer grays. */
+  --ink: #1d1d1b;
+  --ink-2: #4a4845;
+  --ink-3: #7a7874;
+  --text-primary: #1d1d1b;
+  --text-secondary: #4a4845;
+  --text-muted: #7a7874;
+  /* WCAG AA: gold-dark to 6.2:1 on cream card. */
+  --gold-dark: #6e5618;
+  --gold-deep: #6e5618;
+  /* Tuch 2012 low-complexity: flatten card surfaces. */
+  --card: #fbfaf3;
+  --card-rich: #fbfaf3;
+  --bg: #f1eee6;
+  --bg-elevated: #f1eee6;
+  /* Refactoring UI linear elevation, not ambient glow. */
+  --shadow-card: 0 1px 2px rgba(29,29,27,0.04);
+  --shadow-elevated: 0 2px 8px rgba(29,29,27,0.08);
+  --glow-gold: none;
+  --glow-gold-sm: none;
+  --glow-emerald: none;
+  --glow-mithril: none;
+  /* WCAG AA chip contrast fixes. */
+  --chip-dep-fg: #8a4835;
+  --chip-assignee-fg: #5a4d7a;
+  --chip-date-fg: #3d5670;
+  --chip-group-fg: #6e5618;
+  --chip-tag-fg: #1f4030;
+  --s-overdue: #7a2535;
+  --s-blocked: #7a2535;
+  --s-blocked-bg: #f0d2d5;
+}
+
+body.design-fix {
+  background:
+    radial-gradient(1000px 600px at 30% -10%, rgba(193,154,60,0.05), transparent 55%),
+    var(--bg);
+}
+
+body.design-fix .app-header {
+  background: var(--card);
+  padding: 14px 20px 10px;
+}
+body.design-fix .app-header::before { display: none; }
+
+body.design-fix .leaf-fan { display: none; }
+
+body.design-fix .hdr-brand {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  text-shadow: none;
+}
+body.design-fix .hdr-brand em {
+  animation: none;
+  text-shadow: none;
+  color: var(--gold-dark);
+  font-weight: 500;
+  font-size: 1.15em;
+  padding: 0 3px;
+}
+body.design-fix .hdr-days {
+  font-size: 14px;
+  color: var(--ink-3);
+  font-style: normal;
+  text-shadow: none;
+}
+
+body.design-fix .hdr-sync { font-size: 12px; color: var(--ink-3); }
+body.design-fix .hdr-sync::before {
+  width: 6px; height: 6px;
+  box-shadow: none;
+  background: var(--emerald);
+}
+body.design-fix .hdr-sync.offline::before { background: var(--s-blocked); }
+body.design-fix .hdr-sync.saving::before { background: var(--gold); }
+
+body.design-fix .main-nav {
+  background: var(--card);
+  box-shadow: none;
+  border-bottom: 1px solid var(--divider);
+}
+body.design-fix .main-nav button {
+  font-family: 'Cinzel', serif;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 0;
+  color: var(--ink-3);
+}
+body.design-fix .main-nav button[aria-selected="true"] {
+  color: var(--gold-dark);
+  font-weight: 600;
+  text-shadow: none;
+  border-bottom-color: var(--gold-dark);
+}
+body.design-fix .main-nav button:hover {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+body.design-fix .group-tabs { background: var(--bg); }
+body.design-fix .group-tab {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  padding: 10px 14px;
+}
+body.design-fix .group-tab[aria-selected="true"] {
+  font-weight: 600;
+  text-shadow: none;
+}
+
+body.design-fix .section-hdr {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin: 28px 0 10px;
+  text-shadow: none;
+  gap: 12px;
+}
+body.design-fix .section-hdr::after {
+  background: var(--hair);
+  box-shadow: none;
+  height: 1px;
+}
+body.design-fix .section-hdr .cnt {
+  font-family: 'DM Sans', sans-serif;
+  font-style: normal;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+body.design-fix .task-card { margin-bottom: 6px; border-radius: 8px; }
+body.design-fix .task-card:hover {
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--hair);
+  transform: none;
+}
+body.design-fix .tc-inner { padding: 10px 14px 10px 16px; }
+body.design-fix .tc-row1 { gap: 10px; }
+
+body.design-fix .tc-id {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-shadow: none;
+  text-transform: uppercase;
+}
+body.design-fix .tc-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+body.design-fix .tc-status {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+body.design-fix .tc-status-not-started { font-weight: 500; }
+body.design-fix .tc-status-in-progress { box-shadow: none; }
+body.design-fix .tc-status-done { box-shadow: none; background: #e6ede1; color: #2f5238; }
+body.design-fix .tc-status::before,
+body.design-fix .mc::before,
+body.design-fix .filter-pill::before,
+body.design-fix .query-btn::before { display: none; }
+body.design-fix .tc-status::after { display: none; animation: none; }
+body.design-fix .tc-status-blocked::after,
+body.design-fix .tc-status-in-progress::after { animation: none; box-shadow: none; }
+
+body.design-fix .tc-meta { gap: 4px; margin-top: 6px; }
+body.design-fix .mc { font-size: 11px; padding: 2px 8px; border-radius: 4px; box-shadow: none; }
+body.design-fix .mc-overdue { box-shadow: none; }
+
+body.design-fix .tc-note {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-2);
+  margin-top: 6px;
+}
+body.design-fix .tc-subtasks { font-size: 12px; margin-top: 6px; }
+body.design-fix .tc-subtasks > span { font-weight: 500; }
+
+body.design-fix .quick-add {
+  background: var(--card);
+  border-top: 1px solid var(--divider);
+  padding: 10px 16px;
+}
+body.design-fix .quick-add input { font-size: 15px; padding: 10px 14px; }
+body.design-fix .quick-add input:focus {
+  border-color: var(--gold-dark);
+  box-shadow: 0 0 0 2px rgba(193,154,60,0.18);
+}
+body.design-fix .quick-add button {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 10px 20px;
+  background: var(--emerald);
+  color: white;
+}
+body.design-fix .quick-add button::after { display: none; animation: none; }
+body.design-fix .quick-add button:hover { background: #245544; }
+
+body.design-fix .query-search { font-size: 15px; padding: 10px 14px; }
+body.design-fix .query-search:focus {
+  box-shadow: 0 0 0 2px rgba(193,154,60,0.18);
+  border-color: var(--gold-dark);
+}
+body.design-fix .query-btn { width: 38px; height: 38px; box-shadow: none; }
+body.design-fix .query-btn:hover { box-shadow: none; }
+body.design-fix .filter-pill { font-size: 12px; padding: 3px 10px; }
+
+body.design-fix .person-card {
+  padding: 12px 14px;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+  border-radius: 8px;
+}
+body.design-fix .person-card:hover { box-shadow: var(--shadow-elevated); }
+body.design-fix .person-avatar { width: 36px; height: 36px; font-size: 13px; font-weight: 600; }
+body.design-fix .person-name { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; }
+body.design-fix .person-role { font-size: 11px; color: var(--ink-3); }
+
+body.design-fix .modal-hdr h2 { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.1em; }
+body.design-fix .ff label { font-size: 11px; letter-spacing: 0.06em; }
+body.design-fix .signout { font-size: 11px; }
+
+body.design-fix .sched-edit:hover {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--hair-gold);
+}
+body.design-fix .sched-event { border-radius: 6px; padding: 8px 12px; }
+body.design-fix .sched-event:hover { box-shadow: var(--shadow-card); }
+body.design-fix .sched-event-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+body.design-fix .sched-event-time {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+body.design-fix .sched-dash-stat strong {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+body.design-fix .sched-phase-hdr { background: var(--card); }
+body.design-fix .sched-phase-title {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+body.design-fix .sched-phase-number { font-size: 11px; letter-spacing: 0.12em; }
+body.design-fix .sched-phase-time {
+  font-family: 'DM Sans', sans-serif;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+body.design-fix .toast { box-shadow: var(--shadow-elevated); }
+
+body.design-fix .tc-status-in-progress {
+  background: rgba(193,154,60,0.14);
+  color: var(--gold-dark);
+  border-color: rgba(193,154,60,0.28);
+}
+
+body.design-fix #hdrDesignFix { color: var(--gold-dark); font-weight: 500; }
+
+@media print {
+  body.design-fix { background: white; }
+}
