@@ -188,6 +188,24 @@ export default async function handler(request) {
       const auditEntries = diffStates(prev, stamped, auth.name);
       await appendAudit(auth.store, auditEntries);
 
+      // === syntheticAuditEntries acceptance (added per spec_plannerUpdate_26apr23.md §C.3c Part 1) ===
+      // Used by one-shot migrations (e.g. Phase C.3c Elsie backfill) to inject historical
+      // audit entries with their original ts+by values. When the field is absent, behavior is unchanged.
+      if (Array.isArray(body.syntheticAuditEntries)) {
+        for (let i = 0; i < body.syntheticAuditEntries.length; i++) {
+          const e = body.syntheticAuditEntries[i];
+          const missing = ['ts', 'by', 'action', 'target', 'summary'].filter(f => !e[f]);
+          if (missing.length) {
+            return new Response(
+              JSON.stringify({ ok: false, error: `syntheticAuditEntries[${i}] missing required fields: ${missing.join(', ')}` }),
+              { status: 400, headers: { 'content-type': 'application/json' } }
+            );
+          }
+        }
+        await appendAudit(auth.store, body.syntheticAuditEntries);
+      }
+      // === end syntheticAuditEntries acceptance ===
+
       // Write new state (atomic commit point)
       await auth.store.set(STATE_KEY, JSON.stringify(stamped));
 

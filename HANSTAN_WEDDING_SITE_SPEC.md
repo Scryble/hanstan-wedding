@@ -419,6 +419,20 @@ All records verified green in Zoho admin console.
 
 ---
 
+### §14.X — `syntheticAuditEntries` optional POST field (added 2026-04-24, Phase C.3c Part 1)
+
+The `/.netlify/functions/planner-state` POST handler accepts an optional `syntheticAuditEntries: [...]` field alongside the standard `state` + `by` fields. When present, each entry must contain at minimum `ts`, `by`, `action`, `target`, and `summary`; may optionally contain `entity`, `field`, `from`, `to`. Valid entries are appended to `audit-log.json` via the same `appendAudit()` helper that handles `diffStates()` output.
+
+**Purpose:** one-shot migrations that inject historical audit entries with their original timestamps (e.g., the Elsie 2026-04-22 backfill from Phase C.3c Part 2, which replays the 8 reconstructed schedule-tab mutations captured in `_preUpdate_snapshots/capture_plannerUpdate_stage0_phaseC_2026-04-23.jsonl`).
+
+**Lifecycle:** not intended as a long-lived API. Callers outside of explicit migrations should not use this field. Future `diffStates()` extensions (Stage 1 scope) will subsume the need for synthetic injection for all new entity types.
+
+**Validation failure:** a single missing-required-field in any entry causes a 400 response with the specific offending entry index and the missing field names.
+
+**Backwards compatibility:** absent this field, POST behavior is unchanged.
+
+---
+
 ## Appendix — Verbatim Content
 
 Every user-visible string, every data file, and every page markup, in full. This appendix is authoritative; the summaries above are convenience.
