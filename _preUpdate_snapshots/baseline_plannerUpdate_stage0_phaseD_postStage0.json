@@ -1,0 +1,58 @@
+{
+  "snapshotTs": "2026-04-24T07:51:28.926Z",
+  "lastModified": "2026-04-24T07:48:58.412Z",
+  "counts": {
+    "tasks": 117,
+    "taskIds_Aseries": 10,
+    "taskIds_Bseries": 44,
+    "taskIds_Cseries": 5,
+    "taskIds_Dseries": 13,
+    "taskIds_Mseries": 31,
+    "tasks_noTaskId": 14,
+    "contacts": 28,
+    "groups": 11,
+    "groupNames": [
+      "All",
+      "Guests",
+      "Website",
+      "Venue",
+      "Wedding Day",
+      "Organizers",
+      "Stan's Rolodex",
+      "Procurement",
+      "Wedding Week",
+      "HanStan Logistics",
+      "Catering"
+    ],
+    "tags": 66,
+    "scheduleEvents": 96,
+    "schedulePhases": 8,
+    "scheduleQuestions": 17,
+    "coordinatorTokens": 4,
+    "coordinatorTokenNames": [
+      "stanshan",
+      "shipsie",
+      "everfindingbeauty",
+      "stage1smoke"
+    ],
+    "auditEntries": 102,
+    "auditEntries_byElsie": 8,
+    "auditEntries_byHannahAndStan": 92,
+    "snapshots": 104
+  },
+  "expectations_postPhaseC": {
+    "tasks_Dseries_min": 13,
+    "tasks_Mseries_min": 30,
+    "groupNames_mustExclude": [
+      "Guest List"
+    ],
+    "coordinatorTokenNames_mustInclude": [
+      "stanshan",
+      "shipsie",
+      "everfindingbeauty",
+      "stage1smoke"
+    ],
+    "auditEntries_byElsie_min": 8
+  },
+  "deltaFromExpectations": "pass"
+}
