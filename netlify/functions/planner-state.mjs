@@ -33,59 +33,225 @@ async function ensureState(store) {
   return initial;
 }
 
-function diffStates(prev, next, by) {
+// === Unified diff engine (Stage 1 Phase A, 2026-04-24) ===
+// DIFFERS registry maps each top-level PlannerState entity type to its per-entity differ.
+// Adding a new entity type = adding one entry to the registry.
+// Every differ iterates set-union of prev+next field keys (scalar fields) so new fields
+// added to live schema in the future are automatically diffed (exclusions: id, modified,
+// history, created — meta-fields that change every POST and would spam the log).
+// Compound fields (people[], itemsToBring[], notes, eventIds[]) are handled explicitly
+// per differ with sub-entry emission (person.add/remove/update, materialsCheck.*, note.*).
+// Optional 4th parameter `whyNote` propagates to every emitted entry as `why` — unused
+// in Stage 1 callers; Stage 2 Quick-Edit will populate it.
+
+const META_FIELDS = new Set(["id", "modified", "history", "created"]);
+
+function diffScalars(prev, next, entity, target, by, ts, whyNote) {
   const entries = [];
-  const ts = new Date().toISOString();
-  const prevTaskMap = new Map((prev.tasks || []).map(t => [t.id, t]));
-  const nextTaskMap = new Map((next.tasks || []).map(t => [t.id, t]));
-  for (const [id, t] of nextTaskMap) {
-    const p = prevTaskMap.get(id);
-    if (!p) {
-      entries.push({ ts, by, action: "task.create", target: t.taskId || id, summary: "Created task: " + (t.title || "") });
-    } else {
-      if (p.status !== t.status) {
-        entries.push({ ts, by, action: "task.update", target: t.taskId || id, summary: "Status: " + p.status + " → " + t.status });
-      }
-      if (p.title !== t.title) {
-        entries.push({ ts, by, action: "task.update", target: t.taskId || id, summary: "Renamed: " + (t.title || "") });
-      }
-      if ((p.assignee || "") !== (t.assignee || "")) {
-        entries.push({ ts, by, action: "task.update", target: t.taskId || id, summary: "Assigned: " + (t.assignee || "(none)") });
-      }
-      if ((p.deadline || "") !== (t.deadline || "")) {
-        entries.push({ ts, by, action: "task.update", target: t.taskId || id, summary: "Deadline: " + (t.deadline || "(cleared)") });
-      }
-      if ((p.priority || "") !== (t.priority || "")) {
-        entries.push({ ts, by, action: "task.update", target: t.taskId || id, summary: "Priority: " + (p.priority || "(none)") + " → " + (t.priority || "(none)") });
-      }
+  const keys = new Set([...Object.keys(prev || {}), ...Object.keys(next || {})]);
+  for (const k of keys) {
+    if (META_FIELDS.has(k)) continue;
+    // Compound fields handled separately by per-entity differs
+    if (k === "subtasks" || k === "comments" || k === "history" || k === "tags" ||
+        k === "people" || k === "itemsToBring" || k === "notes" || k === "eventIds") continue;
+    const pv = prev ? prev[k] : undefined;
+    const nv = next ? next[k] : undefined;
+    // Only diff scalar-ish values (string, number, bool, null)
+    if (typeof pv === "object" && pv !== null) continue;
+    if (typeof nv === "object" && nv !== null) continue;
+    if ((pv || "") !== (nv || "")) {
+      const entry = { ts, by, entity, action: entity + ".update", target, field: k, from: pv, to: nv, summary: k + ": " + (pv == null ? "(none)" : pv) + " → " + (nv == null ? "(none)" : nv) };
+      if (whyNote) entry.why = whyNote;
+      entries.push(entry);
     }
   }
-  for (const [id, p] of prevTaskMap) {
-    if (!nextTaskMap.has(id)) {
-      entries.push({ ts, by, action: "task.delete", target: p.taskId || id, summary: "Deleted task: " + (p.title || "") });
-    }
-  }
-  const prevPpl = new Map((prev.contacts || []).map(c => [c.id, c]));
-  const nextPpl = new Map((next.contacts || []).map(c => [c.id, c]));
-  for (const [id, c] of nextPpl) {
-    if (!prevPpl.has(id)) {
-      entries.push({ ts, by, action: "person.create", target: id, summary: "Added person: " + (c.name || "") });
-    }
-  }
-  for (const [id, c] of prevPpl) {
-    if (!nextPpl.has(id)) {
-      entries.push({ ts, by, action: "person.delete", target: id, summary: "Removed person: " + (c.name || "") });
-    }
-  }
-  const prevG = new Set(prev.groups || []);
-  const nextG = new Set(next.groups || []);
-  for (const g of nextG) if (!prevG.has(g)) entries.push({ ts, by, action: "group.add", target: g, summary: "Added group: " + g });
-  for (const g of prevG) if (!nextG.has(g)) entries.push({ ts, by, action: "group.delete", target: g, summary: "Deleted group: " + g });
-  const prevT = new Set(prev.tags || []);
-  const nextT = new Set(next.tags || []);
-  for (const t of nextT) if (!prevT.has(t)) entries.push({ ts, by, action: "tag.add", target: t, summary: "Added tag: " + t });
-  for (const t of prevT) if (!nextT.has(t)) entries.push({ ts, by, action: "tag.delete", target: t, summary: "Deleted tag: " + t });
   return entries;
+}
+
+function diffTasks(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(t => [t.id, t]));
+  const nm = new Map((next || []).map(t => [t.id, t]));
+  for (const [id, t] of nm) {
+    const target = t.taskId || id;
+    const p = pm.get(id);
+    if (!p) {
+      const e = { ts, by, entity: "task", action: "task.create", target, summary: "Created task: " + (t.title || "") };
+      if (whyNote) e.why = whyNote;
+      entries.push(e);
+    } else {
+      // Legacy summary-style entries for back-compat on status/title/assignee/deadline/priority
+      if (p.status !== t.status) { const e = { ts, by, entity: "task", action: "task.update", target, field: "status", from: p.status, to: t.status, summary: "Status: " + p.status + " → " + t.status }; if (whyNote) e.why = whyNote; entries.push(e); }
+      if (p.title !== t.title) { const e = { ts, by, entity: "task", action: "task.update", target, field: "title", from: p.title, to: t.title, summary: "Renamed: " + (t.title || "") }; if (whyNote) e.why = whyNote; entries.push(e); }
+      if ((p.assignee || "") !== (t.assignee || "")) { const e = { ts, by, entity: "task", action: "task.update", target, field: "assignee", from: p.assignee, to: t.assignee, summary: "Assigned: " + (t.assignee || "(none)") }; if (whyNote) e.why = whyNote; entries.push(e); }
+      if ((p.deadline || "") !== (t.deadline || "")) { const e = { ts, by, entity: "task", action: "task.update", target, field: "deadline", from: p.deadline, to: t.deadline, summary: "Deadline: " + (t.deadline || "(cleared)") }; if (whyNote) e.why = whyNote; entries.push(e); }
+      if ((p.priority || "") !== (t.priority || "")) { const e = { ts, by, entity: "task", action: "task.update", target, field: "priority", from: p.priority, to: t.priority, summary: "Priority: " + (p.priority || "(none)") + " → " + (t.priority || "(none)") }; if (whyNote) e.why = whyNote; entries.push(e); }
+      // New scalar fields (desc, group, persona, location, contacts, blockedBy, workstream, quadrant, recurring, reminder, visibilitySet) via set-union
+      const handledKeys = new Set(["status", "title", "assignee", "deadline", "priority", "subtasks", "comments", "history", "tags"]);
+      const keys = new Set([...Object.keys(p || {}), ...Object.keys(t || {})]);
+      for (const k of keys) {
+        if (META_FIELDS.has(k) || handledKeys.has(k)) continue;
+        const pv = p[k], nv = t[k];
+        if (typeof pv === "object" && pv !== null) continue;
+        if (typeof nv === "object" && nv !== null) continue;
+        if ((pv || "") !== (nv || "")) {
+          const e = { ts, by, entity: "task", action: "task.update", target, field: k, from: pv, to: nv, summary: k + ": " + (pv == null ? "(none)" : pv) + " → " + (nv == null ? "(none)" : nv) };
+          if (whyNote) e.why = whyNote;
+          entries.push(e);
+        }
+      }
+      // Tags: array-diff emitting tag-on-task add/remove
+      const pTags = new Set(p.tags || []);
+      const nTags = new Set(t.tags || []);
+      for (const tag of nTags) if (!pTags.has(tag)) { const e = { ts, by, entity: "task", action: "task.tag.add", target, field: "tags", to: tag, summary: "Tag added: " + tag }; if (whyNote) e.why = whyNote; entries.push(e); }
+      for (const tag of pTags) if (!nTags.has(tag)) { const e = { ts, by, entity: "task", action: "task.tag.remove", target, field: "tags", from: tag, summary: "Tag removed: " + tag }; if (whyNote) e.why = whyNote; entries.push(e); }
+    }
+  }
+  for (const [id, p] of pm) {
+    if (!nm.has(id)) {
+      const e = { ts, by, entity: "task", action: "task.delete", target: p.taskId || id, summary: "Deleted task: " + (p.title || "") };
+      if (whyNote) e.why = whyNote;
+      entries.push(e);
+    }
+  }
+  return entries;
+}
+
+function diffContacts(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(c => [c.id, c]));
+  const nm = new Map((next || []).map(c => [c.id, c]));
+  for (const [id, c] of nm) {
+    if (!pm.has(id)) { const e = { ts, by, entity: "contact", action: "person.create", target: id, summary: "Added person: " + (c.name || "") }; if (whyNote) e.why = whyNote; entries.push(e); }
+    else entries.push(...diffScalars(pm.get(id), c, "contact", id, by, ts, whyNote));
+  }
+  for (const [id, p] of pm) if (!nm.has(id)) { const e = { ts, by, entity: "contact", action: "person.delete", target: id, summary: "Removed person: " + (p.name || "") }; if (whyNote) e.why = whyNote; entries.push(e); }
+  return entries;
+}
+
+function diffGroups(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pg = new Set(prev || []);
+  const ng = new Set(next || []);
+  for (const g of ng) if (!pg.has(g)) { const e = { ts, by, entity: "group", action: "group.add", target: g, summary: "Added group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
+  for (const g of pg) if (!ng.has(g)) { const e = { ts, by, entity: "group", action: "group.delete", target: g, summary: "Deleted group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
+  return entries;
+}
+
+function diffTags(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pt = new Set(prev || []);
+  const nt = new Set(next || []);
+  for (const t of nt) if (!pt.has(t)) { const e = { ts, by, entity: "tag", action: "tag.add", target: t, summary: "Added tag: " + t }; if (whyNote) e.why = whyNote; entries.push(e); }
+  for (const t of pt) if (!nt.has(t)) { const e = { ts, by, entity: "tag", action: "tag.delete", target: t, summary: "Deleted tag: " + t }; if (whyNote) e.why = whyNote; entries.push(e); }
+  return entries;
+}
+
+function diffScheduleEvents(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(e => [e.id, e]));
+  const nm = new Map((next || []).map(e => [e.id, e]));
+  for (const [id, e] of nm) {
+    if (!pm.has(id)) { const ent = { ts, by, entity: "scheduleEvent", action: "scheduleEvent.create", target: id, summary: "Created event: " + (e.title || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); continue; }
+    const p = pm.get(id);
+    // Scalar fields via scan
+    entries.push(...diffScalars(p, e, "scheduleEvent", id, by, ts, whyNote));
+    // people[] — diff by name+role identity
+    const pPeople = (p.people || []).map(x => (x.name || "") + "|" + (x.role || ""));
+    const nPeople = (e.people || []).map(x => (x.name || "") + "|" + (x.role || ""));
+    for (const key of nPeople) if (!pPeople.includes(key)) { const ent = { ts, by, entity: "scheduleEvent", action: "scheduleEvent.person.add", target: id, field: "people", to: key, summary: "Added person to event: " + key }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    for (const key of pPeople) if (!nPeople.includes(key)) { const ent = { ts, by, entity: "scheduleEvent", action: "scheduleEvent.person.remove", target: id, field: "people", from: key, summary: "Removed person from event: " + key }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    // itemsToBring[] — materialsCheck.*
+    const pItems = (p.itemsToBring || []).map(x => typeof x === "string" ? x : (x.text || "") + "|" + (x.done || false));
+    const nItems = (e.itemsToBring || []).map(x => typeof x === "string" ? x : (x.text || "") + "|" + (x.done || false));
+    for (const item of nItems) if (!pItems.includes(item)) { const ent = { ts, by, entity: "scheduleEvent", action: "materialsCheck.add", target: id, to: item, summary: "Material added: " + item }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    for (const item of pItems) if (!nItems.includes(item)) { const ent = { ts, by, entity: "scheduleEvent", action: "materialsCheck.del", target: id, from: item, summary: "Material removed: " + item }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    // notes — array of note objects or strings; if array, treat as set
+    const pNotes = Array.isArray(p.notes) ? p.notes : (p.notes ? [p.notes] : []);
+    const nNotes = Array.isArray(e.notes) ? e.notes : (e.notes ? [e.notes] : []);
+    const pNoteKeys = pNotes.map(x => typeof x === "string" ? x : JSON.stringify(x));
+    const nNoteKeys = nNotes.map(x => typeof x === "string" ? x : JSON.stringify(x));
+    for (const k of nNoteKeys) if (!pNoteKeys.includes(k)) { const ent = { ts, by, entity: "scheduleEvent", action: "note.add", target: id, to: k.slice(0, 80), summary: "Note added: " + k.slice(0, 80) }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    for (const k of pNoteKeys) if (!nNoteKeys.includes(k)) { const ent = { ts, by, entity: "scheduleEvent", action: "note.remove", target: id, from: k.slice(0, 80), summary: "Note removed: " + k.slice(0, 80) }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+  }
+  for (const [id, p] of pm) if (!nm.has(id)) { const ent = { ts, by, entity: "scheduleEvent", action: "scheduleEvent.delete", target: id, summary: "Deleted event: " + (p.title || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+  return entries;
+}
+
+function diffSchedulePhases(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(p => [p.id, p]));
+  const nm = new Map((next || []).map(p => [p.id, p]));
+  for (const [id, p] of nm) {
+    if (!pm.has(id)) { const ent = { ts, by, entity: "schedulePhase", action: "schedulePhase.create", target: id, summary: "Created phase: " + (p.title || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); continue; }
+    const prevP = pm.get(id);
+    entries.push(...diffScalars(prevP, p, "schedulePhase", id, by, ts, whyNote));
+    const pIds = prevP.eventIds || [];
+    const nIds = p.eventIds || [];
+    for (const eId of nIds) if (!pIds.includes(eId)) { const ent = { ts, by, entity: "schedulePhase", action: "schedulePhase.event.add", target: id, field: "eventIds", to: eId, summary: "Event " + eId + " added to phase" }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    for (const eId of pIds) if (!nIds.includes(eId)) { const ent = { ts, by, entity: "schedulePhase", action: "schedulePhase.event.remove", target: id, field: "eventIds", from: eId, summary: "Event " + eId + " removed from phase" }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+  }
+  for (const [id, prevP] of pm) if (!nm.has(id)) { const ent = { ts, by, entity: "schedulePhase", action: "schedulePhase.delete", target: id, summary: "Deleted phase: " + (prevP.title || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+  return entries;
+}
+
+function diffScheduleQuestions(prev, next, by, whyNote) {
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(q => [q.id, q]));
+  const nm = new Map((next || []).map(q => [q.id, q]));
+  for (const [id, q] of nm) {
+    if (!pm.has(id)) { const ent = { ts, by, entity: "scheduleQuestion", action: "scheduleQuestion.create", target: id, summary: "Created question: " + (q.question || "").slice(0, 80) }; if (whyNote) ent.why = whyNote; entries.push(ent); continue; }
+    entries.push(...diffScalars(pm.get(id), q, "scheduleQuestion", id, by, ts, whyNote));
+  }
+  for (const [id, p] of pm) if (!nm.has(id)) { const ent = { ts, by, entity: "scheduleQuestion", action: "scheduleQuestion.delete", target: id, summary: "Deleted question: " + (p.question || "").slice(0, 80) }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+  return entries;
+}
+
+function diffCoordinators(prev, next, by, whyNote) {
+  // Coordinators shape: { [token]: { name, isMaster, addedAt, addedBy } }
+  const ts = new Date().toISOString();
+  const entries = [];
+  const p = prev || {};
+  const n = next || {};
+  const tokens = new Set([...Object.keys(p), ...Object.keys(n)]);
+  for (const token of tokens) {
+    const pv = p[token], nv = n[token];
+    if (!pv && nv) { const ent = { ts, by, entity: "coordinator", action: "coordinator.create", target: token, summary: "Added coordinator: " + (nv.name || "") + (nv.isMaster ? " (master)" : "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    else if (pv && !nv) { const ent = { ts, by, entity: "coordinator", action: "coordinator.delete", target: token, summary: "Removed coordinator: " + (pv.name || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    else if (pv && nv) entries.push(...diffScalars(pv, nv, "coordinator", token, by, ts, whyNote));
+  }
+  return entries;
+}
+
+const DIFFERS = {
+  tasks: diffTasks,
+  contacts: diffContacts,
+  groups: diffGroups,
+  tags: diffTags,
+  scheduleEvents: diffScheduleEvents,
+  schedulePhases: diffSchedulePhases,
+  scheduleQuestions: diffScheduleQuestions,
+  coordinators: diffCoordinators
+};
+
+function diffStates(prev, next, by, whyNote) {
+  // Unified entry point. Iterates DIFFERS registry; each differ handles its entity type.
+  // Backwards-compatible: existing task/contact/group/tag behavior preserved.
+  // `whyNote` (optional) propagates to every emitted entry as `why`.
+  const all = [];
+  for (const [key, fn] of Object.entries(DIFFERS)) {
+    const empty = key === "coordinators" ? {} : [];
+    const result = fn(prev[key] || empty, next[key] || empty, by, whyNote);
+    all.push(...result);
+  }
+  return all;
 }
 
 async function appendAudit(store, newEntries) {
