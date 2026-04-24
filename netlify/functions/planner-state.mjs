@@ -106,6 +106,11 @@ function diffTasks(prev, next, by, whyNote) {
       const nTags = new Set(t.tags || []);
       for (const tag of nTags) if (!pTags.has(tag)) { const e = { ts, by, entity: "task", action: "task.tag.add", target, field: "tags", to: tag, summary: "Tag added: " + tag }; if (whyNote) e.why = whyNote; entries.push(e); }
       for (const tag of pTags) if (!nTags.has(tag)) { const e = { ts, by, entity: "task", action: "task.tag.remove", target, field: "tags", from: tag, summary: "Tag removed: " + tag }; if (whyNote) e.why = whyNote; entries.push(e); }
+      // secondaryGroups[]: array-diff emitting multi-parent membership add/remove (Stage 2 Phase A)
+      const pSec = new Set(p.secondaryGroups || []);
+      const nSec = new Set(t.secondaryGroups || []);
+      for (const g of nSec) if (!pSec.has(g)) { const e = { ts, by, entity: "task", action: "task.secondaryGroup.add", target, field: "secondaryGroups", to: g, summary: "Added to secondary group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
+      for (const g of pSec) if (!nSec.has(g)) { const e = { ts, by, entity: "task", action: "task.secondaryGroup.remove", target, field: "secondaryGroups", from: g, summary: "Removed from secondary group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
     }
   }
   for (const [id, p] of pm) {
@@ -215,7 +220,7 @@ function diffScheduleQuestions(prev, next, by, whyNote) {
 }
 
 function diffCoordinators(prev, next, by, whyNote) {
-  // Coordinators shape: { [token]: { name, isMaster, addedAt, addedBy } }
+  // Coordinators shape: { [token]: { name, isMaster, addedAt, addedBy, scopedEntities? } }
   const ts = new Date().toISOString();
   const entries = [];
   const p = prev || {};
@@ -225,9 +230,57 @@ function diffCoordinators(prev, next, by, whyNote) {
     const pv = p[token], nv = n[token];
     if (!pv && nv) { const ent = { ts, by, entity: "coordinator", action: "coordinator.create", target: token, summary: "Added coordinator: " + (nv.name || "") + (nv.isMaster ? " (master)" : "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
     else if (pv && !nv) { const ent = { ts, by, entity: "coordinator", action: "coordinator.delete", target: token, summary: "Removed coordinator: " + (pv.name || "") }; if (whyNote) ent.why = whyNote; entries.push(ent); }
-    else if (pv && nv) entries.push(...diffScalars(pv, nv, "coordinator", token, by, ts, whyNote));
+    else if (pv && nv) {
+      entries.push(...diffScalars(pv, nv, "coordinator", token, by, ts, whyNote));
+      // scopedEntities[]: array-diff (Stage 2 Phase A)
+      const pSet = new Set(Array.isArray(pv.scopedEntities) ? pv.scopedEntities : []);
+      const nSet = new Set(Array.isArray(nv.scopedEntities) ? nv.scopedEntities : []);
+      for (const s of nSet) if (!pSet.has(s)) { const ent = { ts, by, entity: "coordinator", action: "coordinator.scope.add", target: token, field: "scopedEntities", to: s, summary: "Scope added: " + s }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+      for (const s of pSet) if (!nSet.has(s)) { const ent = { ts, by, entity: "coordinator", action: "coordinator.scope.remove", target: token, field: "scopedEntities", from: s, summary: "Scope removed: " + s }; if (whyNote) ent.why = whyNote; entries.push(ent); }
+    }
   }
   return entries;
+}
+
+// === Render-path visibility filter (Stage 2 Phase A, 2026-04-24) ===
+// Parses scope strings of form "<entity>:tag=<value>". Returns true if the record
+// of the given entity class carries the value in record.tags. Empty-or-invalid
+// scope strings match nothing. Master bypass is handled by the caller, not here.
+function matchesScope(record, entity, scopes) {
+  if (!Array.isArray(scopes) || scopes.length === 0) return false;
+  const tags = Array.isArray(record.tags) ? record.tags : [];
+  for (const s of scopes) {
+    if (typeof s !== "string") continue;
+    const m = s.match(/^([a-zA-Z]+):tag=(.+)$/);
+    if (!m) continue;
+    if (m[1] !== entity) continue;
+    if (tags.includes(m[2])) return true;
+  }
+  return false;
+}
+
+// filterStateForToken: returns { state, suppressedCount }. Master bypass yields
+// original state + suppressedCount=0. For non-master, tasks and contacts are
+// filtered: keep if visibilitySet is absent/empty, or token is in visibilitySet,
+// or matchesScope for the record's class. Audit entries are NOT filtered here
+// (the Activity tab's own master-only gate handles that on the client).
+function filterStateForToken(state, isMaster, token, scopedEntities) {
+  if (isMaster) return { state, suppressedCount: 0 };
+  let suppressedCount = 0;
+  const visKeep = (record, entity) => {
+    const vs = record.visibilitySet;
+    if (!Array.isArray(vs) || vs.length === 0) return true;
+    if (vs.includes(token)) return true;
+    if (matchesScope(record, entity, scopedEntities)) return true;
+    suppressedCount += 1;
+    return false;
+  };
+  const filtered = {
+    ...state,
+    tasks: (state.tasks || []).filter(t => visKeep(t, "task")),
+    contacts: (state.contacts || []).filter(c => visKeep(c, "contact"))
+  };
+  return { state: filtered, suppressedCount };
 }
 
 const DIFFERS = {
@@ -281,10 +334,29 @@ export default async function handler(request) {
 
   if (request.method === "GET") {
     try {
-      const state = await ensureState(auth.store);
+      const rawState = await ensureState(auth.store);
+      // Stage 2 Phase A: render-path visibility filter. Master bypasses.
+      // Non-master tokens get tasks+contacts filtered by visibilitySet[] membership
+      // and scopedEntities[] tag-based scope matching.
+      const { state: filtered, suppressedCount } = filterStateForToken(
+        rawState,
+        auth.isMaster,
+        auth.token,
+        auth.scopedEntities
+      );
+      // Surface isMaster on state for client-side master-only gates (PL-59 preparation —
+      // clients may gate on state.isMaster instead of comparing token literals).
+      const withFlags = { ...filtered, isMaster: !!auth.isMaster };
       return new Response(
-        JSON.stringify(state),
-        { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } }
+        JSON.stringify(withFlags),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Visibility-Filtered": String(suppressedCount)
+          }
+        }
       );
     } catch (e) {
       return new Response(

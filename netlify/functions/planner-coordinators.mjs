@@ -34,7 +34,8 @@ export default async function handler(request) {
       name: info.name,
       isMaster: !!info.isMaster,
       addedAt: info.addedAt,
-      addedBy: info.addedBy
+      addedBy: info.addedBy,
+      scopedEntities: Array.isArray(info.scopedEntities) ? info.scopedEntities : []
     }));
     return new Response(
       JSON.stringify({ coordinators: list }),
@@ -60,6 +61,25 @@ export default async function handler(request) {
     );
   }
 
+  // Stage 2 Phase A helper: validate optional scopedEntities[] field on body.
+  // Returns null on valid/absent; returns an error Response on invalid.
+  const validateScopedEntities = () => {
+    if (body.scopedEntities === undefined) return null;
+    if (!Array.isArray(body.scopedEntities)) {
+      return new Response(
+        JSON.stringify({ error: "scopedEntities_must_be_array" }),
+        { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
+    }
+    if (!body.scopedEntities.every(s => typeof s === "string")) {
+      return new Response(
+        JSON.stringify({ error: "scopedEntities_must_be_strings" }),
+        { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
+    }
+    return null;
+  };
+
   if (request.method === "POST") {
     if (coords[targetToken]) {
       return new Response(
@@ -73,11 +93,14 @@ export default async function handler(request) {
         { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
       );
     }
+    const scopeErr = validateScopedEntities();
+    if (scopeErr) return scopeErr;
     coords[targetToken] = {
       name: body.name,
       isMaster: false,
       addedAt: new Date().toISOString(),
-      addedBy: auth.name
+      addedBy: auth.name,
+      scopedEntities: Array.isArray(body.scopedEntities) ? body.scopedEntities : []
     };
     await auth.store.set(COORDINATORS_KEY, JSON.stringify(coords));
     return new Response(
@@ -99,9 +122,15 @@ export default async function handler(request) {
         { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
       );
     }
+    const scopeErr = validateScopedEntities();
+    if (scopeErr) return scopeErr;
     coords[targetToken].name = body.name;
     coords[targetToken].updatedAt = new Date().toISOString();
     coords[targetToken].updatedBy = auth.name;
+    // Stage 2 Phase A: accept scopedEntities[] additively. Only overwrite if present in body.
+    if (Array.isArray(body.scopedEntities)) {
+      coords[targetToken].scopedEntities = body.scopedEntities;
+    }
     await auth.store.set(COORDINATORS_KEY, JSON.stringify(coords));
     return new Response(
       JSON.stringify({ ok: true }),

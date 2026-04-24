@@ -41,11 +41,18 @@ export async function validateTokenString(token) {
   // First check the registry
   const entry = coords[token];
   if (entry) {
-    return { ok: true, name: entry.name, isMaster: !!entry.isMaster, token, store };
+    return {
+      ok: true,
+      name: entry.name,
+      isMaster: !!entry.isMaster,
+      scopedEntities: Array.isArray(entry.scopedEntities) ? entry.scopedEntities : [],
+      token,
+      store
+    };
   }
   // Fallback: env-var master token (in case registry got deleted)
   if (token === process.env.PLANNER_MASTER_BOOTSTRAP_TOKEN) {
-    return { ok: true, name: "Hannah & Stan", isMaster: true, token, store };
+    return { ok: true, name: "Hannah & Stan", isMaster: true, scopedEntities: [], token, store };
   }
   return { ok: false, error: "invalid_token", status: 401 };
 }
