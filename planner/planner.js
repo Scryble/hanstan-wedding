@@ -42,7 +42,7 @@ let schedActivePhase = null; // currently-visible phase id for sticky nav highli
 let schedDragState = null;   // {id, sourcePhaseId, startY}
 let schedLongPressTimer = null;
 let schedSwipeStartX = 0, schedSwipeStartY = 0;
-let PREFS = {advExpanded:false, onboardSeen:false, schedOnboardSeen:false, scheduleSeeded:false, sortBy:'priority', groupByField:'group'};
+let PREFS = {advExpanded:false, onboardSeen:false, schedOnboardSeen:false, scheduleSeeded:false, scheduleSeedVersion:0, sortBy:'priority', groupByField:'group'};
 let lastSeenModified = null;
 let view = 'focus';
 let activeGroup = 'All';
@@ -264,8 +264,48 @@ function applyServerState(s, isLive){
       SP = window.DEFAULT_SCHEDULE_PHASES.map(p => ({...p, eventIds: [...(p.eventIds || [])]}));
       SQ = window.DEFAULT_SCHEDULE_QUESTIONS.map(q => ({...q}));
       PREFS.scheduleSeeded = true;
+      PREFS.scheduleSeedVersion = window.DEFAULT_SCHEDULE_SEED_VERSION || 1;
       setTimeout(() => save(), 100);
     }
+  }
+
+  // Seed-version top-up: on a version bump, merge in NEW items from the defaults
+  // without clobbering user-edited fields. Matching is by id.
+  if(isLive && PREFS.scheduleSeeded && window.DEFAULT_SCHEDULE_SEED_VERSION &&
+     (PREFS.scheduleSeedVersion || 0) < window.DEFAULT_SCHEDULE_SEED_VERSION){
+    let added = 0;
+    if(window.DEFAULT_SCHEDULE_PHASES){
+      window.DEFAULT_SCHEDULE_PHASES.forEach(dp => {
+        if(!SP.find(p => p.id === dp.id)){
+          SP.push({...dp, eventIds: [...(dp.eventIds || [])]});
+          added++;
+        } else {
+          // Merge any NEW eventIds into the existing phase (preserves user order)
+          const existing = SP.find(p => p.id === dp.id);
+          (dp.eventIds || []).forEach(eid => {
+            if(!existing.eventIds.includes(eid)) existing.eventIds.push(eid);
+          });
+        }
+      });
+    }
+    if(window.DEFAULT_SCHEDULE_EVENTS){
+      window.DEFAULT_SCHEDULE_EVENTS.forEach(de => {
+        if(!SE.find(e => e.id === de.id)){
+          SE.push({...de, people: [...(de.people || [])], itemsToBring: [...(de.itemsToBring || [])], notes: [...(de.notes || [])]});
+          added++;
+        }
+      });
+    }
+    if(window.DEFAULT_SCHEDULE_QUESTIONS){
+      window.DEFAULT_SCHEDULE_QUESTIONS.forEach(dq => {
+        if(!SQ.find(q => q.id === dq.id)){
+          SQ.push({...dq});
+          added++;
+        }
+      });
+    }
+    PREFS.scheduleSeedVersion = window.DEFAULT_SCHEDULE_SEED_VERSION;
+    if(added > 0) setTimeout(() => save(), 100);
   }
   // Any other case: leave SE/SP/SQ as-is. Never overwrite with empty from an
   // absent-key state.
@@ -698,9 +738,12 @@ function render(){
     $('filterTray').style.display = '';
     renderFilterTray();
   }
-  const qa = $('quickAdd'), qb = $('queryBar');
-  // HW-SCHED AC #25: Quick Add creates tasks — keep hidden on Schedule (already was)
-  qa.style.display = (view === 'tasks' || view === 'focus') ? 'flex' : 'none';
+  const fab = $('fabAdd'), fabMenu = $('fabMenu'), qb = $('queryBar');
+  // FAB (add task) shown on Tasks + Focus tabs only; keeps Schedule/People/History clean.
+  const showFab = (view === 'tasks' || view === 'focus');
+  if(fab) fab.style.display = showFab ? 'flex' : 'none';
+  if(fabMenu) fabMenu.classList.remove('open');
+  if(fab) fab.classList.remove('open');
   // Query bar (search input): shown on Tasks, Focus, AND Schedule
   qb.style.display = (view === 'tasks' || view === 'focus' || view === 'schedule') ? 'flex' : 'none';
   // HW-SCHED AC #26: Sort/GroupBy don't apply to Schedule's fixed ordering (bidirectional — runs every render)
@@ -999,18 +1042,14 @@ function jumpTo(id){
   }, 100);
 }
 
-/* ════════════════ QUICK ADD §7.6 ════════════════ */
-$('qaBtn').onclick = quickAdd;
-$('qaInput').onkeydown = function(e){if(e.key === 'Enter') quickAdd()};
-function quickAdd(){
-  const title = $('qaInput').value.trim();
-  if(!title) return;
+/* ════════════════ QUICK ADD §7.6 (now via FAB) ════════════════ */
+function buildNewTask(title){
   const group = (view === 'tasks' && activeGroup !== 'All') ? activeGroup : 'All';
-  const t = {
+  return {
     id: 't' + Date.now(),
     taskId: '',
     workstream: 'b',
-    title,
+    title: title || '',
     desc: '',
     priority: 'medium',
     status: 'not-started',
@@ -1031,12 +1070,117 @@ function quickAdd(){
     modified: now(),
     created: now()
   };
+}
+async function quickAdd(){
+  // Hidden qaInput is only used by programmatic flows now.
+  let title = ($('qaInput') && $('qaInput').value || '').trim();
+  if(!title){ title = (await customInput('Quick add task', '') || '').trim(); }
+  if(!title) return;
+  const t = buildNewTask(title);
   T.push(t);
   save();
-  $('qaInput').value = '';
+  if($('qaInput')) $('qaInput').value = '';
   saveScr(); render(); restoreScr();
   toast('Added: ' + title, false);
 }
+function fullAdd(){
+  // Creates a blank task and opens the full editor modal (openTaskEditor supports an existing task id).
+  const t = buildNewTask('');
+  T.push(t);
+  save();
+  openTaskEditor(t.id);
+}
+// Keep the legacy qaBtn wiring for any residual callers
+if($('qaBtn')) $('qaBtn').onclick = quickAdd;
+if($('qaInput')) $('qaInput').onkeydown = function(e){if(e.key === 'Enter') quickAdd()};
+// FAB wiring
+const fabAddBtn = $('fabAdd'), fabMenuEl = $('fabMenu'), fabQuickBtn = $('fabQuickAdd'), fabFullBtn = $('fabFullAdd');
+if(fabAddBtn){
+  fabAddBtn.onclick = function(){
+    const open = !fabMenuEl.classList.contains('open');
+    fabMenuEl.classList.toggle('open', open);
+    fabAddBtn.classList.toggle('open', open);
+    fabAddBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+}
+if(fabQuickBtn) fabQuickBtn.onclick = function(){ fabMenuEl.classList.remove('open'); fabAddBtn.classList.remove('open'); quickAdd(); };
+if(fabFullBtn) fabFullBtn.onclick = function(){ fabMenuEl.classList.remove('open'); fabAddBtn.classList.remove('open'); fullAdd(); };
+
+// Stage 1 Phase C — 3 new FAB buttons: Note, Person, Event
+const fabNoteBtn = $('fabAddNote'), fabPersonBtn = $('fabAddPerson'), fabEventBtn = $('fabAddEvent');
+function closeFab(){ if(fabMenuEl) fabMenuEl.classList.remove('open'); if(fabAddBtn) fabAddBtn.classList.remove('open'); }
+
+if(fabNoteBtn) fabNoteBtn.onclick = async function(){
+  closeFab();
+  const text = await customInput('Quick Note', '');
+  if(!text) return;
+  // Minimal note-as-task: stores in tasks[] with tag "note" and group "All" (no "Notes" group exists yet; Stage 2 can migrate)
+  const t = buildNewTask(text.slice(0, 80));
+  t.desc = text;
+  t.tags = Array.isArray(t.tags) ? [...t.tags, 'note'] : ['note'];
+  t.priority = 'low';
+  t.status = 'not-started';
+  t.group = 'All';
+  T.push(t);
+  save();
+  toast('Note added', false);
+};
+
+if(fabPersonBtn) fabPersonBtn.onclick = function(){
+  closeFab();
+  const bg = $('quickAddPersonBg');
+  if(!bg) return;
+  $('qapName').value = '';
+  $('qapRole').value = '';
+  bg.style.display = 'flex';
+  $('qapCancel').onclick = function(){ bg.style.display = 'none'; };
+  $('qapSubmit').onclick = function(){
+    const name = $('qapName').value.trim();
+    const role = $('qapRole').value.trim();
+    if(!name){ toast('Name required', true); return; }
+    const newId = 'p' + Math.max(0, ...((window.PEOPLE||[]).map(p => parseInt((p.id||'p0').slice(1)) || 0))) + 1;
+    const contact = {id: newId, name, role, specificRole: '', phone: '', email: '', notes: ''};
+    if(!Array.isArray(window.PEOPLE)) window.PEOPLE = [];
+    window.PEOPLE.push(contact);
+    save();
+    toast('Added person: ' + name, false);
+    bg.style.display = 'none';
+  };
+};
+
+if(fabEventBtn) fabEventBtn.onclick = function(){
+  closeFab();
+  const bg = $('quickAddEventBg');
+  if(!bg) return;
+  $('qaeTitle').value = '';
+  $('qaeStartTime').value = '';
+  $('qaeDuration').value = '30';
+  bg.style.display = 'flex';
+  $('qaeCancel').onclick = function(){ bg.style.display = 'none'; };
+  $('qaeSubmit').onclick = function(){
+    const title = $('qaeTitle').value.trim();
+    const startTime = $('qaeStartTime').value.trim();
+    const duration = parseInt($('qaeDuration').value, 10) || 30;
+    if(!title){ toast('Title required', true); return; }
+    const newId = 'se-' + Math.floor(Date.now()/1000);
+    const ev = {id: newId, title, details: '', startTime, duration, status: 'proposed', zone: '', people: [], itemsToBring: [], notes: [], isMilestone: false, isGuestVisible: true, parallelGroup: ''};
+    if(!Array.isArray(window.SE)) window.SE = [];
+    window.SE.push(ev);
+    save();
+    toast('Event added: ' + title, false);
+    bg.style.display = 'none';
+  };
+};
+// Close FAB menu on outside click
+document.addEventListener('click', function(e){
+  if(!fabMenuEl || !fabAddBtn) return;
+  if(e.target === fabAddBtn || fabAddBtn.contains(e.target)) return;
+  if(fabMenuEl.contains(e.target)) return;
+  fabMenuEl.classList.remove('open');
+  fabAddBtn.classList.remove('open');
+});
+window.fullAdd = fullAdd;
+window.quickAdd = quickAdd;
 
 /* ════════════════ RENDER: FOCUS §11 ════════════════ */
 function renderFocus(){
@@ -1135,15 +1279,36 @@ function groupTasksBy(tasks, field){
 }
 
 /* ════════════════ RENDER: PEOPLE §12 (patch 04: escJs) ════════════════ */
+let peopleRoleFilter = 'all';
 function renderPeople(){
   const el = $('viewPeople');
   const roleLabels = {bridal: 'Bridal Party', groom: 'Groom Party', organizer: 'Organizers', service: 'Vendors', family: 'Family', guest: 'Guests'};
+  // Ordered roles so sections render predictably
+  const roleOrder = ['organizer','bridal','groom','service','family','guest'];
   const groups = {};
-  C.forEach(c => {if(!groups[c.role]) groups[c.role] = []; groups[c.role].push(c)});
+  C.forEach(c => {
+    const r = c.role || 'guest';
+    if(!groups[r]) groups[r] = [];
+    groups[r].push(c);
+  });
 
-  let h = `<div style="margin-bottom:12px"><input type="search" class="query-search" placeholder="Search people..." style="width:100%" oninput="filterPeople(this.value)"></div>`;
+  // Toolbar: search + role filter + print (borrows from schedPrintCoordinator pattern)
+  let h = `<div class="people-toolbar">
+    <input type="search" class="query-search" placeholder="Search people..." oninput="filterPeople(this.value)">
+    <select class="people-role-filter" onchange="setPeopleRoleFilter(this.value)">
+      <option value="all"${peopleRoleFilter==='all'?' selected':''}>All roles</option>
+      ${roleOrder.map(r => groups[r] ? `<option value="${r}"${peopleRoleFilter===r?' selected':''}>${roleLabels[r] || r} (${groups[r].length})</option>` : '').join('')}
+    </select>
+    <button class="people-print-btn" onclick="printPeopleList()" title="Print current view">🖨 Print</button>
+    <button class="people-print-btn" onclick="printGuestList()" title="Print guest list only">🎉 Guests</button>
+    <button class="people-print-btn" onclick="openBroadcastComposer()" title="Email current filter">✉ Email</button>
+  </div>`;
+
   h += '<div id="peopleList">';
-  for(const [role, people] of Object.entries(groups)){
+  const rolesToRender = peopleRoleFilter === 'all' ? roleOrder.filter(r => groups[r] && groups[r].length) : [peopleRoleFilter];
+  for(const role of rolesToRender){
+    const people = groups[role] || [];
+    if(!people.length) continue;
     h += `<div class="section-hdr">${roleLabels[role] || role} <span class="cnt">${people.length}</span></div>`;
     people.forEach(c => {
       const initials = (c.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
@@ -1164,6 +1329,7 @@ function renderPeople(){
   h += `<div style="text-align:center;margin-top:16px"><button class="btn btn-primary btn-sm" onclick="openPersonEditor()">+ Add Person</button></div>`;
   el.innerHTML = h;
 }
+function setPeopleRoleFilter(r){ peopleRoleFilter = r; renderPeople(); }
 function filterPeople(q){
   document.querySelectorAll('.person-card').forEach(c => {
     const name = c.querySelector('.person-name')?.textContent || '';
@@ -1171,19 +1337,351 @@ function filterPeople(q){
   });
 }
 
+function buildPeoplePrintHead(title){
+  return `<!DOCTYPE html><html><head><title>${esc(title)} — Hannah & Stan</title><style>
+    @page { size: letter; margin: 0.5in; }
+    body { font-family: 'Georgia', serif; color: #2a2a2a; font-size: 10pt; line-height: 1.4; }
+    h1 { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-size: 24pt; text-align: center; color: #9A454D; margin: 0 0 4pt; letter-spacing: 0.1em; }
+    h1 em { font-style: italic; color: #c4a882; }
+    .subtitle { text-align: center; font-size: 11pt; color: #6b5d4a; margin-bottom: 4pt; }
+    .venue { text-align: center; font-size: 10pt; color: #78867c; margin-bottom: 18pt; font-style: italic; }
+    h2 { font-family: 'Cinzel', serif; font-size: 13pt; color: #6B8E6B; border-bottom: 1px solid #c4a882; padding-bottom: 2pt; margin: 16pt 0 8pt; letter-spacing: 0.08em; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8pt; }
+    th, td { text-align: left; padding: 4pt 6pt; border-bottom: 1px solid #e8e0d4; vertical-align: top; font-size: 9.5pt; }
+    th { background: #f5f2ed; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: #6b5d4a; }
+    .muted { color: #999; font-style: italic; }
+    @media screen { body { background: #f5f2ed; padding: 24pt; } }
+  </style></head><body>`;
+}
+
+function printPeopleList(){
+  const roleLabels = {bridal: 'Bridal Party', groom: 'Groom Party', organizer: 'Organizers', service: 'Vendors', family: 'Family', guest: 'Guests'};
+  const roleOrder = ['organizer','bridal','groom','service','family','guest'];
+  const groups = {};
+  C.forEach(c => { const r = c.role || 'guest'; if(!groups[r]) groups[r] = []; groups[r].push(c); });
+  const target = peopleRoleFilter === 'all' ? null : peopleRoleFilter;
+  let body = buildPeoplePrintHead(target ? (roleLabels[target] || target) : 'People Directory');
+  body += `<h1>Hannah <em>&</em> Stan</h1>`;
+  body += `<div class="subtitle">${target ? (roleLabels[target] || target) : 'Full people directory'}</div>`;
+  body += `<div class="venue">Sunday, June 7, 2026 · Willamette Mission State Park</div>`;
+  const roles = target ? [target] : roleOrder.filter(r => groups[r] && groups[r].length);
+  roles.forEach(role => {
+    const people = (groups[role] || []).slice().sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    if(!people.length) return;
+    body += `<h2>${roleLabels[role] || role} <span style="font-weight:400;color:#999">(${people.length})</span></h2>`;
+    body += `<table><thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Email</th><th>Notes</th></tr></thead><tbody>`;
+    people.forEach(c => {
+      body += `<tr>
+        <td><strong>${esc(c.name || '')}</strong></td>
+        <td>${esc(c.specificRole || c.role || '')}</td>
+        <td>${esc(c.phone || '')}</td>
+        <td>${esc(c.email || '')}</td>
+        <td>${esc(c.notes || '')}</td>
+      </tr>`;
+    });
+    body += `</tbody></table>`;
+  });
+  body += `</body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup blocked — allow popups to print', false); return; }
+  w.document.write(body); w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+function printGuestList(){
+  const guests = C.filter(c => (c.role || 'guest') === 'guest').slice().sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  if(!guests.length){ toast('No guests on file yet', false); return; }
+  let body = buildPeoplePrintHead('Guest List');
+  body += `<h1>Hannah <em>&</em> Stan</h1>`;
+  body += `<div class="subtitle">Guest list · ${guests.length} entries</div>`;
+  body += `<div class="venue">Sunday, June 7, 2026 · Willamette Mission State Park</div>`;
+  body += `<table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Party</th><th>RSVP</th><th>Dietary / notes</th></tr></thead><tbody>`;
+  guests.forEach(c => {
+    body += `<tr>
+      <td><strong>${esc(c.name || '')}</strong></td>
+      <td>${esc(c.phone || '')}</td>
+      <td>${esc(c.email || '')}</td>
+      <td>${esc(c.party || '')}</td>
+      <td>${esc(c.rsvp || '')}</td>
+      <td>${esc([c.dietary, c.notes].filter(Boolean).join(' · '))}</td>
+    </tr>`;
+  });
+  body += `</tbody></table>`;
+  body += `</body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup blocked — allow popups to print', false); return; }
+  w.document.write(body); w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+window.setPeopleRoleFilter = setPeopleRoleFilter;
+window.printPeopleList = printPeopleList;
+window.printGuestList = printGuestList;
+
+/* ════════════════ EMAIL BROADCAST (Zoho / any SMTP) ════════════════
+   Builds a mailto: URL with all current-filter recipients BCC'd and a
+   chosen template as subject/body. The user's default mail client
+   handles the actual send. When Zoho is the default handler,
+   hello@hanstan.wedding will appear as the From address automatically.
+   ===================================================================== */
+const EMAIL_TEMPLATES = [
+  {
+    id: 'rsvp-reminder',
+    name: 'RSVP reminder',
+    subject: 'Quick check — RSVP for Hannah & Stan, June 7',
+    body: "Hi!\n\nWe haven't heard back from you yet on the RSVP for our wedding on Sunday, June 7, 2026 at Willamette Mission State Park. No stress if you can't make it — we just want to get a headcount nailed down for food + seating.\n\nPlease fill out the short form here: https://forms.gle/xEmBQCrAUjSguJEV9\n\nAll the details are at https://hanstan.wedding — FAQ, registry, driving directions.\n\nLove,\nHannah & Stan"
+  },
+  {
+    id: 'logistics-update',
+    name: 'Day-of logistics update',
+    subject: 'Day-of logistics — Hannah & Stan, June 7 2026',
+    body: "Hello everyone,\n\nA few day-of notes for Sunday, June 7 at Willamette Mission State Park, Shelter A:\n\n• Gates open at 7 AM. Ceremony begins at 2:30 PM sharp under the firs east of the shelter.\n• Reception immediately following under the canopies.\n• $5/car day-use parking (we'll reimburse if you didn't bring cash — see the parking attendant).\n• Potluck is still on — Bonnie is coordinating. If you signed up for a dish, please stick to what you told her.\n• Bring a label/tag for your dish listing the main ingredients (we have guests with allergies).\n• Park closes at 9 PM — plan your exit.\n\nFull details: https://hanstan.wedding\n\nSee you Sunday,\nHannah & Stan"
+  },
+  {
+    id: 'potluck-signup',
+    name: 'Potluck coordination (to Bonnie\u2019s list)',
+    subject: 'Potluck sign-up — Hannah & Stan wedding',
+    body: "Hi,\n\nBonnie (sister of the bride, (360) 624-8304) is coordinating the potluck for the wedding. If you haven't already told her what you're bringing, please reply to this email with:\n\n  1) What dish\n  2) Approximate servings\n  3) Any allergens (we have gluten-free + dairy-free guests)\n\nWe have meat + rice covered; sides + salads + desserts are potluck. If you can bring a dish based on a family recipe and write the recipe on paper for us, that would be incredible.\n\nThank you!\nHannah & Stan"
+  },
+  {
+    id: 'housing-help',
+    name: 'Housing + transport coordination',
+    subject: 'Getting to the wedding — housing + carpool',
+    body: "Hi,\n\nYou marked on your RSVP that you'd like help with housing and/or transport for the wedding. Christa (Hannah's sister) is coordinating guest travel — she'll reach out in the next couple of weeks to pair you with a host or carpool.\n\nIf anything has changed on your end, please reply and let us know. Otherwise: thank you for coming! We can't wait to celebrate with you.\n\nHannah & Stan"
+  },
+  {
+    id: 'pic-briefing',
+    name: 'PIC (Person In Charge) briefing',
+    subject: 'Your role on wedding day — Sunday, June 7',
+    body: "Hi,\n\nThank you for agreeing to take on a Person-In-Charge role on our wedding day. We're attaching your per-person schedule (what to do, when, and where) as a printed sheet — Cassie will hand these out at the pre-wedding meet & greet.\n\nTop-line expectations:\n  • Be at Willamette Mission State Park Shelter A at your stated arrival time.\n  • Jenny is the day-of coordinator — she's your escalation point for anything unclear.\n  • If your timing slips, let the next person in the chain know via text.\n\nIf you need to back out or reassign your role, please tell us TODAY so we can patch the schedule.\n\nLove,\nHannah & Stan"
+  }
+];
+
+async function openBroadcastComposer(){
+  // Gather recipients: honor current filter + search on People tab.
+  const rolePredicate = (c) => (peopleRoleFilter === 'all' || (c.role || 'guest') === peopleRoleFilter);
+  const q = (document.querySelector('#viewPeople .query-search')?.value || '').trim().toLowerCase();
+  const searchPredicate = q ? (c) => (c.name || '').toLowerCase().includes(q) : () => true;
+  const recipients = C.filter(c => c.email && rolePredicate(c) && searchPredicate(c));
+  if(!recipients.length){ toast('No recipients with email in current filter', false); return; }
+
+  // Template picker via existing sheet pattern
+  const picker = document.getElementById('broadcastSheetBg');
+  if(!picker) return;
+  let body = `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">Sending to <strong>${recipients.length}</strong> recipient${recipients.length===1?'':'s'} (current filter)</div>`;
+  body += `<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">`;
+  EMAIL_TEMPLATES.forEach(t => {
+    body += `<button class="btn" style="text-align:left;padding:10px 12px" onclick="sendBroadcast('${t.id}')"><strong>${esc(t.name)}</strong><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(t.subject)}</div></button>`;
+  });
+  body += `</div>`;
+  body += `<button class="btn" style="width:100%" onclick="sendBroadcast('custom')">✎ Custom message…</button>`;
+  body += `<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--divider);font-size:11px;color:var(--text-muted)">Opens in your default mail app. Set Zoho (hello@hanstan.wedding) as your default mail handler to send directly from the wedding address.</div>`;
+  document.getElementById('broadcastSheetBody').innerHTML = body;
+  picker.classList.add('open');
+  setTimeout(() => picker.querySelector('.sheet')?.classList.add('open'), 10);
+}
+
+async function sendBroadcast(templateId){
+  const picker = document.getElementById('broadcastSheetBg');
+  if(picker){ picker.querySelector('.sheet')?.classList.remove('open'); setTimeout(() => picker.classList.remove('open'), 200); }
+
+  const rolePredicate = (c) => (peopleRoleFilter === 'all' || (c.role || 'guest') === peopleRoleFilter);
+  const q = (document.querySelector('#viewPeople .query-search')?.value || '').trim().toLowerCase();
+  const searchPredicate = q ? (c) => (c.name || '').toLowerCase().includes(q) : () => true;
+  const recipients = C.filter(c => c.email && rolePredicate(c) && searchPredicate(c));
+  if(!recipients.length) return;
+
+  let subject = '', bodyText = '';
+  if(templateId === 'custom'){
+    subject = (await customInput('Subject', '')) || '';
+    if(!subject) return;
+    bodyText = (await customInput('Body (Enter = newline not supported here — edit in your mail app)', '')) || '';
+  } else {
+    const tpl = EMAIL_TEMPLATES.find(t => t.id === templateId);
+    if(!tpl) return;
+    subject = tpl.subject;
+    bodyText = tpl.body;
+  }
+  const bccList = recipients.map(r => r.email).join(',');
+  const href = 'mailto:hello@hanstan.wedding?bcc=' + encodeURIComponent(bccList) + '&subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyText);
+  // mailto: URLs have practical length limits on some clients (~2000 chars).
+  // With ~26 guests × ~25 chars each = 650 chars, we're well under.
+  window.location.href = href;
+  toast('Opening mail app with ' + recipients.length + ' recipients…', false);
+}
+window.openBroadcastComposer = openBroadcastComposer;
+window.sendBroadcast = sendBroadcast;
+
 /* ════════════════ RENDER: HISTORY (NEW in v6.0) ════════════════ */
-async function renderHistory(){
-  const el = $('viewHistory');
-  el.innerHTML = '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:32px">Loading audit log…</div></div>';
+// Stage 1 Phase C — Activity tab (replaces History). Master-only gate, 4 filters, where/who/when/why format.
+let ACTIVITY_FILTERS = {person: '', dateFrom: '', dateTo: '', actions: [], scope: ''};
+let ACTIVITY_ENTRIES_CACHE = [];
+
+function formatRelativeCompact(tsStr){
+  const ms = Date.now() - new Date(tsStr).getTime();
+  if (ms < 0) return 'just now';
+  if (ms < 60000) return Math.floor(ms/1000) + 's ago';
+  const m = Math.floor(ms/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  if (d > 0) return (h%24 ? d+'d '+(h%24)+'h' : d+'d') + ' ago';
+  if (h > 0) return (m%60 ? h+'h '+(m%60)+'m' : h+'h') + ' ago';
+  return m + 'm ago';
+}
+
+function mapEntityToWhere(entity, target, field){
+  const labels = {
+    task: 'Tasks', scheduleEvent: 'Schedule ▸ event', schedulePhase: 'Schedule ▸ phase',
+    scheduleQuestion: 'Schedule ▸ question', contact: 'People', group: 'Groups',
+    tag: 'Tags', coordinator: 'Coordinators', note: 'Note'
+  };
+  let where = labels[entity] || entity || 'Tasks'; // default to Tasks for legacy entries missing entity
+  if (target) where += ' ▸ ' + esc(target);
+  if (field) where += ' ▸ ' + esc(field);
+  return where;
+}
+
+async function renderActivity(){
+  const el = $('viewHistory'); // DOM id kept for back-compat with existing CSS
+  if(!el) return;
+  // Master-only gate
+  if(token !== 'stanshan'){
+    el.innerHTML = '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:48px;font-size:15px">🔒 Activity log is master-only.<br><br>Contact Scrybal if you believe you should have access.</div></div>';
+    return;
+  }
+  el.innerHTML = '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:32px">Loading Activity log…</div></div>';
   try{
     const r = await fetch(ENDPOINTS.audit, {headers: {'Authorization': 'Bearer ' + token}});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    el.innerHTML = renderHistoryEntries(data.entries || []);
+    ACTIVITY_ENTRIES_CACHE = (data.entries || []).filter(e => e.target !== 'test-artifact'); // §PU-11 filter
+    el.innerHTML = renderActivityUI();
+    wireActivityFilters();
   } catch(e){
     el.innerHTML = '<div class="history-list"><div style="color:var(--s-blocked);text-align:center;padding:32px">Failed to load: ' + esc(e.message) + '</div></div>';
   }
 }
+
+function renderActivityUI(){
+  const entries = ACTIVITY_ENTRIES_CACHE;
+  // Collect distinct values for filter dropdowns
+  const persons = [...new Set(entries.map(e => e.by).filter(Boolean))].sort();
+  const actions = [...new Set(entries.map(e => e.action).filter(Boolean))].sort();
+  // Scope: collect distinct visibilitySet values across audit entries (inert in Stage 1 — only master-only surfaces)
+  const scopes = [...new Set(entries.map(e => e.visibilitySet && Array.isArray(e.visibilitySet) ? e.visibilitySet.sort().join(',') : null).filter(Boolean))];
+  scopes.unshift('master-only'); // always present as an option
+
+  let h = '<div class="activity-filter-bar" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:var(--bg-subtle, #f5f5f5);border-bottom:1px solid var(--border, #ddd);align-items:center">';
+  h += '<label style="font-size:12px">Person <select id="actFltPerson" style="min-width:120px"><option value="">All</option>';
+  for(const p of persons) h += `<option value="${esc(p)}">${esc(p)}</option>`;
+  h += '</select></label>';
+  h += '<label style="font-size:12px">From <input type="date" id="actFltDateFrom"></label>';
+  h += '<label style="font-size:12px">To <input type="date" id="actFltDateTo"></label>';
+  h += '<span style="font-size:11px;color:var(--text-muted, #888)">Presets:';
+  h += ' <button class="act-fltr-preset" data-d="1">24h</button>';
+  h += ' <button class="act-fltr-preset" data-d="7">7d</button>';
+  h += ' <button class="act-fltr-preset" data-d="30">30d</button>';
+  h += ' <button class="act-fltr-preset" data-d="0">all</button></span>';
+  h += '<label style="font-size:12px">Action <select id="actFltAction" style="min-width:140px"><option value="">All</option>';
+  for(const a of actions) h += `<option value="${esc(a)}">${esc(a)}</option>`;
+  h += '</select></label>';
+  h += '<label style="font-size:12px">Scope <select id="actFltScope" style="min-width:120px"><option value="">All</option>';
+  for(const s of scopes) h += `<option value="${esc(s)}">${esc(s)}</option>`;
+  h += '</select></label>';
+  h += '</div>';
+
+  // Apply filters
+  const filtered = entries.filter(e => {
+    if(ACTIVITY_FILTERS.person && e.by !== ACTIVITY_FILTERS.person) return false;
+    if(ACTIVITY_FILTERS.actions.length && !ACTIVITY_FILTERS.actions.includes(e.action)) return false;
+    if(ACTIVITY_FILTERS.dateFrom){
+      if(new Date(e.ts) < new Date(ACTIVITY_FILTERS.dateFrom)) return false;
+    }
+    if(ACTIVITY_FILTERS.dateTo){
+      if(new Date(e.ts) > new Date(ACTIVITY_FILTERS.dateTo + 'T23:59:59')) return false;
+    }
+    if(ACTIVITY_FILTERS.scope){
+      const eScope = e.visibilitySet && Array.isArray(e.visibilitySet) ? e.visibilitySet.sort().join(',') : null;
+      if(ACTIVITY_FILTERS.scope === 'master-only'){
+        // For Stage 1: task with master-only tag OR entry with no visibilitySet
+        // Since we don't have record-level lookup here, accept all entries as master-only-ish
+        // (Inert in Stage 1 per spec — Stage 2 populates this properly)
+      } else if(eScope !== ACTIVITY_FILTERS.scope) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length){
+    h += '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:32px">No activity matching filters.</div></div>';
+    return h;
+  }
+
+  // Group by day
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 864e5).toDateString();
+  const groups = {};
+  filtered.forEach(e => {
+    const d = new Date(e.ts);
+    let label;
+    if(d.toDateString() === today) label = 'Today';
+    else if(d.toDateString() === yesterday) label = 'Yesterday';
+    else label = d.toLocaleDateString('en-US', {weekday: 'long', month: 'short', day: 'numeric'});
+    (groups[label] = groups[label] || []).push(e);
+  });
+
+  h += '<div class="history-list">';
+  for(const [label, items] of Object.entries(groups)){
+    h += `<div class="history-day-hdr">${esc(label)}</div>`;
+    for(const e of items){
+      const time = new Date(e.ts).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+      const rel = formatRelativeCompact(e.ts);
+      const where = mapEntityToWhere(e.entity, e.target, e.field);
+      const who = esc(e.by || 'unknown');
+      const summary = esc(e.summary || '');
+      const why = e.why ? `<div class="history-why" style="font-style:italic;color:var(--text-muted);font-size:12px;margin-top:2px">why: ${esc(e.why)}</div>` : '';
+      h += `<div class="history-entry" style="padding:6px 8px;border-bottom:1px solid var(--border-subtle, #eee)">
+        <div class="history-where" style="font-weight:600;font-size:12px">${where}</div>
+        <div class="history-text">
+          <span class="who" style="font-weight:500">${who}</span>
+          <span style="color:var(--text-muted);font-size:11px"> · ${time} · <em>${rel}</em></span>
+          <div class="history-summary" style="font-size:13px;margin-top:2px">${summary}</div>
+          ${why}
+        </div>
+      </div>`;
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+function wireActivityFilters(){
+  const p = $('actFltPerson'), df = $('actFltDateFrom'), dt = $('actFltDateTo'), a = $('actFltAction'), s = $('actFltScope');
+  if(p) p.onchange = function(){ ACTIVITY_FILTERS.person = this.value; $('viewHistory').innerHTML = renderActivityUI(); wireActivityFilters(); };
+  if(df) df.onchange = function(){ ACTIVITY_FILTERS.dateFrom = this.value; $('viewHistory').innerHTML = renderActivityUI(); wireActivityFilters(); };
+  if(dt) dt.onchange = function(){ ACTIVITY_FILTERS.dateTo = this.value; $('viewHistory').innerHTML = renderActivityUI(); wireActivityFilters(); };
+  if(a) a.onchange = function(){ ACTIVITY_FILTERS.actions = this.value ? [this.value] : []; $('viewHistory').innerHTML = renderActivityUI(); wireActivityFilters(); };
+  if(s) s.onchange = function(){ ACTIVITY_FILTERS.scope = this.value; $('viewHistory').innerHTML = renderActivityUI(); wireActivityFilters(); };
+  document.querySelectorAll('.act-fltr-preset').forEach(btn => {
+    btn.onclick = function(){
+      const d = parseInt(this.dataset.d, 10);
+      if(d === 0){ ACTIVITY_FILTERS.dateFrom = ''; ACTIVITY_FILTERS.dateTo = ''; }
+      else {
+        const from = new Date(Date.now() - d * 864e5);
+        ACTIVITY_FILTERS.dateFrom = from.toISOString().slice(0,10);
+        ACTIVITY_FILTERS.dateTo = new Date().toISOString().slice(0,10);
+      }
+      $('viewHistory').innerHTML = renderActivityUI();
+      wireActivityFilters();
+    };
+  });
+  // Restore filter values on re-render
+  if(p) p.value = ACTIVITY_FILTERS.person || '';
+  if(df) df.value = ACTIVITY_FILTERS.dateFrom || '';
+  if(dt) dt.value = ACTIVITY_FILTERS.dateTo || '';
+  if(a) a.value = ACTIVITY_FILTERS.actions[0] || '';
+  if(s) s.value = ACTIVITY_FILTERS.scope || '';
+}
+
+// Back-compat alias — any external caller of renderHistory hits renderActivity
+const renderHistory = renderActivity;
 function renderHistoryEntries(entries){
   if(!entries.length) return '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:32px">No history yet.</div></div>';
   const today = new Date().toDateString();
@@ -2038,30 +2536,26 @@ function schedRenderEvent(ev, phaseId){
   h += `<button class="sched-event-toggle ${ev.isGuestVisible ? 'on' : ''}" onclick="schedToggleBool('${ev.id}','isGuestVisible')" title="Guest-visible">👁</button>`;
   h += `<button class="sched-event-delete" onclick="schedDeleteEvent('${ev.id}')" title="Delete event">×</button>`;
   h += `</div>`;
-  h += `<div class="sched-event-title sched-edit" data-sched-edit="event-title" data-event-id="${ev.id}">${esc(ev.title)}</div>`;
+  // Title row with materials-checklist icon on the right
+  const itemCount = (ev.itemsToBring || []).length;
+  const checkedCount = ((ev.itemsChecked || {}) && Object.values(ev.itemsChecked || {}).filter(Boolean).length) || 0;
+  const materialsBadge = itemCount ? `<button class="sched-event-materials" onclick="schedOpenMaterials('${ev.id}')" title="Materials checklist">📋 <span class="sched-materials-count">${checkedCount}/${itemCount}</span></button>` : `<button class="sched-event-materials sched-event-materials-empty" onclick="schedOpenMaterials('${ev.id}')" title="Add materials">📋 <span class="sched-materials-count">+</span></button>`;
+  h += `<div class="sched-event-title-row"><div class="sched-event-title sched-edit" data-sched-edit="event-title" data-event-id="${ev.id}">${esc(ev.title)}</div>${materialsBadge}</div>`;
   if(ev.details){
     h += `<div class="sched-event-details sched-edit" data-sched-edit="event-details" data-event-id="${ev.id}">${esc(ev.details)}</div>`;
   } else {
     h += `<div class="sched-event-details sched-edit sched-empty" data-sched-edit="event-details" data-event-id="${ev.id}">+ add details</div>`;
   }
 
-  // People chips
+  // People chips (with inline per-person task when present)
   h += `<div class="sched-chips sched-chips-people">`;
   (ev.people || []).forEach((p, i) => {
-    h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(p.role || 'present')}">${esc(p.name)} <small>${esc(p.role || 'present')}</small> <button class="sched-chip-rm" onclick="schedRemovePerson('${ev.id}',${i})">×</button></span>`;
+    const role = p.role || 'present';
+    const taskHtml = p.task ? `<span class="sched-chip-task"> — ${esc(p.task)}</span>` : '';
+    h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(role)}" onclick="schedEditPersonTask('${ev.id}',${i})" title="Click to edit ${esc(p.name)}'s task"><span class="sched-chip-name">${esc(p.name)}</span><span class="sched-chip-role-badge">${esc(role)}</span>${taskHtml}<button class="sched-chip-rm" onclick="event.stopPropagation();schedRemovePerson('${ev.id}',${i})">×</button></span>`;
   });
   h += `<button class="sched-chip-add" onclick="schedAddPerson('${ev.id}')">+ person</button>`;
   h += `</div>`;
-
-  // Items to bring
-  if((ev.itemsToBring || []).length || true){
-    h += `<div class="sched-chips sched-chips-items">`;
-    (ev.itemsToBring || []).forEach((item, i) => {
-      h += `<span class="sched-chip sched-chip-item">${esc(item)} <button class="sched-chip-rm" onclick="schedRemoveItem('${ev.id}',${i})">×</button></span>`;
-    });
-    h += `<button class="sched-chip-add" onclick="schedAddItem('${ev.id}')">+ item</button>`;
-    h += `</div>`;
-  }
 
   // Notes
   if((ev.notes || []).length){
@@ -2480,6 +2974,90 @@ function schedRemoveNote(evId, idx){
   save();
   renderSchedule();
 }
+
+async function schedEditPersonTask(evId, idx){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev || !ev.people || !ev.people[idx]) return;
+  const p = ev.people[idx];
+  const task = await customInput(`What's ${p.name} doing here?`, p.task || '');
+  if(task === null) return;
+  p.task = task.trim();
+  save();
+  renderSchedule();
+}
+
+// Materials checklist sheet — opens per-event, shows itemsToBring as checkboxes
+function schedOpenMaterials(evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const sheet = document.getElementById('materialsSheetBg');
+  if(!sheet) return;
+  ev.itemsChecked = ev.itemsChecked || {};
+  const items = ev.itemsToBring || [];
+  let body = `<div class="materials-event-title">${esc(ev.title)}</div>`;
+  body += `<div class="materials-event-sub">${schedFmtTime(ev.startTime)} · ${esc(ev.zone || 'tbd')}</div>`;
+  if(!items.length){
+    body += `<div class="materials-empty">No materials listed yet.</div>`;
+  } else {
+    body += `<ul class="materials-list">`;
+    items.forEach((item, i) => {
+      const checked = ev.itemsChecked[i] ? 'checked' : '';
+      body += `<li class="materials-item"><label><input type="checkbox" ${checked} onchange="schedToggleMaterial('${ev.id}',${i},this.checked)"><span>${esc(item)}</span></label><button class="materials-rm" onclick="schedRemoveItemFromSheet('${ev.id}',${i})" title="Remove">×</button></li>`;
+    });
+    body += `</ul>`;
+  }
+  body += `<div class="materials-actions"><button class="btn" onclick="schedAddItemFromSheet('${ev.id}')">+ Add item</button><button class="btn btn-primary" onclick="schedCloseMaterials()">Done</button></div>`;
+  document.getElementById('materialsSheetBody').innerHTML = body;
+  sheet.classList.add('open');
+  setTimeout(() => sheet.querySelector('.sheet')?.classList.add('open'), 10);
+}
+function schedCloseMaterials(){
+  const sheet = document.getElementById('materialsSheetBg');
+  if(!sheet) return;
+  sheet.querySelector('.sheet')?.classList.remove('open');
+  setTimeout(() => sheet.classList.remove('open'), 200);
+  renderSchedule();
+}
+function schedToggleMaterial(evId, idx, checked){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  ev.itemsChecked = ev.itemsChecked || {};
+  ev.itemsChecked[idx] = checked;
+  save();
+}
+async function schedAddItemFromSheet(evId){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev) return;
+  const item = await customInput('Item to bring', '');
+  if(!item) return;
+  ev.itemsToBring = ev.itemsToBring || [];
+  ev.itemsToBring.push(item);
+  save();
+  schedOpenMaterials(evId);
+}
+function schedRemoveItemFromSheet(evId, idx){
+  const ev = SE.find(x => x.id === evId);
+  if(!ev || !ev.itemsToBring) return;
+  ev.itemsToBring.splice(idx, 1);
+  if(ev.itemsChecked){
+    const rekeyed = {};
+    Object.keys(ev.itemsChecked).forEach(k => {
+      const ki = +k;
+      if(ki < idx) rekeyed[ki] = ev.itemsChecked[ki];
+      else if(ki > idx) rekeyed[ki - 1] = ev.itemsChecked[ki];
+    });
+    ev.itemsChecked = rekeyed;
+  }
+  save();
+  schedOpenMaterials(evId);
+}
+window.schedOpenMaterials = schedOpenMaterials;
+window.schedCloseMaterials = schedCloseMaterials;
+window.schedToggleMaterial = schedToggleMaterial;
+window.schedAddItemFromSheet = schedAddItemFromSheet;
+window.schedRemoveItemFromSheet = schedRemoveItemFromSheet;
+window.schedEditPersonTask = schedEditPersonTask;
+
 
 /* ── Question resolution ── */
 

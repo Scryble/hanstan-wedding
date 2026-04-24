@@ -60,14 +60,15 @@
   </div>
 </header>
 
-<!-- §5.1 MAIN NAV — six tabs (added Schedule in HW-SCHED) -->
+<!-- §5.1 MAIN NAV — Stage 1 reorder (2026-04-24): Settings far-left, Activity far-right, hidden /admin slot reserved for Stage 2 -->
 <nav class="main-nav" role="tablist" aria-label="Main navigation">
-  <button role="tab" aria-selected="true" data-v="focus">Focus</button>
-  <button role="tab" aria-selected="false" data-v="tasks">Tasks</button>
-  <button role="tab" aria-selected="false" data-v="people">People</button>
-  <button role="tab" aria-selected="false" data-v="history">History</button>
   <button role="tab" aria-selected="false" data-v="settings">Settings</button>
+  <button role="tab" aria-selected="true" data-v="focus">Focus</button>
+  <button role="tab" class="nav-admin-slot" data-v="admin" data-stage2-reserved="admin" style="display:none">Admin</button>
+  <button role="tab" aria-selected="false" data-v="tasks">Tasks</button>
   <button role="tab" aria-selected="false" data-v="schedule">Schedule</button>
+  <button role="tab" aria-selected="false" data-v="people">People</button>
+  <button role="tab" aria-selected="false" data-v="history" data-activity-tab="1">Activity</button>
 </nav>
 
 <!-- §3.2 GROUP TABS — inside Tasks only -->
@@ -92,11 +93,54 @@
 <div class="view" id="viewSettings" role="tabpanel"></div>
 <div class="view" id="viewSchedule" role="tabpanel"></div>
 
-<!-- §7.6 QUICK ADD -->
-<div class="quick-add" id="quickAdd">
-  <input type="text" id="qaInput" placeholder="Quick add task..." aria-label="Quick add task">
-  <button id="qaBtn">Add</button>
+<!-- Floating + button (Stage 1 Phase C — now 5 buttons: Quick Add, Full Add, Note, Person, Event) -->
+<div class="fab-menu" id="fabMenu" role="menu">
+  <button id="fabQuickAdd" role="menuitem"><span class="fab-ico">⚡</span>Quick add</button>
+  <button id="fabFullAdd" role="menuitem"><span class="fab-ico">✎</span>Full add…</button>
+  <button id="fabAddNote" role="menuitem"><span class="fab-ico">📝</span>Note</button>
+  <button id="fabAddPerson" role="menuitem"><span class="fab-ico">👤</span>Person</button>
+  <button id="fabAddEvent" role="menuitem"><span class="fab-ico">📅</span>Event</button>
 </div>
+<button class="fab-add" id="fabAdd" aria-label="Add task" aria-haspopup="menu" aria-expanded="false">+</button>
+
+<!-- Stage 1 Phase C — Full Add Task uses existing task editor modal via fullAdd() in planner.js; no new modal DOM needed. -->
+
+<!-- Stage 1 Phase C — Quick Add Person modal -->
+<div class="sheet-bg" id="quickAddPersonBg" style="display:none">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">Add Person</div>
+    <div class="sheet-body">
+      <label>Name <input id="qapName" type="text"></label>
+      <label>Role <input id="qapRole" type="text" placeholder="e.g. guest, coordinator, vendor"></label>
+      <div class="sheet-actions">
+        <button id="qapCancel">Cancel</button>
+        <button id="qapSubmit" class="primary">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 1 Phase C — Quick Add Event modal -->
+<div class="sheet-bg" id="quickAddEventBg" style="display:none">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">Add Schedule Event</div>
+    <div class="sheet-body">
+      <label>Title <input id="qaeTitle" type="text"></label>
+      <label>Start Time <input id="qaeStartTime" type="time"></label>
+      <label>Duration (min) <input id="qaeDuration" type="number" min="5" value="30"></label>
+      <div class="sheet-actions">
+        <button id="qaeCancel">Cancel</button>
+        <button id="qaeSubmit" class="primary">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden quick-add input kept for Quick add's sheet flow (not displayed, reused by fab) -->
+<input type="hidden" id="qaInput" value="">
+<button id="qaBtn" style="display:none" aria-hidden="true"></button>
 
 <!-- §16.8 SCROLL TO TOP -->
 <button class="scroll-top" id="scrollTop" aria-label="Scroll to top">↑</button>
@@ -317,6 +361,24 @@
     <div class="sheet-body">
       <div class="sheet-actions" id="moveGroupActions"></div>
     </div>
+  </div>
+</div>
+
+<!-- Broadcast-email composer sheet — opens from People tab -->
+<div class="sheet-bg" id="broadcastSheetBg">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">Broadcast email</div>
+    <div class="sheet-body" id="broadcastSheetBody"></div>
+  </div>
+</div>
+
+<!-- Materials checklist sheet — opens from schedule event 📋 icon -->
+<div class="sheet-bg" id="materialsSheetBg">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">Materials Checklist</div>
+    <div class="sheet-body" id="materialsSheetBody"></div>
   </div>
 </div>
 

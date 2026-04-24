@@ -433,6 +433,28 @@ The `/.netlify/functions/planner-state` POST handler accepts an optional `synthe
 
 ---
 
+### §14.Y — Activity tab + full 5-button FAB + Full Add modal + new schema fields (added 2026-04-24, Stage 1 Phase C)
+
+**Activity tab** replaces the old History tab. Master-only visibility. Renders the unified audit stream (via `/.netlify/functions/planner-audit`) in where/who/when/why format with zero-unit-suppressed relative time. Four filters: person, date-range (with 24h/7d/30d/all presets), action-type, visibility-scope (Stage 2 easement #3). Nav ribbon reordered: Settings far-left, Activity far-right, hidden `.nav-admin-slot` between Focus and Tasks for Stage 2's /admin absorption (Stage 2 easement #4). test-artifact residue filtered at renderer per §PU-11 integrity-check recommendation.
+
+**FAB menu** now has 5 buttons: Quick-Add (existing), Full-Add (existing, opens task editor on a newly-created task), Note (quick note-as-task with tag "note"), Person (minimal contact-create modal), Event (minimal schedule-event-create modal).
+
+**Full Add Task modal** uses the existing task editor modal via the pre-existing `fullAdd()` helper — no separate modal DOM needed. Creates a blank task and opens the editor for full field population.
+
+**New schema fields (additive, populated in Stage 1 Phase B, unread by any client code until Stage 2):**
+- `contacts[].zoomLink: string` — permanent Zoom meeting room URL. Populated on Stan + Hannah contacts.
+- `contacts[].visibilitySet: string[]` — array of coordinator tokens that may see this record. Stage 2's render-path filtering consumes this.
+- `contacts[].constraints: string[]` — array of day-of constraint strings. Populated on Elsie / Fen / Bonnie / Sarah in Stage 0; added with empty array default on Stan + Hannah in Stage 1.
+- `tasks[].visibilitySet: string[]` — same shape as contact version. Populated on 22 master-only tasks.
+- `auditEntries[].why: string?` — optional free-text reason-for-change. Stage 2 Quick-Edit flow populates; Stage 1 renderer handles if present.
+- `auditEntries[].entity: string?` — explicit entity type. Stage 1 unified `diffStates()` populates for all new entries; legacy entries without it default to "task" in the renderer.
+
+**diffStates() architecture (Stage 1 Phase A):** a `DIFFERS` registry in `netlify/functions/planner-state.mjs` maps each top-level entity type (tasks, contacts, groups, tags, scheduleEvents, schedulePhases, scheduleQuestions, coordinators) to its per-entity differ. Each differ iterates set-union of prev+next field keys for scalar fields (skipping meta-fields id/modified/history/created) so new fields added to the live schema are automatically diffed. Compound fields (people[], itemsToBring[], notes, eventIds[]) emit sub-entries. Optional `whyNote` fourth parameter propagates to every emitted entry as `why`.
+
+Full site-spec rewrite deferred to end-of-all-stages audit per Scrybal directive 2026-04-24.
+
+---
+
 ## Appendix — Verbatim Content
 
 Every user-visible string, every data file, and every page markup, in full. This appendix is authoritative; the summaries above are convenience.
