@@ -3265,3 +3265,131 @@ body.design-fix .sched-add-phase-wrap { margin: var(--sp-4) 0; }
   font-size: 12px;
   margin-top: 2px;
 }
+
+/* ════════════════ STAGE 2 PHASE C STYLES (2026-04-25) ════════════════ */
+
+.group-tab.group-tab-virtual {
+  background: linear-gradient(180deg, var(--bg-muted, #f5f5f5), var(--bg, #fff));
+  border-style: dashed;
+  font-style: italic;
+}
+.group-tab.group-tab-virtual[aria-selected="true"] {
+  background: var(--gold-soft, #f7e9b8);
+  border-style: solid;
+}
+
+.admin-iframe-panel {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9000;
+  display: none;
+  flex-direction: column;
+  background: var(--bg, #fff);
+}
+.admin-iframe-panel.open { display: flex; }
+.admin-iframe-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-muted, #f5f5f5);
+  border-bottom: 1px solid var(--border, #ccc);
+}
+.admin-iframe-title { font-weight: 600; font-size: 14px; color: var(--text-primary, #333); }
+.admin-iframe-close {
+  border: none; background: none; font-size: 24px; cursor: pointer;
+  color: var(--text-muted, #888); line-height: 1; padding: 0 6px;
+}
+.admin-iframe-close:hover { color: var(--gold-dark, #8a7345); }
+.admin-iframe-frame { flex: 1; width: 100%; border: none; background: var(--bg, #fff); }
+
+.sched-chip.sched-chip-person.has-constraints {
+  outline: 1.5px dashed var(--gold, #bfa162);
+  outline-offset: 1px;
+}
+.sched-chip-constraint-icon {
+  display: inline-block;
+  margin: 0 4px;
+  color: var(--gold, #bfa162);
+  font-weight: 700;
+  font-size: 11px;
+  vertical-align: top;
+  cursor: help;
+}
+
+.crossover-banner {
+  background: var(--bg-muted, #faf6e8);
+  border: 1px solid var(--gold-soft, #e9d59f);
+  border-left: 3px solid var(--gold, #bfa162);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.crossover-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--gold-soft, #f7e9b8);
+  color: var(--gold-dark, #6a5028);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.crossover-explainer { color: var(--text-muted, #777); font-size: 12px; }
+
+.edit-mode-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 8500;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--gold-dark, #8a7345);
+  color: #fff;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+}
+.edit-mode-bar.show { display: flex; }
+.edit-mode-bar .edit-mode-discard,
+.edit-mode-bar .edit-mode-confirm {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+.edit-mode-bar .edit-mode-discard:hover { background: rgba(255, 100, 100, 0.4); }
+.edit-mode-bar .edit-mode-confirm { background: rgba(120, 200, 120, 0.5); }
+.edit-mode-bar .edit-mode-confirm:hover { background: rgba(120, 200, 120, 0.75); }
+.edit-mode-bar .edit-mode-count { font-size: 13px; color: rgba(255, 255, 255, 0.9); }
+body.edit-mode-on .task-card { box-shadow: 0 0 0 1.5px var(--gold-soft, #e9d59f) inset; }
+
+.settings-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+}
+.settings-toggle input[type="checkbox"] { margin-top: 4px; }
+.settings-toggle strong { color: var(--text-primary, #333); }
+
+/* Stage 3 easement E-S3-1: Communications tab channel chip placeholder */
+.msg-channel-chip {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold-soft, #d8c890);
+  margin-right: 4px;
+  vertical-align: middle;
+  font-size: 0;
+}

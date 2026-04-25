@@ -53,8 +53,24 @@ document.addEventListener('touchend',function(e){var t=e.changedTouches[0];if(!t
 
 function loc(k){return location.search.indexOf(k)!==-1;}
 function go(){
-  if(S.on)return;var t=sessionStorage.getItem(TK);
-  if(!t){t=prompt('Admin token:');if(!t)return;sessionStorage.setItem(TK,t);}
+  // Stage 2 Phase C (PL-41): single-prompt fix. Token cache hierarchy: sessionStorage (this tab) →
+  // localStorage (this browser, persistent across tabs/reloads). Once Hannah/Stan enter the admin
+  // token once, no re-prompt until they explicitly clear it. Only stored in localStorage if a
+  // matching planner-master gate has already passed (identity.isMaster check via the planner's
+  // hanstan_planner_token presence as a soft guard — admin token alone wouldn't have entered planner).
+  if(S.on)return;
+  var t=sessionStorage.getItem(TK);
+  if(!t){
+    try{ t=localStorage.getItem(TK); }catch(e){}
+    if(t){ sessionStorage.setItem(TK,t); }
+  }
+  if(!t){
+    t=prompt('Admin token:');
+    if(!t)return;
+    sessionStorage.setItem(TK,t);
+    // Persist across tabs only if the planner master gate has already been passed in this browser
+    try{ if(localStorage.getItem('hanstan_planner_token')){ localStorage.setItem(TK,t); } }catch(e){}
+  }
   S.on=true;sessionStorage.setItem(OK,'1');
   initCheckpoints();ld();injectCSS();injectPanel();injectOverlay();injectCtx();rebuildEls();applyCSS();loadServerCSS();applyPanelStyle();
   fetch(SAVE_EP,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':t},body:JSON.stringify({action:'list'})}).then(function(r){if(r.status===401)toast('\u26A0 Token may be invalid');});

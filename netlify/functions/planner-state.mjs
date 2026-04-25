@@ -422,8 +422,11 @@ export default async function handler(request) {
       }
       await auth.store.set(SNAPS_MANIFEST_KEY, JSON.stringify(manifest));
 
-      // Generate audit entries from diff
-      const auditEntries = diffStates(prev, stamped, auth.name);
+      // Generate audit entries from diff. whyNote on the POST body propagates onto
+      // every emitted entry as `why` (Stage 1 Phase A signature; Stage 2 Phase C
+      // wires the client Edit-Mode flow to send this).
+      const whyNote = typeof body.whyNote === 'string' && body.whyNote.trim() ? body.whyNote.trim() : undefined;
+      const auditEntries = diffStates(prev, stamped, auth.name, whyNote);
       await appendAudit(auth.store, auditEntries);
 
       // === syntheticAuditEntries acceptance (added per spec_plannerUpdate_26apr23.md §C.3c Part 1) ===

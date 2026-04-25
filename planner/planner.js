@@ -143,6 +143,10 @@ async function handleGateSubmit(){
   token = t;
   identity = id;
   localStorage.setItem(TOKEN_KEY, t);
+  // Stage 2 Phase C (PL-41): cache token in sessionStorage so the css-panel
+  // doesn't re-prompt for it. sessionStorage clears on tab close (per-session)
+  // — safer than localStorage for token caching.
+  try { sessionStorage.setItem('hansWed.masterToken', t); } catch(e){}
   $('gateErr').textContent = '';
   enterApp();
 }
@@ -150,6 +154,8 @@ function enterApp(){
   $('gateScreen').style.display = 'none';
   $('appShell').style.display = '';
   $('hdrWho').textContent = identity.name + (identity.isMaster ? ' ⚜' : '');
+  // Stage 2 Phase C: master-only /admin nav slot reveal (PL-21 minimal bridge)
+  refreshAdminNavSlotVisibility();
   initApp();
 }
 function signoutDueToInvalidToken(){
@@ -229,6 +235,15 @@ function applyServerState(s, isLive){
   TAGS = s.tags ? [...s.tags] : [...new Set(T.flatMap(t => t.tags || []))].sort();
   SV = s.savedViews ? [...s.savedViews] : [];
   if(s.prefs) PREFS = {...PREFS, ...s.prefs};
+  // Stage 2 Phase C E-S3-2: pre-reserve messageBoard top-level state key for Stage 3
+  // (Communications tab + Focus-as-message-board). Empty object is safe — Stage 3
+  // hydrates with channels/messages structure when those features ship.
+  window.MESSAGE_BOARD = s.messageBoard && typeof s.messageBoard === 'object' ? s.messageBoard : {};
+  // Stage 2 Phase C: surface state.isMaster (added by Stage 2 Phase A server filter) onto identity
+  // when present. Existing identity.isMaster from /tryAuth still primary; this is a redundancy belt.
+  if(typeof s.isMaster === 'boolean' && identity){ identity.isMaster = s.isMaster; }
+  // Stage 2 Phase C: Edit Mode persistence — re-apply from PREFS so it survives reload
+  if(PREFS.editMode){ setEditMode(true); }
   lastSeenModified = s.lastModified || null;
   // PATCH 01: ensure all tasks have new fields
   T.forEach(t => {
@@ -341,14 +356,19 @@ async function pushSave(){
   saveInFlight = true;
   setSyncStatus('saving');
   const payload = buildPayload();
+  // Stage 2 Phase C (PL-09 + PL-32): pick up whyNote captured at Edit-Mode-Confirm time;
+  // server-side diffStates(prev, next, by, whyNote) propagates it onto every emitted entry.
+  const whyNote = window.__nextSaveWhyNote || null;
+  if(whyNote) window.__nextSaveWhyNote = null;
   try{
+    const body = whyNote ? {state: payload, whyNote} : {state: payload};
     const r = await fetch(ENDPOINTS.state, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + token
       },
-      body: JSON.stringify({state: payload})
+      body: JSON.stringify(body)
     });
     if(!r.ok){
       if(r.status === 401){signoutDueToInvalidToken(); return}
@@ -425,8 +445,112 @@ async function drainOfflineQueue(){
 /* save() is the public API the rest of the code uses (mirrors v5 signature).
    Debounce: a flurry of edits coalesce into one POST after SAVE_DEBOUNCE_MS idle. */
 function save(){
+  // Stage 2 Phase C (PL-09 Edit Mode): when Edit Mode is on, defer the POST.
+  // All in-memory edits accumulate in T/C/G/etc but never flush to server until
+  // the user clicks Confirm All in the sticky bar. Discard All restores from a
+  // pre-Edit-Mode snapshot (taken when Edit Mode was switched on).
+  // PENDING_EDIT_COUNT increments to update the sticky bar display.
+  if(EDIT_MODE){
+    PENDING_EDIT_COUNT++;
+    refreshEditModeBar();
+    return;
+  }
   clearTimeout(_saveDebounceTimer);
   _saveDebounceTimer = setTimeout(pushSave, SAVE_DEBOUNCE_MS);
+}
+
+/* ════════════════ EDIT MODE (Stage 2 Phase C, PL-09) ════════════════
+   Sticky bar with Discard-All + Confirm-All buttons. Buffers all edits until
+   user explicitly commits. Mobile-edit-safety mechanism for batch-of-edits flows. */
+let EDIT_MODE = false;
+let EDIT_MODE_SNAPSHOT = null;
+let PENDING_EDIT_COUNT = 0;
+
+function setEditMode(on){
+  EDIT_MODE = !!on;
+  if(EDIT_MODE){
+    // Snapshot current state for Discard-All. JSON-clone keeps it independent of mutations.
+    EDIT_MODE_SNAPSHOT = JSON.stringify({
+      tasks: T, contacts: C, groups: G, tags: TAGS, savedViews: SV, prefs: PREFS,
+      scheduleEvents: window.SE || [], schedulePhases: window.SP || [], scheduleQuestions: window.SQ || []
+    });
+    PENDING_EDIT_COUNT = 0;
+    document.body.classList.add('edit-mode-on');
+  } else {
+    EDIT_MODE_SNAPSHOT = null;
+    PENDING_EDIT_COUNT = 0;
+    document.body.classList.remove('edit-mode-on');
+  }
+  PREFS.editMode = EDIT_MODE;
+  refreshEditModeBar();
+}
+
+function refreshEditModeBar(){
+  let bar = document.getElementById('editModeBar');
+  if(!EDIT_MODE){ if(bar) bar.classList.remove('show'); return; }
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'editModeBar';
+    bar.className = 'edit-mode-bar';
+    bar.innerHTML = `
+      <button class="edit-mode-discard" id="editModeDiscard" type="button">Discard all</button>
+      <span class="edit-mode-count" id="editModeCount">0 pending edits</span>
+      <button class="edit-mode-confirm" id="editModeConfirm" type="button">Confirm all</button>
+    `;
+    document.body.appendChild(bar);
+    document.getElementById('editModeDiscard').onclick = editModeDiscardAll;
+    document.getElementById('editModeConfirm').onclick = editModeConfirmAll;
+  }
+  bar.classList.add('show');
+  const lbl = document.getElementById('editModeCount');
+  if(lbl) lbl.textContent = PENDING_EDIT_COUNT + ' pending edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's');
+}
+
+async function editModeDiscardAll(){
+  if(PENDING_EDIT_COUNT === 0){ setEditMode(false); return; }
+  const ok = await customConfirm('Discard all edits?', PENDING_EDIT_COUNT + ' pending edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + ' will be reverted.');
+  if(!ok) return;
+  if(EDIT_MODE_SNAPSHOT){
+    const snap = JSON.parse(EDIT_MODE_SNAPSHOT);
+    T = snap.tasks; C = snap.contacts; G = snap.groups; TAGS = snap.tags;
+    SV = snap.savedViews; PREFS = {...PREFS, ...snap.prefs};
+    if(snap.scheduleEvents) window.SE = snap.scheduleEvents;
+    if(snap.schedulePhases) window.SP = snap.schedulePhases;
+    if(snap.scheduleQuestions) window.SQ = snap.scheduleQuestions;
+  }
+  setEditMode(false);
+  render();
+  toast('Edits discarded', false);
+}
+
+async function editModeConfirmAll(){
+  if(PENDING_EDIT_COUNT === 0){ setEditMode(false); return; }
+  const why = await customInput('Add a note (optional)', '', 'Why these edits? — leaves an audit trail');
+  // Pass why-note through to the next save POST. Not yet wired into pushSave POST body —
+  // pushSave currently does not accept a whyNote param. As a minimum-viable hook, we
+  // store the whyNote on a window flag that pushSave reads.
+  if(why) window.__nextSaveWhyNote = why;
+  setEditMode(false);
+  // Force flush — bypass the debounce-via-EDIT_MODE-guard
+  clearTimeout(_saveDebounceTimer);
+  _saveDebounceTimer = setTimeout(pushSave, SAVE_DEBOUNCE_MS);
+  toast(PENDING_EDIT_COUNT + ' edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + ' confirmed', false);
+}
+
+/* Quick-Edit confirm-on-tap (PL-05/06/07/08, partial — focused on toggleDone since that's
+   the highest-traffic accidental-tap surface on mobile). When NOT in Edit Mode, tapping
+   the done-checkbox now requires a confirm-modal acknowledgement. Other field-level
+   activations (status badge, deadline tap) still fire immediately — those open modals
+   already which act as their own confirm. Full per-field double-tap activation is parked
+   as a Stage 3 polish (the existing confirm-modal flow covers the core mobile-safety goal). */
+async function quickEditConfirm(label, applyFn){
+  if(EDIT_MODE){ applyFn(); return; }
+  // Out of Edit Mode — small confirmation per-action. Skipped if user has set
+  // PREFS.skipQuickEditConfirm (a setting they can flip off if it gets tedious).
+  if(PREFS.skipQuickEditConfirm){ applyFn(); return; }
+  const ok = await customConfirm('Confirm ' + label, 'Apply this change immediately?');
+  if(!ok) return;
+  applyFn();
 }
 
 /* ════════════════ POLLING ════════════════ */
@@ -591,6 +715,11 @@ function updateHeader(){
 document.querySelector('.main-nav').onclick = function(e){
   const btn = e.target.closest('[role="tab"]');
   if(!btn) return;
+  // Stage 2 Phase C: /admin nav slot opens iframe panel instead of switching to a (non-existent) admin view
+  if(btn.dataset.v === 'admin'){
+    showAdminPanel();
+    return;
+  }
   this.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute('aria-selected', 'false'));
   btn.setAttribute('aria-selected', 'true');
   view = btn.dataset.v;
@@ -599,6 +728,58 @@ document.querySelector('.main-nav').onclick = function(e){
   render();
 };
 
+/* ════════════════ /ADMIN IFRAME PANEL (Stage 2 Phase C, PL-21 minimal bridge) ════════════════
+   Master-only. Opens /admin route inside a full-planner-width iframe overlay.
+   Close via close button or Escape. Not a full reimplementation — Stage 3 absorbs that. */
+function showAdminPanel(){
+  if(!identity || !identity.isMaster){
+    toast('Master only', true);
+    return;
+  }
+  let panel = document.getElementById('adminIframePanel');
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'adminIframePanel';
+    panel.className = 'admin-iframe-panel';
+    panel.innerHTML = `
+      <div class="admin-iframe-bar">
+        <span class="admin-iframe-title">Admin (registry copy + ordering)</span>
+        <button class="admin-iframe-close" id="adminIframeClose" aria-label="Close admin panel">×</button>
+      </div>
+      <iframe class="admin-iframe-frame" src="/admin" title="Admin panel"></iframe>
+    `;
+    document.body.appendChild(panel);
+    document.getElementById('adminIframeClose').onclick = hideAdminPanel;
+    document.addEventListener('keydown', adminPanelEscapeHandler);
+  } else {
+    // Refresh the iframe each open (catches admin-side changes between visits)
+    panel.querySelector('iframe').src = '/admin';
+  }
+  panel.classList.add('open');
+}
+function hideAdminPanel(){
+  const panel = document.getElementById('adminIframePanel');
+  if(panel) panel.classList.remove('open');
+}
+function adminPanelEscapeHandler(e){
+  if(e.key === 'Escape'){
+    const panel = document.getElementById('adminIframePanel');
+    if(panel && panel.classList.contains('open')) hideAdminPanel();
+  }
+}
+function refreshAdminNavSlotVisibility(){
+  // Show .nav-admin-slot only for master tokens
+  const slot = document.querySelector('.main-nav .nav-admin-slot');
+  if(!slot) return;
+  if(identity && identity.isMaster){
+    slot.style.display = '';
+    slot.classList.add('visible');
+  } else {
+    slot.style.display = 'none';
+    slot.classList.remove('visible');
+  }
+}
+
 /* ════════════════ GROUP TABS (patch 04: escAttr) ════════════════ */
 function renderGroupTabs(){
   const el = $('groupTabs');
@@ -606,10 +787,15 @@ function renderGroupTabs(){
   if(view !== 'tasks') return;
   let h = '';
   G.forEach(g => {
-    const cnt = g === 'All' ? T.length : T.filter(t => t.group === g).length;
+    const cnt = g === 'All' ? T.length : T.filter(t => taskBelongsToGroup(t, g)).length;
     const sel = activeGroup === g;
     h += `<button class="group-tab" role="tab" aria-selected="${sel}" data-g="${escAttr(g)}">${esc(g)} <span class="tab-count">${cnt}</span></button>`;
   });
+  // Stage 2 Phase C: virtual Quick Task tab (not stored in G — rendered as a tag-derived view)
+  // Predicate: tasks tagged "quick" or "note" (FAB Note button creates with "note" tag)
+  const quickCnt = T.filter(isQuickTask).length;
+  const quickSel = activeGroup === 'Quick Task';
+  h += `<button class="group-tab group-tab-virtual" role="tab" aria-selected="${quickSel}" data-g="Quick Task" title="Quick Task tab (PL-40) — virtual view of tasks tagged 'quick' or 'note'">⚡ Quick Task <span class="tab-count">${quickCnt}</span></button>`;
   h += `<button class="group-tab-add" title="Add group" aria-label="Add group">+</button>`;
   el.innerHTML = h;
   el.querySelectorAll('.group-tab').forEach(b => b.onclick = function(){
@@ -854,16 +1040,20 @@ function toggleDone(id){
   lastUserActionAt = Date.now();
   const t = T.find(x => x.id === id);
   if(!t) return;
-  const old = t.status;
-  t.status = t.status === 'done' ? 'not-started' : 'done';
-  logHistory(t, 'Status → ' + STATUS_LABELS[t.status]);
-  save(); saveScr(); render(); restoreScr();
-  pushUndo(t.taskId + ' → ' + STATUS_LABELS[t.status], () => {t.status = old; logHistory(t, 'Undo status')});
-  // §10.2 dependency enforcement
-  if(t.status === 'done'){
-    const unblocked = T.filter(x => x.blockedBy && x.blockedBy.toLowerCase().includes((t.taskId || '').toLowerCase()) && x.status !== 'done');
-    if(unblocked.length) toast(unblocked.length + ' task(s) may now be unblocked!', false);
-  }
+  const oldStatus = t.status;
+  // Stage 2 Phase C (PL-05/06/07/08 partial): mobile-safety confirm-on-tap when not in Edit Mode.
+  // Edit Mode mode users get the buffered/sticky-bar flow instead of per-tap confirm.
+  quickEditConfirm('mark ' + (oldStatus === 'done' ? 'not done' : 'done'), () => {
+    t.status = t.status === 'done' ? 'not-started' : 'done';
+    logHistory(t, 'Status → ' + STATUS_LABELS[t.status]);
+    save(); saveScr(); render(); restoreScr();
+    pushUndo(t.taskId + ' → ' + STATUS_LABELS[t.status], () => {t.status = oldStatus; logHistory(t, 'Undo status')});
+    // §10.2 dependency enforcement runs only after confirmed mutation
+    if(t.status === 'done'){
+      const unblocked = T.filter(x => x.blockedBy && x.blockedBy.toLowerCase().includes((t.taskId || '').toLowerCase()) && x.status !== 'done');
+      if(unblocked.length) toast(unblocked.length + ' task(s) may now be unblocked!', false);
+    }
+  });
 }
 
 function openStatusPicker(id){
@@ -1202,7 +1392,7 @@ function renderFocus(){
   // §11.3 progress summaries
   h += '<div style="margin-bottom:12px">';
   G.filter(g => g !== 'All').forEach(g => {
-    const gTasks = T.filter(t => t.group === g);
+    const gTasks = T.filter(t => taskBelongsToGroup(t, g));
     const gDone = gTasks.filter(t => t.status === 'done').length;
     const pct = gTasks.length ? Math.round(gDone / gTasks.length * 100) : 0;
     h += `<div class="progress-mini"><span class="p-label">${esc(g)}</span><div class="p-bar"><div class="p-fill" style="width:${pct}%"></div></div><span class="p-pct">${pct}%</span></div>`;
@@ -1229,15 +1419,66 @@ function sec(label, items){
   return h;
 }
 
+/* ════════════════ MULTI-PARENT GROUP HELPER (Stage 2 Phase C, 2026-04-25) ════════════════
+   Returns true if a task is a member of group G — either as primary (t.group === G)
+   or as a secondary parent (t.secondaryGroups[] includes G). Stage 2 Phase B populated
+   secondaryGroups: ["Guests"] on 10 Stan's-Rolodex tasks carrying the "guests" tag,
+   so those tasks now appear under both Stan's Rolodex AND Guests group filters.
+   Spec: spec_plannerUpdate_26apr23.md §Stage 2 Decisions D-S2-1, PL-01, PL-02, PL-47. */
+function taskBelongsToGroup(t, g){
+  if(!t || !g) return false;
+  if(t.group === g) return true;
+  if(Array.isArray(t.secondaryGroups) && t.secondaryGroups.includes(g)) return true;
+  return false;
+}
+
+/* Quick Task tab predicate — Stage 2 Phase C, PL-40. Tasks tagged "quick" or "note"
+   (FAB Note button creates with the "note" tag) appear in Quick Task tab + a
+   Quick Tasks subheader at the bottom of All Tasks. */
+function isQuickTask(t){
+  if(!t || !Array.isArray(t.tags)) return false;
+  return t.tags.includes('quick') || t.tags.includes('note');
+}
+
+/* Constraint lookup — Stage 2 Phase C, PL-03 + PL-48. Resolves a chip name to
+   contacts[].constraints[] from PEOPLE. Case-insensitive exact-token match;
+   falls back to contains for first-name-only chips. Returns array of strings
+   (empty if no contact found or no constraints set). */
+function lookupContactConstraints(name){
+  if(!name || !Array.isArray(window.PEOPLE)) return [];
+  const lower = String(name).toLowerCase().trim();
+  // exact match first
+  let hit = window.PEOPLE.find(c => (c.name || '').toLowerCase() === lower);
+  // fall back: contact-name starts-with chip-name (e.g. chip "Stan" → contact "Stan (Scrybal)")
+  if(!hit) hit = window.PEOPLE.find(c => (c.name || '').toLowerCase().startsWith(lower));
+  // fall back: chip-name starts-with contact's first word
+  if(!hit) hit = window.PEOPLE.find(c => {
+    const firstWord = (c.name || '').toLowerCase().split(/\s+/)[0];
+    return firstWord && lower.startsWith(firstWord);
+  });
+  if(!hit || !Array.isArray(hit.constraints)) return [];
+  return hit.constraints;
+}
+
 /* ════════════════ RENDER: TASKS §5.2 ════════════════ */
 function renderTasks(){
   const el = $('viewTasks');
   let tasks = T;
-  if(activeGroup !== 'All') tasks = tasks.filter(t => t.group === activeGroup);
+  if(activeGroup === 'Quick Task') tasks = tasks.filter(isQuickTask);
+  else if(activeGroup !== 'All') tasks = tasks.filter(t => taskBelongsToGroup(t, activeGroup));
   tasks = applyFilters(tasks);
   tasks = sortTasks(tasks);
 
   let h = '';
+  // Stage 2 Phase C (PL-47): Rolodex↔Guests crossover chip — when viewing the Guests
+  // group, surface a small chip telling the user that N tasks from Stan's Rolodex are
+  // also showing here via secondaryGroups multi-parent membership.
+  if(activeGroup === 'Guests'){
+    const fromRolodex = T.filter(t => t.group === "Stan's Rolodex" && Array.isArray(t.secondaryGroups) && t.secondaryGroups.includes('Guests')).length;
+    if(fromRolodex > 0){
+      h += `<div class="crossover-banner"><span class="crossover-chip">+${fromRolodex} from Stan's Rolodex</span> <span class="crossover-explainer">tasks tagged ‘guests’ in Stan's Rolodex appear here too (multi-parent group membership).</span></div>`;
+    }
+  }
   if(groupByField !== 'none'){
     const groups = groupTasksBy(tasks, groupByField);
     for(const [label, items] of groups){
@@ -1637,8 +1878,10 @@ function renderActivityUI(){
       const who = esc(e.by || 'unknown');
       const summary = esc(e.summary || '');
       const why = e.why ? `<div class="history-why" style="font-style:italic;color:var(--text-muted);font-size:12px;margin-top:2px">why: ${esc(e.why)}</div>` : '';
+      // Stage 2 Phase C E-S3-3: optional channel field (Stage 3 Communications tab will populate)
+      const channel = e.channel ? `<span class="msg-channel-chip" title="Channel: ${esc(e.channel)}">${esc(e.channel)}</span> ` : '';
       h += `<div class="history-entry" style="padding:6px 8px;border-bottom:1px solid var(--border-subtle, #eee)">
-        <div class="history-where" style="font-weight:600;font-size:12px">${where}</div>
+        <div class="history-where" style="font-weight:600;font-size:12px">${channel}${where}</div>
         <div class="history-text">
           <span class="who" style="font-weight:500">${who}</span>
           <span style="color:var(--text-muted);font-size:11px"> · ${time} · <em>${rel}</em></span>
@@ -1728,7 +1971,7 @@ async function renderSettings(){
   <div class="settings-section">
     <h3>Task Groups</h3>
     ${G.filter(g => g !== 'All').map((g, i) => {
-      const cnt = T.filter(t => t.group === g).length;
+      const cnt = T.filter(t => taskBelongsToGroup(t, g)).length;
       return `<div class="settings-item"><span class="s-name">${esc(g)}</span><span class="s-count">${cnt} tasks</span>
         <span class="s-actions">
           <button onclick="renameGroup(${i + 1})" title="Rename">✎</button>
@@ -1758,6 +2001,18 @@ async function renderSettings(){
       ${identity.isMaster ? `<button class="btn btn-sm" onclick="document.getElementById('impFile').click()">Import JSON (master)</button>
       <input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(event)">` : ''}
     </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Mobile-safety editing</h3>
+    <label class="settings-toggle">
+      <input type="checkbox" id="setEditMode" ${EDIT_MODE ? 'checked' : ''}>
+      <span><strong>Edit Mode</strong> — buffer all edits, commit or discard in batch via the sticky bar (Stage 2 mobile-safety pattern, PL-09)</span>
+    </label>
+    <label class="settings-toggle" style="margin-top:8px">
+      <input type="checkbox" id="setSkipQuickEdit" ${PREFS.skipQuickEditConfirm ? 'checked' : ''}>
+      <span>Skip per-tap confirms on tap-to-toggle actions (default: confirms shown when not in Edit Mode — PL-05/06/07/08)</span>
+    </label>
   </div>`;
 
   if(identity.isMaster){
@@ -1765,6 +2020,12 @@ async function renderSettings(){
   }
 
   el.innerHTML = h;
+
+  // Stage 2 Phase C (PL-09 + PL-05/06/07/08): wire Edit Mode + per-tap-confirm toggles
+  const setEM = document.getElementById('setEditMode');
+  if(setEM) setEM.onchange = function(){ setEditMode(this.checked); };
+  const setSQE = document.getElementById('setSkipQuickEdit');
+  if(setSQE) setSQE.onchange = function(){ PREFS.skipQuickEditConfirm = this.checked; save(); };
 
   if(identity.isMaster){
     await renderMasterPanels();
@@ -1893,11 +2154,36 @@ async function restoreSnapshot(id){
 
 /* ════════════════ GROUP/TAG CRUD (patches 14, 16) ════════════════ */
 async function addGroup(){const n = await customInput('Group name', ''); if(n && !G.includes(n)){G.push(n); save(); render(); toast('Added group: ' + n, false)}}
-async function renameGroup(i){const n = await customInput('Rename group', G[i]); if(n && n !== G[i]){const old = G[i]; T.forEach(t => {if(t.group === old) t.group = n}); G[i] = n; save(); render(); toast('Renamed to: ' + n, false)}}
+async function renameGroup(i){
+  const n = await customInput('Rename group', G[i]);
+  if(n && n !== G[i]){
+    const old = G[i];
+    // Rename primary t.group on every task that uses it
+    T.forEach(t => {if(t.group === old) t.group = n});
+    // Stage 2 Phase C: also rename secondaryGroups[] references so multi-parent membership survives
+    T.forEach(t => {
+      if(Array.isArray(t.secondaryGroups) && t.secondaryGroups.includes(old)){
+        t.secondaryGroups = t.secondaryGroups.map(s => s === old ? n : s);
+      }
+    });
+    G[i] = n;
+    save(); render(); toast('Renamed to: ' + n, false);
+  }
+}
 async function deleteGroup(i){
   const g = G[i];
-  const cnt = T.filter(t => t.group === g).length;
-  if(cnt > 0){const ok = await customConfirm('Delete Group', cnt + ' tasks will move to "All"'); if(!ok) return; T.forEach(t => {if(t.group === g) t.group = 'All'})}
+  // Stage 2 Phase C: count includes both primary and secondary memberships
+  const cnt = T.filter(t => taskBelongsToGroup(t, g)).length;
+  if(cnt > 0){
+    const ok = await customConfirm('Delete Group', cnt + ' tasks will move to "All" or lose this secondary parent');
+    if(!ok) return;
+    T.forEach(t => {
+      if(t.group === g) t.group = 'All';
+      if(Array.isArray(t.secondaryGroups) && t.secondaryGroups.includes(g)){
+        t.secondaryGroups = t.secondaryGroups.filter(s => s !== g);
+      }
+    });
+  }
   G.splice(i, 1);
   save(); render(); toast('Deleted group: ' + g, false);
 }
@@ -2548,11 +2834,23 @@ function schedRenderEvent(ev, phaseId){
   }
 
   // People chips (with inline per-person task when present)
+  // Stage 2 Phase C (PL-03 + PL-48): constraint tooltip — when the contact carries
+  // contacts[].constraints (Stage 0 populated Elsie/Fen/Bonnie/Sarah; Stage 1 added empty
+  // arrays on Stan/Hannah), surface them as part of the chip's title-attribute tooltip
+  // (works on hover desktop + long-press mobile native) and add a has-constraints class
+  // for visual indicator.
   h += `<div class="sched-chips sched-chips-people">`;
   (ev.people || []).forEach((p, i) => {
     const role = p.role || 'present';
     const taskHtml = p.task ? `<span class="sched-chip-task"> — ${esc(p.task)}</span>` : '';
-    h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(role)}" onclick="schedEditPersonTask('${ev.id}',${i})" title="Click to edit ${esc(p.name)}'s task"><span class="sched-chip-name">${esc(p.name)}</span><span class="sched-chip-role-badge">${esc(role)}</span>${taskHtml}<button class="sched-chip-rm" onclick="event.stopPropagation();schedRemovePerson('${ev.id}',${i})">×</button></span>`;
+    const constraintInfo = lookupContactConstraints(p.name);
+    const hasConstraints = constraintInfo.length > 0;
+    const constraintCls = hasConstraints ? ' has-constraints' : '';
+    const titleText = hasConstraints
+      ? esc(p.name) + ' — constraints: ' + esc(constraintInfo.join(' • '))
+      : 'Click to edit ' + esc(p.name) + "'s task";
+    const constraintIcon = hasConstraints ? '<span class="sched-chip-constraint-icon" aria-hidden="true">ⓘ</span>' : '';
+    h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(role)}${constraintCls}" onclick="schedEditPersonTask('${ev.id}',${i})" title="${titleText}"><span class="sched-chip-name">${esc(p.name)}</span><span class="sched-chip-role-badge">${esc(role)}</span>${constraintIcon}${taskHtml}<button class="sched-chip-rm" onclick="event.stopPropagation();schedRemovePerson('${ev.id}',${i})">×</button></span>`;
   });
   h += `<button class="sched-chip-add" onclick="schedAddPerson('${ev.id}')">+ person</button>`;
   h += `</div>`;
