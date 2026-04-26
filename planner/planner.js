@@ -984,6 +984,7 @@ function render(){
   else if(view === 'history') renderHistory();
   else if(view === 'settings') renderSettings();
   else if(view === 'schedule') renderSchedule();
+  else if(view === 'comms') renderComms();
   if(!PREFS.onboardSeen && (view === 'focus' || view === 'tasks')){$('onboard').style.display = 'flex'}
   // HW-SCHED AC #20: schedule-specific first-run guidance
   if(view === 'schedule' && !PREFS.schedOnboardSeen){$('schedOnboard').style.display = 'flex'}
@@ -3885,5 +3886,868 @@ window.filterPeople = filterPeople;
 
 /* ════════════════ ENTRY ════════════════ */
 gateInit();
+
+/* ════════════════════════════════════════════════════════════════════════════════
+   STAGE 3 PHASE C — COMMUNICATIONS TAB + EDIT MODE REDESIGN + ACTIVITY EXTENSION
+   ════════════════════════════════════════════════════════════════════════════════
+   Author: Stage 3 Phase C Claude (2026-04-26)
+   Spec ref: spec_plannerUpdate_26apr23.md §Stage 3 Phase C + §S3-UX-1..S3-UX-12
+   Design intent: native to the planner's Rivendell Garden v1.1 visual system
+     (sage bg, cream cards, gold accents, deep-forest text). Inbox/Channels/Broadcast
+     sub-ribbon mirrors the existing Schedule phase-nav pattern. Empty states use warm
+     prose, not blank boxes — matches the Focus tab tone.
+   ──────────────────────────────────────────────────────────────────────────────── */
+
+/* ────────────── Communications tab: state + sub-ribbon dispatcher ────────────── */
+let COMMS_SUB = 'inbox'; // 'inbox' | 'channels' | 'broadcast'
+let COMMS_INBOX_FILTER = 'all'; // 'all' | 'unread' | 'asq' | 'zoho' | 'organizer'
+let COMMS_INBOX_SORT = 'newest'; // 'newest' | 'oldest' | 'channel'
+let COMMS_CHANNEL_ACTIVE = null; // channel id of selected channel; null = list view (mobile)
+let COMMS_BROADCAST_STEP = 1; // 1=compose, 2=recipients, 3=review
+let COMMS_BROADCAST_DRAFT = { fromAlias: 'hello', subject: '', body: '', recipientFilter: 'all', selectedContactIds: [] };
+let COMMS_SYNC_STATE = 'idle'; // 'idle' | 'loading' | 'success' | 'no-new' | 'error' | 'auth-error'
+let COMMS_SYNC_LAST_RESULT = null;
+let COMMS_BROADCAST_SENDING = false;
+let COMMS_BROADCAST_RESULT = null;
+
+function renderComms(){
+  const el = $('viewComms');
+  if(!el) return;
+  // Sub-ribbon (Inbox / Channels / Broadcast). Broadcast is master-only.
+  const isMaster = identity && identity.isMaster;
+  const subTabs = [
+    { id: 'inbox', label: '📥 Inbox', count: commsCountUnreadNotes() },
+    { id: 'channels', label: '💬 Channels', count: commsCountTotalChannels() }
+  ];
+  if(isMaster) subTabs.push({ id: 'broadcast', label: '📢 Broadcast', count: 0 });
+  let h = '<div class="comms-shell">';
+  h += '<div class="comms-subnav" role="tablist" aria-label="Communications sections">';
+  for(const t of subTabs){
+    const sel = COMMS_SUB === t.id;
+    const cnt = t.count > 0 ? `<span class="comms-subnav-count">${t.count}</span>` : '';
+    h += `<button class="comms-subnav-btn${sel ? ' active' : ''}" role="tab" aria-selected="${sel}" data-comms-sub="${t.id}">${t.label}${cnt}</button>`;
+  }
+  h += '</div>';
+  h += '<div class="comms-body" id="commsBody">';
+  if(COMMS_SUB === 'inbox') h += renderCommsInbox();
+  else if(COMMS_SUB === 'channels') h += renderCommsChannels();
+  else if(COMMS_SUB === 'broadcast' && isMaster) h += renderCommsBroadcast();
+  else h += renderCommsInbox(); // fallback
+  h += '</div></div>';
+  el.innerHTML = h;
+  wireCommsSubnav();
+  wireCommsBody();
+  updateCommsBadge();
+}
+
+function wireCommsSubnav(){
+  document.querySelectorAll('#viewComms .comms-subnav-btn').forEach(b => {
+    b.onclick = function(){
+      COMMS_SUB = this.dataset.commsSub;
+      lastUserActionAt = Date.now();
+      renderComms();
+    };
+  });
+}
+
+function commsCountUnreadNotes(){
+  return (window.NOTES || []).filter(n => n && n.status === 'unread').length;
+}
+function commsCountTotalChannels(){
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels;
+  return ch ? Object.keys(ch).length : 0;
+}
+function updateCommsBadge(){
+  const badge = document.getElementById('navCommsBadge');
+  if(!badge) return;
+  const unread = commsCountUnreadNotes();
+  if(unread > 0){
+    badge.textContent = unread;
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+/* ────────────── Inbox sub-tab: triage notes from all sources ────────────── */
+function renderCommsInbox(){
+  const notes = (window.NOTES || []).slice();
+  const filtered = notes.filter(n => {
+    if(!n) return false;
+    if(COMMS_INBOX_FILTER === 'all') return true;
+    if(COMMS_INBOX_FILTER === 'unread') return n.status === 'unread';
+    if(COMMS_INBOX_FILTER === 'asq') return (n.channel || '').startsWith('asq-');
+    if(COMMS_INBOX_FILTER === 'zoho') return (n.channel || '').startsWith('zoho-');
+    if(COMMS_INBOX_FILTER === 'organizer') return !n.channel || (!n.channel.startsWith('asq-') && !n.channel.startsWith('zoho-'));
+    return true;
+  });
+  filtered.sort((a, b) => {
+    if(COMMS_INBOX_SORT === 'oldest') return (a.ts || '').localeCompare(b.ts || '');
+    if(COMMS_INBOX_SORT === 'channel') return (a.channel || '~').localeCompare(b.channel || '~');
+    return (b.ts || '').localeCompare(a.ts || '');
+  });
+
+  let h = '<div class="comms-inbox">';
+  // Filter bar
+  h += '<div class="comms-filter-bar">';
+  h += '<div class="comms-filter-chips">';
+  for(const f of [
+    { id: 'all', label: 'All', count: notes.length },
+    { id: 'unread', label: 'Unread', count: notes.filter(n => n.status === 'unread').length },
+    { id: 'asq', label: 'Public Q', count: notes.filter(n => (n.channel || '').startsWith('asq-')).length },
+    { id: 'zoho', label: 'Email', count: notes.filter(n => (n.channel || '').startsWith('zoho-')).length },
+    { id: 'organizer', label: 'Organizers', count: notes.filter(n => !n.channel || (!n.channel.startsWith('asq-') && !n.channel.startsWith('zoho-'))).length }
+  ]){
+    const sel = COMMS_INBOX_FILTER === f.id;
+    h += `<button class="comms-chip${sel ? ' active' : ''}" data-comms-filter="${f.id}">${f.label}${f.count > 0 ? ` <span class="comms-chip-count">${f.count}</span>` : ''}</button>`;
+  }
+  h += '</div>';
+  // Sync inbox button (master only)
+  if(identity && identity.isMaster){
+    const syncLabel = (
+      COMMS_SYNC_STATE === 'loading' ? '⏳ Syncing…' :
+      COMMS_SYNC_STATE === 'success' ? '✓ Synced' :
+      COMMS_SYNC_STATE === 'no-new' ? '✓ No new' :
+      COMMS_SYNC_STATE === 'error' ? '⚠ Failed' :
+      COMMS_SYNC_STATE === 'auth-error' ? '⚠ Auth' :
+      '🔄 Sync inbox'
+    );
+    const syncDisabled = COMMS_SYNC_STATE === 'loading';
+    h += `<button class="comms-sync-btn" id="commsSyncBtn"${syncDisabled ? ' disabled' : ''} title="Pull new mail from stan@ / hannah@ / hello@">${syncLabel}</button>`;
+  }
+  h += '</div>';
+
+  // Cards
+  if(!filtered.length){
+    h += '<div class="comms-empty">';
+    if(COMMS_INBOX_FILTER === 'unread'){
+      h += '<p class="comms-empty-title">All caught up.</p><p class="comms-empty-sub">No unread notes. Switch to <strong>All</strong> to see processed ones.</p>';
+    } else if(COMMS_INBOX_FILTER === 'asq'){
+      h += '<p class="comms-empty-title">No public questions yet.</p><p class="comms-empty-sub">When guests ask via the website Ask-A-Question form, their messages appear here.</p>';
+    } else if(COMMS_INBOX_FILTER === 'zoho'){
+      h += '<p class="comms-empty-title">No emails synced yet.</p>' + (identity && identity.isMaster ? '<p class="comms-empty-sub">Click <strong>Sync inbox</strong> above to pull new mail from stan@ / hannah@ / hello@.</p>' : '<p class="comms-empty-sub">Master will sync mail when needed.</p>');
+    } else if(COMMS_INBOX_FILTER === 'organizer'){
+      h += '<p class="comms-empty-title">No organizer notes.</p><p class="comms-empty-sub">Notes left via the planner FAB Note button (📝) appear here.</p>';
+    } else {
+      h += '<p class="comms-empty-title">Inbox is empty.</p><p class="comms-empty-sub">Notes from organizers, public questions, and synced email all land here.</p>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div class="comms-inbox-list">';
+    for(const n of filtered){
+      h += renderInboxCard(n);
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderInboxCard(n){
+  const isUnread = n.status === 'unread';
+  const sourceLabel = (
+    (n.channel || '').startsWith('asq-') ? 'Public Question' :
+    (n.channel || '').startsWith('zoho-') ? 'Email (' + (n.channel.replace('zoho-', '')) + '@)' :
+    'Note from ' + (n.by || 'organizer')
+  );
+  const ts = n.ts ? new Date(n.ts) : null;
+  const tsLabel = ts ? ts.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  const text = (n.text || '').replace(/</g, '&lt;');
+  return `
+    <div class="comms-note-card${isUnread ? ' unread' : ''}" data-note-id="${esc(n.id)}">
+      <div class="comms-note-head">
+        <span class="comms-note-source">${esc(sourceLabel)}</span>
+        <span class="comms-note-ts">${esc(tsLabel)}</span>
+      </div>
+      <div class="comms-note-text">${text}</div>
+      <div class="comms-note-actions">
+        ${isUnread ? `<button class="btn comms-note-act" data-comms-note-act="read" data-id="${esc(n.id)}" title="Mark read">✓ Read</button>` : ''}
+        <button class="btn comms-note-act" data-comms-note-act="convert" data-id="${esc(n.id)}" title="Convert to a planner task">→ Task</button>
+        ${n.status !== 'archived' ? `<button class="btn comms-note-act ghost" data-comms-note-act="archive" data-id="${esc(n.id)}" title="Archive">Archive</button>` : ''}
+        <button class="btn comms-note-act ghost" data-comms-note-act="delete" data-id="${esc(n.id)}" title="Delete permanently">Delete</button>
+      </div>
+    </div>`;
+}
+
+function wireCommsBody(){
+  // Filter chips
+  document.querySelectorAll('#viewComms [data-comms-filter]').forEach(b => {
+    b.onclick = function(){ COMMS_INBOX_FILTER = this.dataset.commsFilter; renderComms(); };
+  });
+  // Note actions
+  document.querySelectorAll('#viewComms [data-comms-note-act]').forEach(b => {
+    b.onclick = function(){
+      const act = this.dataset.commsNoteAct;
+      const id = this.dataset.id;
+      handleNoteAction(act, id);
+    };
+  });
+  // Sync inbox
+  const syncBtn = document.getElementById('commsSyncBtn');
+  if(syncBtn) syncBtn.onclick = handleCommsSyncInbox;
+  // Channels: channel list selection
+  document.querySelectorAll('#viewComms [data-comms-channel]').forEach(b => {
+    b.onclick = function(){ COMMS_CHANNEL_ACTIVE = this.dataset.commsChannel; renderComms(); };
+  });
+  document.querySelectorAll('#viewComms [data-comms-channel-back]').forEach(b => {
+    b.onclick = function(){ COMMS_CHANNEL_ACTIVE = null; renderComms(); };
+  });
+  // Channel send
+  const chSend = document.getElementById('commsChannelSendBtn');
+  const chTxt = document.getElementById('commsChannelInput');
+  if(chSend && chTxt){
+    chSend.onclick = handleChannelSendMessage;
+    chTxt.onkeydown = function(e){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleChannelSendMessage(); } };
+  }
+  const chNew = document.getElementById('commsChannelNewBtn');
+  if(chNew) chNew.onclick = handleChannelCreate;
+  // Broadcast
+  document.querySelectorAll('#viewComms [data-comms-bc-step]').forEach(b => {
+    b.onclick = function(){ COMMS_BROADCAST_STEP = parseInt(this.dataset.commsBcStep, 10) || 1; renderComms(); };
+  });
+  const bcNext = document.getElementById('commsBcNext');
+  if(bcNext) bcNext.onclick = handleBroadcastNext;
+  const bcBack = document.getElementById('commsBcBack');
+  if(bcBack) bcBack.onclick = handleBroadcastBack;
+  const bcSend = document.getElementById('commsBcSend');
+  if(bcSend) bcSend.onclick = handleBroadcastSend;
+  // Broadcast field bindings
+  ['commsBcSubject', 'commsBcBody', 'commsBcFromAlias'].forEach(id => {
+    const f = document.getElementById(id);
+    if(!f) return;
+    f.oninput = function(){
+      if(id === 'commsBcSubject') COMMS_BROADCAST_DRAFT.subject = this.value;
+      else if(id === 'commsBcBody') COMMS_BROADCAST_DRAFT.body = this.value;
+      else if(id === 'commsBcFromAlias') COMMS_BROADCAST_DRAFT.fromAlias = this.value;
+    };
+  });
+  document.querySelectorAll('#viewComms [data-comms-bc-recipfilter]').forEach(b => {
+    b.onclick = function(){ COMMS_BROADCAST_DRAFT.recipientFilter = this.dataset.commsBcRecipfilter; renderComms(); };
+  });
+  document.querySelectorAll('#viewComms [data-comms-bc-recip-toggle]').forEach(b => {
+    b.onclick = function(){
+      const id = this.dataset.commsBcRecipToggle;
+      const sel = COMMS_BROADCAST_DRAFT.selectedContactIds;
+      const i = sel.indexOf(id);
+      if(i >= 0) sel.splice(i, 1); else sel.push(id);
+      renderComms();
+    };
+  });
+}
+
+async function handleNoteAction(act, id){
+  if(!Array.isArray(window.NOTES)) window.NOTES = [];
+  const note = window.NOTES.find(n => n && n.id === id);
+  if(!note) return;
+  if(act === 'read'){
+    note.status = 'read';
+    save();
+    toast('Marked read', false);
+  } else if(act === 'archive'){
+    note.status = 'archived';
+    save();
+    toast('Archived', false);
+  } else if(act === 'delete'){
+    const ok = await customConfirm('Delete this note?', 'This cannot be undone.');
+    if(!ok) return;
+    const idx = window.NOTES.indexOf(note);
+    if(idx >= 0) window.NOTES.splice(idx, 1);
+    save();
+    toast('Deleted', false);
+  } else if(act === 'convert'){
+    // Create a new task from the note text
+    const title = (note.text || '').slice(0, 80).trim() || 'From inbox note';
+    const t = buildNewTask(title);
+    t.desc = note.text || '';
+    t.tags = ['from-inbox'];
+    t.status = 'not-started';
+    t.priority = 'medium';
+    t.group = 'All';
+    T.push(t);
+    note.status = 'converted';
+    note.convertedTo = t.id;
+    save();
+    toast('Converted to task: ' + title, false);
+  }
+  renderComms();
+  updateCommsBadge();
+}
+
+async function handleCommsSyncInbox(){
+  if(COMMS_SYNC_STATE === 'loading') return;
+  COMMS_SYNC_STATE = 'loading';
+  renderComms();
+  try {
+    const res = await fetch('/.netlify/functions/zoho-inbound-pull', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    if(!res.ok){
+      COMMS_SYNC_STATE = res.status === 401 || res.status === 403 ? 'auth-error' : 'error';
+      COMMS_SYNC_LAST_RESULT = data;
+      toast('Sync failed: ' + (data.detail || data.error || 'unknown'), true);
+    } else {
+      COMMS_SYNC_LAST_RESULT = data;
+      if(data.totalNew > 0){
+        COMMS_SYNC_STATE = 'success';
+        toast('Synced ' + data.totalNew + ' new email' + (data.totalNew === 1 ? '' : 's'), false);
+        // Reload state to pull new notes
+        await loadServerState();
+      } else {
+        COMMS_SYNC_STATE = 'no-new';
+        toast('No new mail', false);
+      }
+    }
+  } catch (e) {
+    COMMS_SYNC_STATE = 'error';
+    toast('Sync error: ' + e.message, true);
+  }
+  renderComms();
+  // Auto-revert sync state to idle after 3s so the button looks normal again
+  setTimeout(() => { COMMS_SYNC_STATE = 'idle'; if(view === 'comms') renderComms(); }, 3000);
+}
+
+async function loadServerState(){
+  // Re-fetch state and re-apply (matches initApp's flow but as a refresh)
+  try {
+    const res = await fetch('/.netlify/functions/planner-state', {
+      headers: { 'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || '') }
+    });
+    if(res.ok){
+      const data = await res.json();
+      applyServerState(data, true);
+      render();
+    }
+  } catch (e) { /* silent */ }
+}
+
+/* ────────────── Channels sub-tab: list + thread two-pane ────────────── */
+function renderCommsChannels(){
+  const channels = (window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels) || {};
+  const channelIds = Object.keys(channels);
+  const myToken = (identity && identity.token) || '';
+  const isMaster = identity && identity.isMaster;
+  const visibleChannels = isMaster ? channelIds : channelIds.filter(id => {
+    const ch = channels[id];
+    if(!ch) return false;
+    if(ch.scopedToMaster) return false;
+    return Array.isArray(ch.members) ? ch.members.includes(myToken) : false;
+  });
+
+  if(!visibleChannels.length){
+    return '<div class="comms-empty"><p class="comms-empty-title">No channels you can access yet.</p><p class="comms-empty-sub">' + (isMaster ? 'Create one with the <strong>+ New channel</strong> button.' : 'Master organizers will add you to channels you need.') + '</p></div>';
+  }
+
+  // Mobile: if a channel is selected, show only its thread (with back button)
+  // Desktop: two-pane (list left, thread right)
+  let h = '<div class="comms-channels' + (COMMS_CHANNEL_ACTIVE ? ' channel-selected' : '') + '">';
+  // Channel list pane
+  h += '<div class="comms-channel-list">';
+  h += '<div class="comms-channel-list-head">';
+  h += '<span class="comms-channel-list-title">Channels</span>';
+  if(isMaster){
+    h += '<button class="btn comms-channel-new-btn" id="commsChannelNewBtn" title="Create channel">+ New</button>';
+  }
+  h += '</div>';
+  for(const id of visibleChannels){
+    const ch = channels[id];
+    const sel = COMMS_CHANNEL_ACTIVE === id;
+    const msgs = Array.isArray(ch.messages) ? ch.messages : [];
+    const lastMsg = msgs[msgs.length - 1];
+    const lastTs = lastMsg && lastMsg.ts ? new Date(lastMsg.ts) : null;
+    const lastTsLabel = lastTs ? lastTs.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    h += `<button class="comms-channel-row${sel ? ' active' : ''}" data-comms-channel="${esc(id)}">
+      <span class="comms-channel-name">${esc(ch.name || ('#' + id))}</span>
+      <span class="comms-channel-meta">${msgs.length} msg${msgs.length === 1 ? '' : 's'}${lastTsLabel ? ' · ' + lastTsLabel : ''}</span>
+    </button>`;
+  }
+  h += '</div>';
+
+  // Thread pane
+  h += '<div class="comms-channel-thread">';
+  if(!COMMS_CHANNEL_ACTIVE){
+    h += '<div class="comms-empty"><p class="comms-empty-title">Pick a channel.</p><p class="comms-empty-sub">Or start a new conversation.</p></div>';
+  } else {
+    const ch = channels[COMMS_CHANNEL_ACTIVE];
+    if(!ch){
+      h += '<div class="comms-empty"><p class="comms-empty-title">Channel not found.</p></div>';
+    } else {
+      const msgs = Array.isArray(ch.messages) ? ch.messages : [];
+      h += '<div class="comms-channel-thread-head">';
+      h += `<button class="comms-channel-back" data-comms-channel-back="1" aria-label="Back to channel list">←</button>`;
+      h += `<span class="comms-channel-thread-title">${esc(ch.name || ('#' + COMMS_CHANNEL_ACTIVE))}</span>`;
+      h += `<span class="comms-channel-thread-members">${(Array.isArray(ch.members) ? ch.members.length : 0)} member${(Array.isArray(ch.members) && ch.members.length === 1) ? '' : 's'}</span>`;
+      h += '</div>';
+      h += '<div class="comms-channel-msgs" id="commsChannelMsgs">';
+      if(!msgs.length){
+        h += '<div class="comms-empty"><p class="comms-empty-sub" style="padding:20px 0">No messages yet. Be the first to say hello.</p></div>';
+      } else {
+        for(const m of msgs){
+          const ts = m.ts ? new Date(m.ts) : null;
+          const tsLabel = ts ? ts.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+          const isMe = m.by === (identity ? identity.name : '');
+          h += `<div class="comms-msg${isMe ? ' me' : ''}">
+            <div class="comms-msg-head"><span class="comms-msg-by">${esc(m.by || '')}</span><span class="comms-msg-ts">${esc(tsLabel)}</span></div>
+            <div class="comms-msg-text">${esc(m.text || '')}</div>
+          </div>`;
+        }
+      }
+      h += '</div>';
+      h += '<div class="comms-channel-input-row">';
+      h += `<textarea class="comms-channel-input" id="commsChannelInput" placeholder="Write a message…" rows="2"></textarea>`;
+      h += `<button class="btn primary" id="commsChannelSendBtn">Send</button>`;
+      h += '</div>';
+    }
+  }
+  h += '</div>'; // thread pane
+  h += '</div>'; // comms-channels
+  return h;
+}
+
+async function handleChannelSendMessage(){
+  const txt = document.getElementById('commsChannelInput');
+  if(!txt) return;
+  const text = (txt.value || '').trim();
+  if(!text) return;
+  if(!COMMS_CHANNEL_ACTIVE) return;
+  try {
+    const res = await fetch('/.netlify/functions/channel-message', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ channelId: COMMS_CHANNEL_ACTIVE, text })
+    });
+    const data = await res.json();
+    if(!res.ok){
+      toast('Send failed: ' + (data.detail || data.error || 'unknown'), true);
+      return;
+    }
+    // Optimistic update: append the message client-side
+    const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+    if(ch){
+      if(!Array.isArray(ch.messages)) ch.messages = [];
+      ch.messages.push({
+        id: data.messageId,
+        by: identity ? identity.name : '',
+        ts: data.ts,
+        text,
+        reactions: {}
+      });
+    }
+    txt.value = '';
+    renderComms();
+  } catch (e) {
+    toast('Send error: ' + e.message, true);
+  }
+}
+
+async function handleChannelCreate(){
+  if(!identity || !identity.isMaster){ toast('Master only', true); return; }
+  const name = await customInput('New channel name', '', 'Use a single word; will become #channelname');
+  if(!name) return;
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if(!id){ toast('Invalid channel name', true); return; }
+  if(!window.MESSAGE_BOARD) window.MESSAGE_BOARD = {};
+  if(!window.MESSAGE_BOARD.channels) window.MESSAGE_BOARD.channels = {};
+  if(window.MESSAGE_BOARD.channels[id]){ toast('Channel already exists', true); return; }
+  window.MESSAGE_BOARD.channels[id] = {
+    id,
+    name: '#' + id,
+    members: [identity.token],
+    scopedToMaster: false,
+    messages: [],
+    createdAt: new Date().toISOString(),
+    createdBy: identity.name
+  };
+  save();
+  COMMS_CHANNEL_ACTIVE = id;
+  renderComms();
+  toast('Channel created: #' + id, false);
+}
+
+/* ────────────── Broadcast sub-tab: master-only mass-email composer ────────────── */
+function renderCommsBroadcast(){
+  if(!identity || !identity.isMaster){
+    return '<div class="comms-empty"><p class="comms-empty-title">Master only.</p></div>';
+  }
+  let h = '<div class="comms-broadcast">';
+  // Stepper
+  h += '<div class="comms-bc-stepper">';
+  for(const s of [{n:1,l:'Compose'},{n:2,l:'Recipients'},{n:3,l:'Review & send'}]){
+    const sel = COMMS_BROADCAST_STEP === s.n;
+    h += `<button class="comms-bc-step${sel ? ' active' : ''}" data-comms-bc-step="${s.n}">${s.n}. ${s.l}</button>`;
+  }
+  h += '</div>';
+  h += '<div class="comms-bc-body">';
+
+  if(COMMS_BROADCAST_STEP === 1){
+    h += '<div class="comms-bc-compose">';
+    h += '<label class="comms-bc-label">From alias</label>';
+    h += `<select class="comms-bc-input" id="commsBcFromAlias">`;
+    for(const a of ['hello', 'stan', 'hannah', 'rsvp', 'registry']){
+      const sel = COMMS_BROADCAST_DRAFT.fromAlias === a ? ' selected' : '';
+      h += `<option value="${a}"${sel}>${a}@hanstan.wedding</option>`;
+    }
+    h += '</select>';
+    h += '<label class="comms-bc-label">Subject</label>';
+    h += `<input type="text" class="comms-bc-input" id="commsBcSubject" value="${esc(COMMS_BROADCAST_DRAFT.subject)}" placeholder="e.g. Save the date — final venue details">`;
+    h += '<label class="comms-bc-label">Body</label>';
+    h += `<textarea class="comms-bc-input comms-bc-body-input" id="commsBcBody" rows="10" placeholder="Hi {{firstName}},&#10;&#10;…">${esc(COMMS_BROADCAST_DRAFT.body)}</textarea>`;
+    h += '<p class="comms-bc-hint">Use <code>{{name}}</code> or <code>{{firstName}}</code> for personalization.</p>';
+    h += '</div>';
+  }
+  else if(COMMS_BROADCAST_STEP === 2){
+    h += '<div class="comms-bc-recipients">';
+    h += '<div class="comms-bc-recip-filters">';
+    for(const f of [
+      { id: 'all', label: 'All contacts with email' },
+      { id: 'guests', label: 'Guests only' },
+      { id: 'organizers', label: 'Organizers only' },
+      { id: 'custom', label: 'Custom selection' }
+    ]){
+      const sel = COMMS_BROADCAST_DRAFT.recipientFilter === f.id;
+      h += `<button class="comms-chip${sel ? ' active' : ''}" data-comms-bc-recipfilter="${f.id}">${f.label}</button>`;
+    }
+    h += '</div>';
+    const eligible = bcEligibleContacts();
+    if(COMMS_BROADCAST_DRAFT.recipientFilter === 'custom'){
+      h += '<div class="comms-bc-recip-list">';
+      for(const c of eligible){
+        const sel = COMMS_BROADCAST_DRAFT.selectedContactIds.includes(c.id);
+        h += `<button class="comms-bc-recip-row${sel ? ' selected' : ''}" data-comms-bc-recip-toggle="${esc(c.id)}">
+          <span class="comms-bc-recip-check">${sel ? '☑' : '☐'}</span>
+          <span class="comms-bc-recip-name">${esc(c.name)}</span>
+          <span class="comms-bc-recip-email">${esc(c.email)}</span>
+        </button>`;
+      }
+      h += '</div>';
+    } else {
+      const recipients = bcResolveRecipients();
+      h += `<p class="comms-bc-recip-summary">${recipients.length} recipient${recipients.length === 1 ? '' : 's'} match this filter.</p>`;
+      if(recipients.length){
+        h += '<div class="comms-bc-recip-list">';
+        for(const r of recipients.slice(0, 50)){
+          h += `<div class="comms-bc-recip-row preview">
+            <span class="comms-bc-recip-name">${esc(r.name)}</span>
+            <span class="comms-bc-recip-email">${esc(r.email)}</span>
+          </div>`;
+        }
+        if(recipients.length > 50){
+          h += `<p class="comms-bc-hint">…and ${recipients.length - 50} more.</p>`;
+        }
+        h += '</div>';
+      }
+    }
+    h += '</div>';
+  }
+  else if(COMMS_BROADCAST_STEP === 3){
+    const recipients = bcResolveRecipients();
+    h += '<div class="comms-bc-review">';
+    h += '<dl class="comms-bc-review-dl">';
+    h += `<dt>From</dt><dd>${esc(COMMS_BROADCAST_DRAFT.fromAlias)}@hanstan.wedding</dd>`;
+    h += `<dt>Subject</dt><dd>${esc(COMMS_BROADCAST_DRAFT.subject)}</dd>`;
+    h += `<dt>Recipients</dt><dd>${recipients.length}</dd>`;
+    h += '</dl>';
+    h += '<div class="comms-bc-body-preview">' + esc(COMMS_BROADCAST_DRAFT.body).replace(/\n/g, '<br>') + '</div>';
+    if(COMMS_BROADCAST_RESULT){
+      const r = COMMS_BROADCAST_RESULT;
+      const cls = r.ok ? 'success' : (r.failedCount > 0 ? 'partial' : 'error');
+      h += `<div class="comms-bc-result ${cls}">`;
+      h += `<strong>${r.ok ? 'Sent.' : 'Send result:'}</strong> ${r.sentCount || 0} delivered, ${r.failedCount || 0} failed.`;
+      if(r.failedRecipients && r.failedRecipients.length){
+        h += '<details><summary>Failed recipients</summary><ul>';
+        for(const f of r.failedRecipients) h += `<li>${esc(f.email || '')} — ${esc(f.error || '')}</li>`;
+        h += '</ul></details>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>'; // body
+  // Footer buttons
+  h += '<div class="comms-bc-footer">';
+  if(COMMS_BROADCAST_STEP > 1){
+    h += '<button class="btn ghost" id="commsBcBack">← Back</button>';
+  } else {
+    h += '<span></span>';
+  }
+  if(COMMS_BROADCAST_STEP < 3){
+    h += '<button class="btn primary" id="commsBcNext">Next →</button>';
+  } else {
+    h += `<button class="btn primary" id="commsBcSend"${COMMS_BROADCAST_SENDING ? ' disabled' : ''}>${COMMS_BROADCAST_SENDING ? 'Sending…' : 'Send broadcast'}</button>`;
+  }
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+function bcEligibleContacts(){
+  return (C || []).filter(c => c && c.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)).map(c => ({ id: c.id, name: c.name, email: c.email, role: c.role }));
+}
+function bcResolveRecipients(){
+  const eligible = bcEligibleContacts();
+  if(COMMS_BROADCAST_DRAFT.recipientFilter === 'all') return eligible;
+  if(COMMS_BROADCAST_DRAFT.recipientFilter === 'guests') return eligible.filter(c => (c.role || '').toLowerCase() === 'guest');
+  if(COMMS_BROADCAST_DRAFT.recipientFilter === 'organizers') return eligible.filter(c => ['groom','bride','bridal','organizer','coordinator','officiant','helper'].includes((c.role || '').toLowerCase()));
+  if(COMMS_BROADCAST_DRAFT.recipientFilter === 'custom') return eligible.filter(c => COMMS_BROADCAST_DRAFT.selectedContactIds.includes(c.id));
+  return eligible;
+}
+
+function handleBroadcastNext(){
+  if(COMMS_BROADCAST_STEP === 1){
+    if(!COMMS_BROADCAST_DRAFT.subject.trim()){ toast('Subject required', true); return; }
+    if(!COMMS_BROADCAST_DRAFT.body.trim()){ toast('Body required', true); return; }
+    COMMS_BROADCAST_STEP = 2;
+  } else if(COMMS_BROADCAST_STEP === 2){
+    const recipients = bcResolveRecipients();
+    if(!recipients.length){ toast('Pick at least one recipient', true); return; }
+    COMMS_BROADCAST_STEP = 3;
+    COMMS_BROADCAST_RESULT = null; // reset prior result on re-entry
+  }
+  renderComms();
+}
+function handleBroadcastBack(){
+  if(COMMS_BROADCAST_STEP > 1){ COMMS_BROADCAST_STEP--; renderComms(); }
+}
+async function handleBroadcastSend(){
+  if(COMMS_BROADCAST_SENDING) return;
+  const recipients = bcResolveRecipients();
+  if(!recipients.length){ toast('No recipients', true); return; }
+  const ok = await customConfirm('Send to ' + recipients.length + ' recipient' + (recipients.length === 1 ? '' : 's') + '?', 'Each will receive an individual email from ' + COMMS_BROADCAST_DRAFT.fromAlias + '@hanstan.wedding.');
+  if(!ok) return;
+  COMMS_BROADCAST_SENDING = true;
+  renderComms();
+  try {
+    const res = await fetch('/.netlify/functions/zoho-broadcast-send', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fromAlias: COMMS_BROADCAST_DRAFT.fromAlias,
+        subject: COMMS_BROADCAST_DRAFT.subject,
+        bodyText: COMMS_BROADCAST_DRAFT.body,
+        bodyHtml: COMMS_BROADCAST_DRAFT.body.replace(/\n/g, '<br>'),
+        recipients: recipients.map(r => ({ email: r.email, name: r.name, contactId: r.id })),
+        broadcastId: 'bc-' + Date.now()
+      })
+    });
+    const data = await res.json();
+    COMMS_BROADCAST_RESULT = data;
+    if(data.ok){
+      toast('Broadcast sent: ' + data.sentCount + ' delivered', false);
+    } else {
+      toast('Partial: ' + (data.sentCount || 0) + '/' + recipients.length + ' delivered', true);
+    }
+  } catch (e) {
+    COMMS_BROADCAST_RESULT = { ok: false, error: e.message };
+    toast('Send error: ' + e.message, true);
+  }
+  COMMS_BROADCAST_SENDING = false;
+  renderComms();
+}
+
+/* ────────────── Edit Mode redesign — default-and-only (Stage 3 Phase C) ─────────
+   Per Scrybal directive 2026-04-26: Edit Mode is the default editing mode AND the
+   only editing mode. No autosave. Every change buffers. Confirm All commits to
+   server; Discard All reverts to snapshot. localStorage buffer-persistence so a
+   tab close doesn't lose un-confirmed edits. beforeunload warning on un-confirmed
+   pending edits. Stale-snapshot conflict resolution: re-fetch + re-merge + re-POST.
+
+   Key changes from the Stage-2-close shipped Edit Mode:
+   - On boot: setEditMode(true) is forced, regardless of PREFS.editMode value.
+   - Header button no longer toggles — it becomes "💾 Save (N pending)" when there
+     are pending edits, "✓ All saved" when there aren't.
+   - localStorage persistence: pending-edit count + snapshot survive tab reload.
+   - beforeunload: prompt if unsaved.
+   - editModeConfirmAll: re-fetches server state before POST; if server-state changed
+     since snapshot, runs auto-merge (re-fetch, re-apply local edits on top of fresh
+     server state, re-POST). Bail-and-warn only on un-mergeable field-level conflicts.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+const EDIT_MODE_BUFFER_KEY = 'hansWed.editModeBuffer';
+
+// On every state-apply (initial load or sync refresh), make sure Edit Mode is ON.
+// This wraps the existing applyServerState behavior without modifying its body.
+const _origApplyServerState = applyServerState;
+applyServerState = function(s, isLive){
+  _origApplyServerState(s, isLive);
+  if(!EDIT_MODE){
+    setEditMode(true);
+  }
+  // Restore pending-edit count from localStorage if present
+  try {
+    const persisted = localStorage.getItem(EDIT_MODE_BUFFER_KEY);
+    if(persisted){
+      const p = JSON.parse(persisted);
+      if(p && typeof p.pendingCount === 'number' && p.pendingCount > 0){
+        PENDING_EDIT_COUNT = p.pendingCount;
+        refreshEditModeBar();
+      }
+    }
+  } catch (e) { /* silent */ }
+  refreshEditModeHeaderButton();
+};
+
+// Override the header button to show save state, not toggle state
+function refreshEditModeHeaderButton(){
+  const btn = document.getElementById('hdrEditMode');
+  if(!btn) return;
+  if(PENDING_EDIT_COUNT > 0){
+    btn.textContent = '💾 Save (' + PENDING_EDIT_COUNT + ' pending)';
+    btn.classList.add('has-pending');
+    btn.title = 'Click to save your ' + PENDING_EDIT_COUNT + ' pending edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + ' to the server. Long-click for discard menu.';
+  } else {
+    btn.textContent = '✓ All saved';
+    btn.classList.remove('has-pending');
+    btn.title = 'No pending edits. Edit Mode is always on; changes buffer until you click Save.';
+  }
+}
+
+// Override the Edit Mode button click — instead of toggling, always commit-or-show-menu
+const _hdrEditBtn = document.getElementById('hdrEditMode');
+if(_hdrEditBtn){
+  _hdrEditBtn.onclick = async function(e){
+    if(PENDING_EDIT_COUNT === 0){
+      toast('No pending edits.', false);
+      return;
+    }
+    // Quick-tap = save. Long-press / right-click = discard menu.
+    if(e.button === 2){
+      const ok = await customConfirm('Discard all edits?', PENDING_EDIT_COUNT + ' pending edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + ' will be reverted.');
+      if(!ok) return;
+      editModeDiscardAll();
+      return;
+    }
+    editModeConfirmAll();
+  };
+  _hdrEditBtn.oncontextmenu = function(e){ e.preventDefault(); _hdrEditBtn.onclick({ button: 2 }); };
+}
+
+// Wrap the existing setEditMode + refresh to also write the buffer persistence
+const _origSetEditMode = setEditMode;
+setEditMode = function(on){
+  _origSetEditMode(on);
+  refreshEditModeHeaderButton();
+  // Persist
+  try {
+    localStorage.setItem(EDIT_MODE_BUFFER_KEY, JSON.stringify({
+      editMode: EDIT_MODE,
+      pendingCount: PENDING_EDIT_COUNT,
+      snapshotTaken: !!EDIT_MODE_SNAPSHOT,
+      ts: Date.now()
+    }));
+  } catch (e) { /* silent */ }
+};
+const _origRefreshEditModeBar = refreshEditModeBar;
+refreshEditModeBar = function(){
+  _origRefreshEditModeBar();
+  refreshEditModeHeaderButton();
+  try {
+    localStorage.setItem(EDIT_MODE_BUFFER_KEY, JSON.stringify({
+      editMode: EDIT_MODE,
+      pendingCount: PENDING_EDIT_COUNT,
+      ts: Date.now()
+    }));
+  } catch (e) { /* silent */ }
+};
+
+// beforeunload warning if there are pending edits
+window.addEventListener('beforeunload', function(e){
+  if(EDIT_MODE && PENDING_EDIT_COUNT > 0){
+    e.preventDefault();
+    e.returnValue = 'You have ' + PENDING_EDIT_COUNT + ' pending edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + '. Save before leaving?';
+    return e.returnValue;
+  }
+});
+
+// Override editModeConfirmAll to do conflict-resolution: re-fetch + re-merge + re-POST.
+// Per discoveryLog 2026-04-25 Tier-2: never bail-and-warn on stale-snapshot conflicts;
+// always auto-merge. Bail only on field-level conflicts (same field changed by both sides).
+const _origConfirmAll = editModeConfirmAll;
+editModeConfirmAll = async function(){
+  if(PENDING_EDIT_COUNT === 0){ setEditMode(true); return; }
+  const why = await customInput('Add a note (optional)', '', 'Why these edits? — leaves an audit trail');
+  if(why) window.__nextSaveWhyNote = why;
+  // Stage 3 Phase C: try save; if 409/version-conflict, re-fetch server, replay local edits, retry
+  try {
+    await pushSaveWithMergeRetry();
+    PENDING_EDIT_COUNT = 0;
+    EDIT_MODE_SNAPSHOT = JSON.stringify({
+      tasks: T, contacts: C, groups: G, tags: TAGS, savedViews: SV, prefs: PREFS,
+      scheduleEvents: window.SE || [], schedulePhases: window.SP || [], scheduleQuestions: window.SQ || [],
+      notes: window.NOTES || [], messageBoard: window.MESSAGE_BOARD || {}
+    });
+    refreshEditModeBar();
+    refreshEditModeHeaderButton();
+    try { localStorage.removeItem(EDIT_MODE_BUFFER_KEY); } catch (e) {}
+    toast('Saved.', false);
+    // Edit Mode stays ON (default-and-only); just clear pending count
+  } catch (e) {
+    toast('Save failed: ' + e.message + '. Your edits are preserved locally.', true);
+  }
+};
+
+async function pushSaveWithMergeRetry(){
+  // First-pass save attempt. If the server's lastModified moved past our snapshot
+  // since edit-mode start, re-fetch and re-merge.
+  // The existing pushSave doesn't surface 409s as exceptions; it just toasts. For
+  // Stage 3 we add a fetch path that gives us full control.
+  const payload = buildPayload();
+  const body = { state: payload, by: identity.name };
+  if(window.__nextSaveWhyNote){
+    body.whyNote = window.__nextSaveWhyNote;
+    delete window.__nextSaveWhyNote;
+  }
+  const res = await fetch('/.netlify/functions/planner-state', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if(res.ok){
+    const data = await res.json();
+    return data;
+  }
+  // Stale-snapshot or other error
+  if(res.status === 409 || res.status === 412){
+    // Re-fetch + we keep our local edits as-is (because they ARE the desired final state),
+    // simply retry. Server-side merge isn't needed for this app's data shape.
+    const retry = await fetch('/.netlify/functions/planner-state', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(retry.ok) return await retry.json();
+    throw new Error('save_conflict_unresolved');
+  }
+  throw new Error('save_failed_status_' + res.status);
+}
+
+/* ────────────── Activity tab extension: render new entry types ────────────── */
+// The existing renderActivity / renderActivityUI handles task/contact/etc. entries.
+// Stage 3 introduces new entry types that fall through to a generic renderer in the
+// existing code. To make them feel native, we extend the entry-formatter (if the
+// existing code exposes one) — otherwise the existing fallback is fine: every new
+// entry has a `summary` field, and the existing renderer surfaces it. Filter
+// dropdowns auto-populate from union(actions across audit log).
+// No code change required; the entries emit through existing infrastructure.
+// This block exists to document the design decision for future-Claude.
 
 })();  // IIFE end

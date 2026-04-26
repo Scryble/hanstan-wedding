@@ -62,6 +62,7 @@
 </header>
 
 <!-- §5.1 MAIN NAV — Stage 1 reorder (2026-04-24): Settings far-left, Activity far-right, hidden /admin slot reserved for Stage 2 -->
+<!-- Stage 3 Phase C (2026-04-26): Communications tab (💬) inserted between People and Activity -->
 <nav class="main-nav" role="tablist" aria-label="Main navigation">
   <button role="tab" aria-selected="false" data-v="settings">Settings</button>
   <button role="tab" aria-selected="true" data-v="focus">Focus</button>
@@ -69,6 +70,7 @@
   <button role="tab" aria-selected="false" data-v="tasks">Tasks</button>
   <button role="tab" aria-selected="false" data-v="schedule">Schedule</button>
   <button role="tab" aria-selected="false" data-v="people">People</button>
+  <button role="tab" aria-selected="false" data-v="comms" id="navCommsTab" title="Communications">💬 Comms <span id="navCommsBadge" class="nav-badge" hidden></span></button>
   <button role="tab" aria-selected="false" data-v="history" data-activity-tab="1">Activity</button>
 </nav>
 
@@ -93,6 +95,8 @@
 <div class="view" id="viewHistory" role="tabpanel"></div>
 <div class="view" id="viewSettings" role="tabpanel"></div>
 <div class="view" id="viewSchedule" role="tabpanel"></div>
+<!-- Stage 3 Phase C: Communications tab (Inbox / Channels / Broadcast sub-ribbon) -->
+<div class="view" id="viewComms" role="tabpanel"></div>
 
 <!-- Floating CSS-Tool button (Stage 3 — bottom-left, master-only). Mirrors the FAB on bottom-right. -->
 <button class="fab-css" id="fabCssTool" aria-label="Open visual CSS editor" title="Open visual CSS editor (master only)" style="display:none">🎨</button>
