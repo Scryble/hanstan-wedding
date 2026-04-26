@@ -1494,13 +1494,9 @@ function taskBelongsToGroup(t, g){
   return false;
 }
 
-/* Quick Task tab predicate — Stage 2 Phase C, PL-40. Tasks tagged "quick" or "note"
-   (FAB Note button creates with the "note" tag) appear in Quick Task tab + a
-   Quick Tasks subheader at the bottom of All Tasks. */
-function isQuickTask(t){
-  if(!t || !Array.isArray(t.tags)) return false;
-  return t.tags.includes('quick') || t.tags.includes('note');
-}
+/* (Quick Task virtual tab removed in Stage-2-close trailing commit per Scrybal —
+   the dedicated tab in the group ribbon was clutter; quick-add tasks already
+   appear in All. The isQuickTask predicate that supported it is gone too.) */
 
 /* Constraint lookup — Stage 2 Phase C, PL-03 + PL-48. Resolves a chip name to
    contacts[].constraints[] from PEOPLE. Case-insensitive exact-token match;
