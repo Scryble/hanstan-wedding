@@ -42,6 +42,11 @@ var ELTYPES=[
 ];
 
 if(loc('panel')||sessionStorage.getItem(OK)==='1')go();
+// Stage 3 (2026-04-26): expose go() + tog() on window so the planner header CSS-tool
+// button (master-only) can invoke them. Triple-tap-bottom-right + Ctrl-Shift-P shortcuts
+// continue to work as before.
+window.veGo = function(){ go(); };
+window.veToggle = function(){ S.on ? tog() : go(); };
 document.addEventListener('keydown',function(e){
   if(e.ctrlKey&&e.shiftKey&&e.key==='P'){e.preventDefault();S.on?tog():go();}
   if(S.on&&e.ctrlKey&&e.key==='z'){e.preventDefault();undo();}

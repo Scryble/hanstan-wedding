@@ -242,6 +242,63 @@ function diffScheduleQuestions(prev, next, by, whyNote) {
   return entries;
 }
 
+function diffNotes(prev, next, by, whyNote) {
+  // Stage 3 (2026-04-26): notes are an inbox of free-form messages from anyone with a token.
+  // Schema: {id, text, by, ts, status: 'unread'|'read'|'converted'|'archived', convertedTo?, channel?}.
+  // Diff-by-id pattern (parallel to scheduleEvents/scheduleQuestions). Status transitions emit
+  // dedicated entries so Communications-tab activity log is rich.
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pm = new Map((prev || []).map(n => [n.id, n]));
+  const nm = new Map((next || []).map(n => [n.id, n]));
+  for (const [id, n] of nm) {
+    if (!pm.has(id)) {
+      const ent = { ts, by, entity: "note", action: "note.create", target: id, summary: "Note added: " + (n.text || "").slice(0, 80) + " (by " + (n.by || "unknown") + ")" };
+      if (whyNote) ent.why = whyNote;
+      entries.push(ent);
+      continue;
+    }
+    const p = pm.get(id);
+    if (p.status !== n.status) {
+      const ent = { ts, by, entity: "note", action: "note.status", target: id, field: "status", from: p.status, to: n.status, summary: "Note " + id.slice(0, 12) + ": " + p.status + " → " + n.status };
+      if (whyNote) ent.why = whyNote;
+      entries.push(ent);
+    }
+    if ((p.text || "") !== (n.text || "")) {
+      const ent = { ts, by, entity: "note", action: "note.update", target: id, field: "text", summary: "Note text edited: " + (n.text || "").slice(0, 80) };
+      if (whyNote) ent.why = whyNote;
+      entries.push(ent);
+    }
+    if ((p.convertedTo || "") !== (n.convertedTo || "") && n.convertedTo) {
+      const ent = { ts, by, entity: "note", action: "note.convert", target: id, field: "convertedTo", to: n.convertedTo, summary: "Note converted to task " + n.convertedTo };
+      if (whyNote) ent.why = whyNote;
+      entries.push(ent);
+    }
+  }
+  for (const [id, p] of pm) if (!nm.has(id)) {
+    const ent = { ts, by, entity: "note", action: "note.delete", target: id, summary: "Note removed: " + (p.text || "").slice(0, 80) };
+    if (whyNote) ent.why = whyNote;
+    entries.push(ent);
+  }
+  return entries;
+}
+
+function diffMessageBoard(prev, next, by, whyNote) {
+  // Stage 3 (2026-04-26): messageBoard is a free-form object whose schema will lock when
+  // the Communications tab ships. Stub differ: emit a single 'messageBoard.update' entry
+  // when the JSON-stringified shape changes. Stage 3 will replace this with channel-by-channel
+  // and message-by-message diffs once the schema is concrete.
+  const ts = new Date().toISOString();
+  const entries = [];
+  const pStr = JSON.stringify(prev || {});
+  const nStr = JSON.stringify(next || {});
+  if (pStr === nStr) return entries;
+  const ent = { ts, by, entity: "messageBoard", action: "messageBoard.update", target: "messageBoard", summary: "Message-board state updated (schema-stub diff; Stage 3 will replace with channel/message-level diffs)" };
+  if (whyNote) ent.why = whyNote;
+  entries.push(ent);
+  return entries;
+}
+
 function diffCoordinators(prev, next, by, whyNote) {
   // Coordinators shape: { [token]: { name, isMaster, addedAt, addedBy, scopedEntities? } }
   const ts = new Date().toISOString();
@@ -314,8 +371,16 @@ const DIFFERS = {
   scheduleEvents: diffScheduleEvents,
   schedulePhases: diffSchedulePhases,
   scheduleQuestions: diffScheduleQuestions,
-  coordinators: diffCoordinators
+  coordinators: diffCoordinators,
+  // Stage 3 (2026-04-26): pre-stage notes + messageBoard differs. Communications tab consumes
+  // these entry types when it ships.
+  notes: diffNotes,
+  messageBoard: diffMessageBoard
 };
+
+// Default empty-value per entity type (object for object-shaped state slices, array otherwise).
+// Stage 3 added messageBoard which is object-shaped (free-form schema).
+const OBJECT_TYPED_KEYS = new Set(["coordinators", "messageBoard"]);
 
 function diffStates(prev, next, by, whyNote) {
   // Unified entry point. Iterates DIFFERS registry; each differ handles its entity type.
@@ -323,7 +388,7 @@ function diffStates(prev, next, by, whyNote) {
   // `whyNote` (optional) propagates to every emitted entry as `why`.
   const all = [];
   for (const [key, fn] of Object.entries(DIFFERS)) {
-    const empty = key === "coordinators" ? {} : [];
+    const empty = OBJECT_TYPED_KEYS.has(key) ? {} : [];
     const result = fn(prev[key] || empty, next[key] || empty, by, whyNote);
     all.push(...result);
   }

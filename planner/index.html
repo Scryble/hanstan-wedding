@@ -55,6 +55,7 @@
   <div class="hdr-row2 hdr-meta-row" style="justify-content:center;gap:18px;margin-top:6px">
     <div class="hdr-sync" id="hdrSync">Loading…</div>
     <span class="who" id="hdrWho" hidden></span>
+    <button class="signout" id="hdrEditMode" title="Edit Mode buffers all your changes until you click Confirm All in the bottom bar — safer for mobile editing">✏️ Edit Mode: OFF</button>
     <button class="signout" id="hdrDesignFix" title="Toggle audited design-fix layer (off = original Rivendell Garden v1)">Design Fix: OFF</button>
     <button class="signout" id="hdrSignout">Sign out</button>
   </div>
@@ -93,13 +94,16 @@
 <div class="view" id="viewSettings" role="tabpanel"></div>
 <div class="view" id="viewSchedule" role="tabpanel"></div>
 
+<!-- Floating CSS-Tool button (Stage 3 — bottom-left, master-only). Mirrors the FAB on bottom-right. -->
+<button class="fab-css" id="fabCssTool" aria-label="Open visual CSS editor" title="Open visual CSS editor (master only)" style="display:none">🎨</button>
+
 <!-- Floating + button (Stage 1 Phase C — now 5 buttons: Quick Add, Full Add, Note, Person, Event) -->
 <div class="fab-menu" id="fabMenu" role="menu">
-  <button id="fabQuickAdd" role="menuitem"><span class="fab-ico">⚡</span>Quick add</button>
-  <button id="fabFullAdd" role="menuitem"><span class="fab-ico">✎</span>Full add…</button>
-  <button id="fabAddNote" role="menuitem"><span class="fab-ico">📝</span>Note</button>
-  <button id="fabAddPerson" role="menuitem"><span class="fab-ico">👤</span>Person</button>
-  <button id="fabAddEvent" role="menuitem"><span class="fab-ico">📅</span>Event</button>
+  <button id="fabQuickAdd" role="menuitem" aria-label="Quick add" title="Quick add"><span class="fab-ico">⚡</span></button>
+  <button id="fabFullAdd" role="menuitem" aria-label="Full add" title="Full add…"><span class="fab-ico">✎</span></button>
+  <button id="fabAddNote" role="menuitem" aria-label="Note" title="Note"><span class="fab-ico">📝</span></button>
+  <button id="fabAddPerson" role="menuitem" aria-label="Person" title="Person"><span class="fab-ico">👤</span></button>
+  <button id="fabAddEvent" role="menuitem" aria-label="Event" title="Event"><span class="fab-ico">📅</span></button>
 </div>
 <button class="fab-add" id="fabAdd" aria-label="Add task" aria-haspopup="menu" aria-expanded="false">+</button>
 

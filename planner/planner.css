@@ -3393,3 +3393,115 @@ body.edit-mode-on .task-card { box-shadow: 0 0 0 1.5px var(--gold-soft, #e9d59f)
   vertical-align: middle;
   font-size: 0;
 }
+
+/* ════════════════ STAGE 3 (Stage 2 close adjustments, 2026-04-26) ════════════════ */
+
+/* Center-justify schedule dashboard stats + phase nav */
+.sched-dash-row { justify-content: center; }
+.sched-phase-nav { justify-content: center; }
+body.design-fix .sched-phase-nav { justify-content: center; }
+
+/* Floating CSS-Tool button — bottom-left, master-only (mirrors FAB on bottom-right). */
+.fab-css {
+  position: fixed; left: 20px; bottom: 20px; z-index: 60;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--card, #fff); color: var(--gold-dark, #8a7345);
+  border: 1px solid var(--gold, #bfa162);
+  font-size: 22px; line-height: 1; cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  transition: transform var(--transition, 0.18s ease), box-shadow var(--transition, 0.18s ease);
+  display: flex; align-items: center; justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  opacity: 0.85;
+}
+.fab-css:hover {
+  background: var(--gold-fill, #f7e9b8);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(0,0,0,0.2);
+  opacity: 1;
+}
+
+/* Schedule-event row + button (consolidates warning/materials/+person/+note/+details) */
+.sched-row-add {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--card, #fff); color: var(--gold-dark, #8a7345);
+  border: 1px solid var(--divider, #ddd);
+  font-size: 16px; line-height: 1;
+  cursor: pointer; padding: 0;
+  margin-left: 6px;
+}
+.sched-row-add:hover { background: var(--gold-fill, #f7e9b8); border-color: var(--gold, #bfa162); }
+.sched-row-warn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--s-overdue-bg, #fde8e8); color: var(--s-overdue, #b94a4a);
+  border: 1px solid var(--s-overdue, #b94a4a);
+  font-size: 14px; line-height: 1;
+  cursor: pointer; padding: 0;
+  margin-left: 6px;
+  position: relative;
+}
+.sched-row-warn-count {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 14px; height: 14px;
+  padding: 0 3px;
+  background: var(--s-overdue, #b94a4a); color: #fff;
+  border-radius: 7px;
+  font-size: 9px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sched-row-warn:hover { background: var(--s-overdue, #b94a4a); color: #fff; }
+.sched-row-mat {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--card, #fff);
+  border: 1px solid var(--divider, #ddd);
+  font-size: 14px; line-height: 1;
+  cursor: pointer; padding: 0;
+  margin-left: 6px;
+}
+.sched-row-mat:hover { background: var(--gold-fill, #f7e9b8); border-color: var(--gold, #bfa162); }
+.sched-row-mat-count {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  font-weight: 600;
+}
+
+/* Compact warnings modal (used by .sched-row-warn click) */
+.sched-warn-modal-list { padding: 0; margin: 0; list-style: none; }
+.sched-warn-modal-list li {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--divider, #eee);
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.sched-warn-modal-list li:last-child { border-bottom: none; }
+.sched-warn-modal-list .warn-icon { flex-shrink: 0; }
+
+/* +menu dropdown for schedule row (Person/Note/Details/Material) */
+.sched-row-add-menu {
+  position: absolute;
+  z-index: 100;
+  background: var(--card, #fff);
+  border: 1px solid var(--divider, #ccc);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  min-width: 160px;
+}
+.sched-row-add-menu button {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  background: none; border: none; text-align: left;
+  font-size: 13px; cursor: pointer; border-radius: 4px;
+}
+.sched-row-add-menu button:hover { background: var(--gold-fill, #f7e9b8); }
+.sched-row-add-menu .ico { font-size: 16px; }

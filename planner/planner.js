@@ -192,6 +192,17 @@ $('hdrSignout').onclick = () => {
   };
 })();
 
+/* Edit Mode header-button toggle — Stage 3 (2026-04-26). Surfaces what was previously
+   buried in Settings. Click toggles, label reflects current state, the bottom sticky
+   bar appears with Discard-All / Confirm-All when ON. */
+(function initEditModeHeaderButton(){
+  const btn = $('hdrEditMode');
+  if(!btn) return;
+  btn.onclick = () => {
+    if(typeof setEditMode === 'function') setEditMode(!EDIT_MODE);
+  };
+})();
+
 /* ════════════════ INITIAL LOAD ════════════════ */
 async function initApp(){
   setSyncStatus('loading');
@@ -239,6 +250,9 @@ function applyServerState(s, isLive){
   // (Communications tab + Focus-as-message-board). Empty object is safe — Stage 3
   // hydrates with channels/messages structure when those features ship.
   window.MESSAGE_BOARD = s.messageBoard && typeof s.messageBoard === 'object' ? s.messageBoard : {};
+  // Stage 3 (2026-04-26): notes inbox. Pre-staged for Communications tab. Anyone with a
+  // token can leave a note via the FAB Note button; Stan + Hannah triage in Stage 3 UI.
+  window.NOTES = Array.isArray(s.notes) ? [...s.notes] : [];
   // Stage 2 Phase C: surface state.isMaster (added by Stage 2 Phase A server filter) onto identity
   // when present. Existing identity.isMaster from /tryAuth still primary; this is a redundancy belt.
   if(typeof s.isMaster === 'boolean' && identity){ identity.isMaster = s.isMaster; }
@@ -345,6 +359,9 @@ function buildPayload(){
     scheduleEvents: SE,
     schedulePhases: SP,
     scheduleQuestions: SQ,
+    // Stage 3 (2026-04-26): notes inbox + messageBoard pre-stage for Communications tab.
+    notes: Array.isArray(window.NOTES) ? window.NOTES : [],
+    messageBoard: window.MESSAGE_BOARD || {}
   };
 }
 
@@ -483,6 +500,12 @@ function setEditMode(on){
   }
   PREFS.editMode = EDIT_MODE;
   refreshEditModeBar();
+  // Update the header button label so users see the current state
+  const btn = document.getElementById('hdrEditMode');
+  if(btn) btn.textContent = '✏️ Edit Mode: ' + (EDIT_MODE ? 'ON' : 'OFF');
+  // Also update the Settings checkbox if Settings is currently rendered
+  const setEM = document.getElementById('setEditMode');
+  if(setEM) setEM.checked = EDIT_MODE;
 }
 
 function refreshEditModeBar(){
@@ -778,6 +801,25 @@ function refreshAdminNavSlotVisibility(){
     slot.style.display = 'none';
     slot.classList.remove('visible');
   }
+  // Stage 3 (2026-04-26): floating CSS-tool button (bottom-left), master-only.
+  // Mirrors the FAB add-button on bottom-right. Wires window.veToggle from css-panel.js.
+  const cssBtn = document.getElementById('fabCssTool');
+  if(cssBtn){
+    if(identity && identity.isMaster){
+      cssBtn.style.display = '';
+      cssBtn.onclick = function(){
+        if(typeof window.veToggle === 'function'){
+          window.veToggle();
+        } else if(typeof window.veGo === 'function'){
+          window.veGo();
+        } else {
+          toast('CSS tool not loaded yet — try again in a moment', true);
+        }
+      };
+    } else {
+      cssBtn.style.display = 'none';
+    }
+  }
 }
 
 /* ════════════════ GROUP TABS (patch 04: escAttr) ════════════════ */
@@ -791,11 +833,8 @@ function renderGroupTabs(){
     const sel = activeGroup === g;
     h += `<button class="group-tab" role="tab" aria-selected="${sel}" data-g="${escAttr(g)}">${esc(g)} <span class="tab-count">${cnt}</span></button>`;
   });
-  // Stage 2 Phase C: virtual Quick Task tab (not stored in G — rendered as a tag-derived view)
-  // Predicate: tasks tagged "quick" or "note" (FAB Note button creates with "note" tag)
-  const quickCnt = T.filter(isQuickTask).length;
-  const quickSel = activeGroup === 'Quick Task';
-  h += `<button class="group-tab group-tab-virtual" role="tab" aria-selected="${quickSel}" data-g="Quick Task" title="Quick Task tab (PL-40) — virtual view of tasks tagged 'quick' or 'note'">⚡ Quick Task <span class="tab-count">${quickCnt}</span></button>`;
+  // (Stage 2 PL-40 Quick Task virtual tab removed 2026-04-26 per Scrybal — quick-add tasks
+  // already appear in All; a dedicated tab in the group ribbon was clutter.)
   h += `<button class="group-tab-add" title="Add group" aria-label="Add group">+</button>`;
   el.innerHTML = h;
   el.querySelectorAll('.group-tab').forEach(b => b.onclick = function(){
@@ -1302,51 +1341,72 @@ function closeFab(){ if(fabMenuEl) fabMenuEl.classList.remove('open'); if(fabAdd
 
 if(fabNoteBtn) fabNoteBtn.onclick = async function(){
   closeFab();
-  const text = await customInput('Quick Note', '');
-  if(!text) return;
-  // Minimal note-as-task: stores in tasks[] with tag "note" and group "All" (no "Notes" group exists yet; Stage 2 can migrate)
-  const t = buildNewTask(text.slice(0, 80));
-  t.desc = text;
-  t.tags = Array.isArray(t.tags) ? [...t.tags, 'note'] : ['note'];
-  t.priority = 'low';
-  t.status = 'not-started';
-  t.group = 'All';
-  T.push(t);
+  const text = await customInput('Add a note', '', 'Notes go to Communications — Stan and Hannah will triage them. Anyone with a token can leave one.');
+  if(!text || !text.trim()) return;
+  // Stage 3 (2026-04-26): notes are NOT tasks. They live in their own state.notes[] array
+  // (pre-staged here so notes captured now don't get lost when Stage 3's Communications tab
+  // ships). Schema: {id, text, by, ts, status: 'unread'|'read'|'converted'|'archived',
+  // convertedTo?: <taskId>, channel?: <future-stage-3>}.
+  const note = {
+    id: 'note-' + Date.now(),
+    text: text.trim(),
+    by: identity ? identity.name : 'unknown',
+    ts: new Date().toISOString(),
+    status: 'unread'
+  };
+  if(!Array.isArray(window.NOTES)) window.NOTES = [];
+  window.NOTES.push(note);
   save();
-  toast('Note added', false);
+  toast('Note saved → Communications inbox', false);
 };
+
+// Helper: open/close a sheet using the same .open-class pattern as the rest of the app.
+// The HTML has inline style="display:none" — we override it with style.display = '' so
+// the CSS .sheet-bg.open rule (display: block) controls visibility.
+function openSheet(bgId){
+  const bg = document.getElementById(bgId);
+  if(!bg) return null;
+  bg.style.display = '';
+  bg.classList.add('open');
+  return bg;
+}
+function closeSheet(bg){
+  if(!bg) return;
+  bg.classList.remove('open');
+  bg.style.display = 'none';
+}
 
 if(fabPersonBtn) fabPersonBtn.onclick = function(){
   closeFab();
-  const bg = $('quickAddPersonBg');
+  const bg = openSheet('quickAddPersonBg');
   if(!bg) return;
   $('qapName').value = '';
   $('qapRole').value = '';
-  bg.style.display = 'flex';
-  $('qapCancel').onclick = function(){ bg.style.display = 'none'; };
+  setTimeout(() => $('qapName').focus(), 50);
+  $('qapCancel').onclick = function(){ closeSheet(bg); };
   $('qapSubmit').onclick = function(){
     const name = $('qapName').value.trim();
-    const role = $('qapRole').value.trim();
+    const role = $('qapRole').value.trim() || 'guest';
     if(!name){ toast('Name required', true); return; }
-    const newId = 'p' + Math.max(0, ...((window.PEOPLE||[]).map(p => parseInt((p.id||'p0').slice(1)) || 0))) + 1;
-    const contact = {id: newId, name, role, specificRole: '', phone: '', email: '', notes: ''};
-    if(!Array.isArray(window.PEOPLE)) window.PEOPLE = [];
-    window.PEOPLE.push(contact);
-    save();
+    // Use existing contacts array C (not window.PEOPLE — wrong variable)
+    const nextN = Math.max(0, ...C.map(p => parseInt((p.id || 'p0').slice(1)) || 0)) + 1;
+    const contact = {id: 'p' + nextN, name, role, specificRole: '', phone: '', email: '', notes: '', visibilitySet: [], constraints: []};
+    C.push(contact);
+    save(); render();
     toast('Added person: ' + name, false);
-    bg.style.display = 'none';
+    closeSheet(bg);
   };
 };
 
 if(fabEventBtn) fabEventBtn.onclick = function(){
   closeFab();
-  const bg = $('quickAddEventBg');
+  const bg = openSheet('quickAddEventBg');
   if(!bg) return;
   $('qaeTitle').value = '';
   $('qaeStartTime').value = '';
   $('qaeDuration').value = '30';
-  bg.style.display = 'flex';
-  $('qaeCancel').onclick = function(){ bg.style.display = 'none'; };
+  setTimeout(() => $('qaeTitle').focus(), 50);
+  $('qaeCancel').onclick = function(){ closeSheet(bg); };
   $('qaeSubmit').onclick = function(){
     const title = $('qaeTitle').value.trim();
     const startTime = $('qaeStartTime').value.trim();
@@ -1354,11 +1414,12 @@ if(fabEventBtn) fabEventBtn.onclick = function(){
     if(!title){ toast('Title required', true); return; }
     const newId = 'se-' + Math.floor(Date.now()/1000);
     const ev = {id: newId, title, details: '', startTime, duration, status: 'proposed', zone: '', people: [], itemsToBring: [], notes: [], isMilestone: false, isGuestVisible: true, parallelGroup: ''};
-    if(!Array.isArray(window.SE)) window.SE = [];
-    window.SE.push(ev);
-    save();
+    // Use the existing global SE schedule-events array
+    if(!Array.isArray(SE)) return;
+    SE.push(ev);
+    save(); render();
     toast('Event added: ' + title, false);
-    bg.style.display = 'none';
+    closeSheet(bg);
   };
 };
 // Close FAB menu on outside click
@@ -1464,8 +1525,7 @@ function lookupContactConstraints(name){
 function renderTasks(){
   const el = $('viewTasks');
   let tasks = T;
-  if(activeGroup === 'Quick Task') tasks = tasks.filter(isQuickTask);
-  else if(activeGroup !== 'All') tasks = tasks.filter(t => taskBelongsToGroup(t, activeGroup));
+  if(activeGroup !== 'All') tasks = tasks.filter(t => taskBelongsToGroup(t, activeGroup));
   tasks = applyFilters(tasks);
   tasks = sortTasks(tasks);
 
@@ -2825,17 +2885,25 @@ function schedRenderEvent(ev, phaseId){
   h += `<span class="sched-event-zone sched-edit" data-sched-edit="event-zone" data-event-id="${ev.id}">${esc(ev.zone || 'tbd')}</span>`;
   h += `<button class="sched-event-toggle ${ev.isMilestone ? 'on' : ''}" onclick="schedToggleBool('${ev.id}','isMilestone')" title="Milestone">★</button>`;
   h += `<button class="sched-event-toggle ${ev.isGuestVisible ? 'on' : ''}" onclick="schedToggleBool('${ev.id}','isGuestVisible')" title="Guest-visible">👁</button>`;
-  h += `<button class="sched-event-delete" onclick="schedDeleteEvent('${ev.id}')" title="Delete event">×</button>`;
-  h += `</div>`;
-  // Title row with materials-checklist icon on the right
+  // Stage 3 (2026-04-26) — consolidated row buttons: warning ⚠️ (modal opens warning list),
+  // materials 📋 (opens existing materials modal), and + (dropdown: Person / Note / Details / Material).
+  // The previous inline "+ add details", "+ person", "+ note", and full warnings expansion
+  // are all replaced/hidden by these compact row buttons.
   const itemCount = (ev.itemsToBring || []).length;
   const checkedCount = ((ev.itemsChecked || {}) && Object.values(ev.itemsChecked || {}).filter(Boolean).length) || 0;
-  const materialsBadge = itemCount ? `<button class="sched-event-materials" onclick="schedOpenMaterials('${ev.id}')" title="Materials checklist">📋 <span class="sched-materials-count">${checkedCount}/${itemCount}</span></button>` : `<button class="sched-event-materials sched-event-materials-empty" onclick="schedOpenMaterials('${ev.id}')" title="Add materials">📋 <span class="sched-materials-count">+</span></button>`;
-  h += `<div class="sched-event-title-row"><div class="sched-event-title sched-edit" data-sched-edit="event-title" data-event-id="${ev.id}">${esc(ev.title)}</div>${materialsBadge}</div>`;
+  if(allWarnings.length){
+    h += `<button class="sched-row-warn" onclick="event.stopPropagation();schedOpenWarnings('${ev.id}')" title="${allWarnings.length} warning${allWarnings.length === 1 ? '' : 's'}">⚠️<span class="sched-row-warn-count">${allWarnings.length}</span></button>`;
+  }
+  const matLabel = itemCount ? `${checkedCount}/${itemCount}` : '+';
+  h += `<button class="sched-row-mat" onclick="event.stopPropagation();schedOpenMaterials('${ev.id}')" title="Materials (${itemCount} item${itemCount === 1 ? '' : 's'})">📋<span class="sched-row-mat-count">${matLabel}</span></button>`;
+  h += `<button class="sched-row-add" onclick="event.stopPropagation();schedOpenAddMenu(event,'${ev.id}')" title="Add to this event">+</button>`;
+  h += `<button class="sched-event-delete" onclick="schedDeleteEvent('${ev.id}')" title="Delete event">×</button>`;
+  h += `</div>`;
+  // Title row (no materials button here anymore — moved to row1 cluster above)
+  h += `<div class="sched-event-title-row"><div class="sched-event-title sched-edit" data-sched-edit="event-title" data-event-id="${ev.id}">${esc(ev.title)}</div></div>`;
+  // Details inline only if present (the empty "+ add details" placeholder is replaced by + dropdown)
   if(ev.details){
     h += `<div class="sched-event-details sched-edit" data-sched-edit="event-details" data-event-id="${ev.id}">${esc(ev.details)}</div>`;
-  } else {
-    h += `<div class="sched-event-details sched-edit sched-empty" data-sched-edit="event-details" data-event-id="${ev.id}">+ add details</div>`;
   }
 
   // People chips (with inline per-person task when present)
@@ -2857,7 +2925,7 @@ function schedRenderEvent(ev, phaseId){
     const constraintIcon = hasConstraints ? '<span class="sched-chip-constraint-icon" aria-hidden="true">ⓘ</span>' : '';
     h += `<span class="sched-chip sched-chip-person sched-chip-role-${esc(role)}${constraintCls}" onclick="schedEditPersonTask('${ev.id}',${i})" title="${titleText}"><span class="sched-chip-name">${esc(p.name)}</span><span class="sched-chip-role-badge">${esc(role)}</span>${constraintIcon}${taskHtml}<button class="sched-chip-rm" onclick="event.stopPropagation();schedRemovePerson('${ev.id}',${i})">×</button></span>`;
   });
-  h += `<button class="sched-chip-add" onclick="schedAddPerson('${ev.id}')">+ person</button>`;
+  // Stage 3: + person button removed — moved to consolidated + dropdown in row1.
   h += `</div>`;
 
   // Notes
@@ -2868,7 +2936,7 @@ function schedRenderEvent(ev, phaseId){
     });
     h += `</div>`;
   }
-  h += `<div><button class="sched-chip-add sched-chip-add-note" onclick="schedAddNote('${ev.id}')">+ note</button></div>`;
+  // Stage 3: + note button removed — moved to consolidated + dropdown in row1.
 
   // Questions
   if(questions.length){
@@ -2890,14 +2958,90 @@ function schedRenderEvent(ev, phaseId){
     h += `</div>`;
   }
 
-  // Warnings
-  if(allWarnings.length){
-    h += `<div class="sched-warnings">${allWarnings.map(w => `<span class="sched-warning">⚠ ${esc(w)}</span>`).join('')}</div>`;
-  }
+  // Stage 3: inline warnings list removed — replaced by the ⚠ button + modal in row1.
 
   h += `</div></div>`;
   return h;
 }
+
+/* ════════════════ STAGE 3 SCHEDULE ROW ADD-MENU + WARN-MODAL (2026-04-26) ════════════════ */
+
+// + dropdown on schedule rows. Anchors to the click target; offers Person / Note / Details / Material.
+function schedOpenAddMenu(clickEvent, eventId){
+  schedCloseAddMenu();
+  const anchor = clickEvent.currentTarget || clickEvent.target;
+  const rect = anchor.getBoundingClientRect();
+  const menu = document.createElement('div');
+  menu.className = 'sched-row-add-menu';
+  menu.id = '_schedRowAddMenu';
+  menu.innerHTML = `
+    <button data-add="person"><span class="ico">👤</span>Add person</button>
+    <button data-add="note"><span class="ico">📝</span>Add note</button>
+    <button data-add="details"><span class="ico">📄</span>Edit details</button>
+    <button data-add="material"><span class="ico">📋</span>Add material</button>
+  `;
+  document.body.appendChild(menu);
+  // Position below the anchor; flip up if it would overflow viewport
+  const menuW = 180;
+  let left = rect.left;
+  let top = rect.bottom + 4;
+  if(left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+  if(top + 200 > window.innerHeight) top = rect.top - 200 - 4;
+  menu.style.left = Math.max(8, left) + 'px';
+  menu.style.top = Math.max(8, top) + 'px';
+  menu.addEventListener('click', function(e){
+    const btn = e.target.closest('button[data-add]');
+    if(!btn) return;
+    const action = btn.dataset.add;
+    schedCloseAddMenu();
+    if(action === 'person') schedAddPerson(eventId);
+    else if(action === 'note') schedAddNote(eventId);
+    else if(action === 'details') {
+      // Trigger inline edit on the details field. Render an empty placeholder if absent.
+      const ev = SE.find(x => x.id === eventId);
+      if(!ev) return;
+      if(!ev.details) { ev.details = ''; save(); render(); }
+      setTimeout(() => {
+        const el = document.querySelector(`.sched-event[data-event-id="${eventId}"] [data-sched-edit="event-details"]`);
+        if(el) schedStartInlineEdit(el);
+      }, 50);
+    }
+    else if(action === 'material') schedOpenMaterials(eventId);
+  });
+  setTimeout(() => document.addEventListener('click', schedCloseAddMenu, {once: true}), 10);
+}
+function schedCloseAddMenu(){
+  const m = document.getElementById('_schedRowAddMenu');
+  if(m) m.remove();
+}
+
+// Compact warnings modal — opened by the ⚠ row button.
+function schedOpenWarnings(eventId){
+  const ev = SE.find(x => x.id === eventId);
+  if(!ev) return;
+  const warnings = schedValidateBoundaries(ev);
+  const conflicts = schedDetectPersonConflicts(ev);
+  const all = [...warnings, ...conflicts];
+  if(!all.length){ toast('No warnings on this event', false); return; }
+  const html = `<ul class="sched-warn-modal-list">` +
+    all.map(w => `<li><span class="warn-icon">⚠️</span><span>${esc(w)}</span></li>`).join('') +
+    `</ul>`;
+  // Reuse the inputSheet container as a compact modal frame (it's already styled + dismissible)
+  const bg = openSheet('inputSheetBg');
+  if(!bg) return;
+  $('inputSheetTitle').textContent = (ev.title || 'Event') + ' — warnings';
+  // Replace the input with the warnings list (then restore on close)
+  const body = bg.querySelector('.sheet-body');
+  const original = body.innerHTML;
+  body.innerHTML = html + `<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-primary" id="warnModalClose" style="flex:1">Close</button></div>`;
+  $('warnModalClose').onclick = function(){
+    closeSheet(bg);
+    body.innerHTML = original;
+  };
+}
+window.schedOpenAddMenu = schedOpenAddMenu;
+window.schedCloseAddMenu = schedCloseAddMenu;
+window.schedOpenWarnings = schedOpenWarnings;
 
 /* ── Wiring handlers after render ── */
 
