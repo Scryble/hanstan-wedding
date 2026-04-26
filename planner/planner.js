@@ -1783,8 +1783,13 @@ function mapEntityToWhere(entity, target, field){
 async function renderActivity(){
   const el = $('viewHistory'); // DOM id kept for back-compat with existing CSS
   if(!el) return;
-  // Master-only gate
-  if(token !== 'stanshan'){
+  // Master-only gate. Stage 3 PL-59 fix (M50, 2026-04-25): gate on identity.isMaster
+  // (server-derived from coordinator record via auth.mjs/tryAuth) instead of comparing
+  // the token string to a literal. Removing the literal eliminates the page-source-leak
+  // anti-pattern (any browser that opened the planner could previously read the master
+  // token from view-source). Server-side state.isMaster (added by Stage 2 Phase A) is
+  // also available as a redundancy belt — both paths set identity.isMaster.
+  if(!identity || !identity.isMaster){
     el.innerHTML = '<div class="history-list"><div style="color:var(--text-muted);text-align:center;padding:48px;font-size:15px">🔒 Activity log is master-only.<br><br>Contact Scrybal if you believe you should have access.</div></div>';
     return;
   }
