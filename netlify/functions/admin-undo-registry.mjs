@@ -1,8 +1,44 @@
 import { readFile } from "fs/promises";
 import { getStore } from "@netlify/blobs";
+import { validateTokenString } from "./_planner_lib/auth.mjs";
 
 const BLOB_STORE_NAME = "hanstan-wedding-data";
 const META_KEY = "meta/registry-current.json";
+const AUDIT_KEY = "planner/audit-log.json";
+const MAX_AUDIT_ENTRIES = 5000;
+
+// Stage 3 Phase A (2026-04-26) — auth unification helper.
+// Mirrors admin-write-registry.mjs auth strategy: master coordinator OR legacy env-var.
+async function authMasterUndoRegistry(request) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const xAdmin = request.headers.get("x-admin-token") || "";
+  let token = "";
+  if (authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
+  else if (xAdmin) token = xAdmin.trim();
+  if (!token) return { ok: false, error: "no_token", status: 401 };
+  const coordResult = await validateTokenString(token);
+  if (coordResult.ok) {
+    if (!coordResult.isMaster) return { ok: false, error: "master_only", status: 403 };
+    return { ok: true, name: coordResult.name, isMaster: true, token, store: coordResult.store, viaLegacy: false };
+  }
+  const legacyToken = process.env.ADMIN_WRITE_TOKEN;
+  if (legacyToken && token === legacyToken) {
+    return { ok: true, name: "admin-write-legacy", isMaster: true, token, store: getStore(BLOB_STORE_NAME), viaLegacy: true };
+  }
+  return { ok: false, error: "unauthorized", status: 401 };
+}
+
+async function appendAudit(store, entries) {
+  if (!entries.length) return;
+  let log;
+  try {
+    const raw = await store.get(AUDIT_KEY);
+    log = raw ? JSON.parse(raw) : { entries: [] };
+  } catch (e) { log = { entries: [] }; }
+  log.entries = [...entries.reverse(), ...log.entries];
+  if (log.entries.length > MAX_AUDIT_ENTRIES) log.entries = log.entries.slice(0, MAX_AUDIT_ENTRIES);
+  await store.set(AUDIT_KEY, JSON.stringify(log));
+}
 const SEED_PATHS = {
   "data/gifts.json": new URL("../../data/gifts.json", import.meta.url),
   "data/copy.registry.json": new URL("../../data/copy.registry.json", import.meta.url),
@@ -46,12 +82,11 @@ export default async function handler(request, context) {
     });
   }
 
-  // Auth
-  const authHeader = request.headers.get("Authorization") || "";
-  const expectedToken = process.env.ADMIN_WRITE_TOKEN;
-  if (!authHeader.startsWith("Bearer ") || authHeader.slice(7) !== expectedToken) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
+  // Stage 3 Phase A (2026-04-26) auth unification: master coordinator OR legacy env-var.
+  const authResult = await authMasterUndoRegistry(request);
+  if (!authResult.ok) {
+    return new Response(JSON.stringify({ error: authResult.error }), {
+      status: authResult.status,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }

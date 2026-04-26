@@ -1,14 +1,57 @@
 import { readFile } from "fs/promises";
 import { getStore } from "@netlify/blobs";
+import { validateTokenString } from "./_planner_lib/auth.mjs";
 
 const BLOB_STORE_NAME = "hanstan-wedding-data";
 const META_KEY = "meta/registry-current.json";
+const AUDIT_KEY = "planner/audit-log.json";
+const MAX_AUDIT_ENTRIES = 5000;
 const SEED_PATHS = {
   "data/gifts.json": new URL("../../data/gifts.json", import.meta.url),
   "data/copy.registry.json": new URL("../../data/copy.registry.json", import.meta.url),
   "data/theme.tokens.json": new URL("../../data/theme.tokens.json", import.meta.url),
   "data/ordering.registry.json": new URL("../../data/ordering.registry.json", import.meta.url),
 };
+
+// Stage 3 Phase A (2026-04-26) — auth unification helper.
+// Accepts: (a) Bearer master coordinator token via auth.mjs; (b) legacy ADMIN_WRITE_TOKEN
+// env-var token (Bearer or x-admin-token header) as fallback during migration window.
+// Returns {ok, name, isMaster, token, store, viaLegacy} or {ok:false, error, status}.
+async function authMasterWriteRegistry(request) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const xAdmin = request.headers.get("x-admin-token") || "";
+  let token = "";
+  if (authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
+  else if (xAdmin) token = xAdmin.trim();
+  if (!token) return { ok: false, error: "no_token", status: 401 };
+
+  // Try canonical coordinator-token validation first
+  const coordResult = await validateTokenString(token);
+  if (coordResult.ok) {
+    if (!coordResult.isMaster) return { ok: false, error: "master_only", status: 403 };
+    return { ok: true, name: coordResult.name, isMaster: true, token, store: coordResult.store, viaLegacy: false };
+  }
+
+  // Legacy fallback: env-var ADMIN_WRITE_TOKEN
+  const legacyToken = process.env.ADMIN_WRITE_TOKEN;
+  if (legacyToken && token === legacyToken) {
+    return { ok: true, name: "admin-write-legacy", isMaster: true, token, store: getStore(BLOB_STORE_NAME), viaLegacy: true };
+  }
+
+  return { ok: false, error: "unauthorized", status: 401 };
+}
+
+async function appendAudit(store, entries) {
+  if (!entries.length) return;
+  let log;
+  try {
+    const raw = await store.get(AUDIT_KEY);
+    log = raw ? JSON.parse(raw) : { entries: [] };
+  } catch (e) { log = { entries: [] }; }
+  log.entries = [...entries.reverse(), ...log.entries];
+  if (log.entries.length > MAX_AUDIT_ENTRIES) log.entries = log.entries.slice(0, MAX_AUDIT_ENTRIES);
+  await store.set(AUDIT_KEY, JSON.stringify(log));
+}
 
 async function ensureFirstRun(store) {
   let metaText = await store.get(META_KEY);
@@ -51,12 +94,14 @@ export default async function handler(request, context) {
     });
   }
 
-  // Auth
-  const authHeader = request.headers.get("Authorization") || "";
-  const expectedToken = process.env.ADMIN_WRITE_TOKEN;
-  if (!authHeader.startsWith("Bearer ") || authHeader.slice(7) !== expectedToken) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
+  // Stage 3 Phase A (2026-04-26) auth unification: accept master coordinator token
+  // via Bearer (canonical) OR legacy ADMIN_WRITE_TOKEN env-var token (fallback).
+  // Phase E retires the env-var path; until then both work to avoid breaking /admin/
+  // standalone mid-build.
+  const authResult = await authMasterWriteRegistry(request);
+  if (!authResult.ok) {
+    return new Response(JSON.stringify({ error: authResult.error }), {
+      status: authResult.status,
       headers: { "Content-Type": "application/json; charset=utf-8" },
     });
   }
@@ -182,6 +227,40 @@ export default async function handler(request, context) {
       );
     }
 
+    // Stage 3 Phase A.7 (2026-04-26): audit-log unification.
+    // Emit an audit entry so registry write events (gift / registryCopy / themeToken /
+    // ordering changes via /admin) land in the same audit log as planner-state changes.
+    // The Activity tab renders all of them. Granular per-field diffs would require
+    // comparing prev vs new payload — for now we emit a coarse "registry.save_draft"
+    // or "registry.publish" entry per write. Phase C may extend with finer-grained
+    // entries when the Site Content tab ships.
+    try {
+      const ts = new Date(now).toISOString();
+      const auditEntries = [];
+      if (mode === "save_draft") {
+        auditEntries.push({
+          ts, by: authResult.name,
+          entity: "registryDraft",
+          action: "registryDraft.save",
+          target: newDraftVersion,
+          summary: "Registry draft saved: " + newDraftVersion + " (gifts/copy/theme/ordering)",
+          viaLegacyAuth: !!authResult.viaLegacy
+        });
+      } else if (mode === "publish_live") {
+        auditEntries.push({
+          ts, by: authResult.name,
+          entity: "registryPublish",
+          action: "registry.publish",
+          target: newPublishedVersion,
+          summary: "Registry published live: " + newPublishedVersion + " (was " + meta.publishedVersion + ")",
+          viaLegacyAuth: !!authResult.viaLegacy
+        });
+      }
+      if (auditEntries.length) await appendAudit(store, auditEntries);
+    } catch (auditErr) {
+      // Don't fail the write on audit-write failure; just log silently.
+    }
+
     return new Response(
       JSON.stringify({
         ok: true,
@@ -189,6 +268,7 @@ export default async function handler(request, context) {
         newDraftVersion: newDraftVersion,
         newPublishedVersion: newPublishedVersion,
         meta: updatedMeta,
+        viaLegacyAuth: !!authResult.viaLegacy,
       }),
       {
         status: 200,
