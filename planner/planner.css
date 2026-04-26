@@ -3889,3 +3889,320 @@ body.design-fix .sched-phase-nav { justify-content: center; }
   font-weight: 600;
 }
 .signout#hdrEditMode.has-pending:hover { background: var(--gold-dark, #8a6d22); }
+
+/* ════════════════════════════════════════════════════════════════════════════════
+   STAGE 3 PHASE C — QoL EXTENSIONS (organizer-coordination-aligned)
+   Added 2026-04-26 after Scrybal scope-clarification: comms is for organizers,
+   not a guest-reply surface.
+   ──────────────────────────────────────────────────────────────────────────────── */
+
+/* Filter bar action group (search + mark-all-read + sync) */
+.comms-filter-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.comms-inbox-search {
+  background: var(--card, #faf9ef);
+  color: var(--text-primary, #1d2d26);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 200px;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.comms-inbox-search:focus {
+  outline: none; border-color: var(--gold, #c19a3c);
+  background: var(--bg-elevated, #ecede0);
+  width: 240px;
+}
+.comms-mark-all-read {
+  background: var(--card, #faf9ef);
+  color: var(--text-secondary, #445a4f);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 8px; padding: 6px 12px;
+  font-family: inherit; font-size: 13px; cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.comms-mark-all-read:hover {
+  background: var(--gold-soft, rgba(193,154,60,0.06));
+  border-color: var(--gold-light, #ead89b);
+}
+
+/* Bulk action bar (visible when notes selected) */
+.comms-bulk-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--gold-fill, rgba(193,154,60,0.12));
+  border: 1px solid var(--gold-light, #ead89b);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.comms-bulk-count {
+  font-size: 13px; font-weight: 600;
+  color: var(--gold-dark, #8a6d22);
+  margin-right: auto;
+}
+.comms-bulk-act {
+  font-size: 13px !important;
+  padding: 5px 12px !important;
+}
+.comms-bulk-clear {
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+}
+
+/* Note card extensions — select checkbox + assignee chip */
+.comms-note-card.selected {
+  border-color: var(--gold, #c19a3c);
+  background: var(--gold-fill, rgba(193,154,60,0.12));
+}
+.comms-note-select {
+  display: inline-flex; align-items: center; cursor: pointer;
+  padding: 0 4px;
+}
+.comms-note-select-cb {
+  width: 16px; height: 16px;
+  accent-color: var(--gold-dark, #8a6d22);
+  cursor: pointer;
+}
+.comms-note-assignee {
+  display: inline-flex; align-items: center;
+  background: var(--gold-soft, rgba(193,154,60,0.06));
+  border: 1px solid var(--gold-light, #ead89b);
+  color: var(--gold-dark, #8a6d22);
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.comms-note-assign-wrap { display: inline-flex; align-items: center; }
+.comms-note-assign {
+  background: var(--card, #faf9ef);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-secondary, #445a4f);
+  cursor: pointer;
+}
+.comms-note-assign:hover { border-color: var(--gold-light, #ead89b); }
+
+/* Channel row unread badge */
+.comms-channel-unread {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 16px; padding: 0 5px;
+  margin-left: 8px;
+  background: var(--gold-dark, #8a6d22);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.comms-channel-row.has-unread .comms-channel-name {
+  font-weight: 600;
+  color: var(--text-primary, #1d2d26);
+}
+
+/* Channel members popover */
+.comms-channel-members-btn {
+  background: var(--card, #faf9ef);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-muted, #78867c);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.comms-channel-members-btn:hover {
+  background: var(--gold-soft, rgba(193,154,60,0.06));
+  border-color: var(--gold-light, #ead89b);
+  color: var(--gold-dark, #8a6d22);
+}
+.comms-channel-members-pop {
+  position: absolute; top: 60px; right: 18px; z-index: 50;
+  background: var(--card, #faf9ef);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  padding: 14px;
+  min-width: 260px;
+  max-width: 320px;
+}
+.comms-channel-thread { position: relative; }
+.comms-channel-members-pop-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-secondary, #445a4f);
+}
+.comms-channel-members-close {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 18px; color: var(--text-muted, #78867c);
+  padding: 0 4px;
+}
+.comms-channel-members-list {
+  display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;
+}
+.comms-channel-member-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 6px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.comms-channel-member-row:hover { background: var(--gold-soft, rgba(193,154,60,0.06)); }
+.comms-channel-member-name { color: var(--text-primary, #1d2d26); }
+.comms-channel-member-remove {
+  font-size: 11px !important;
+  padding: 2px 8px !important;
+}
+.comms-channel-member-add-row {
+  display: flex; gap: 8px; margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--divider, #d6d6c5);
+}
+.comms-channel-member-add-input {
+  flex: 1;
+  background: var(--bg-elevated, #ecede0);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+}
+.comms-channel-member-add-input:focus {
+  outline: none; border-color: var(--gold, #c19a3c);
+  background: var(--card, #faf9ef);
+}
+.comms-channel-member-add-btn {
+  font-size: 12px !important;
+  padding: 4px 12px !important;
+}
+
+/* Channel message edit/delete UI */
+.comms-msg.editing {
+  background: var(--gold-fill, rgba(193,154,60,0.12));
+  border-color: var(--gold, #c19a3c);
+  max-width: 90%;
+}
+.comms-msg-edit-input {
+  width: 100%;
+  background: var(--card, #faf9ef);
+  border: 1px solid var(--gold, #c19a3c);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary, #1d2d26);
+  resize: vertical;
+  min-height: 40px;
+  margin: 6px 0;
+}
+.comms-msg-edit-actions {
+  display: flex; gap: 6px; justify-content: flex-end;
+}
+.comms-msg-edit-actions .btn {
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+}
+.comms-msg-edit-actions .btn.danger {
+  color: #8a3a3a !important;
+  border-color: rgba(185, 74, 74, 0.4) !important;
+}
+.comms-msg-edit-actions .btn.danger:hover {
+  background: rgba(185, 74, 74, 0.08) !important;
+  border-color: rgba(185, 74, 74, 0.6) !important;
+}
+.comms-msg-edit-btn {
+  background: transparent; border: none;
+  color: var(--text-muted, #78867c);
+  font-size: 12px; cursor: pointer;
+  padding: 0 4px; margin-left: auto;
+  opacity: 0.6;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+.comms-msg:hover .comms-msg-edit-btn { opacity: 1; }
+.comms-msg-edit-btn:hover { color: var(--gold-dark, #8a6d22); }
+.comms-msg-edited {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted, #78867c);
+  margin-left: 8px;
+}
+.comms-msg.deleted .comms-msg-text {
+  font-style: italic;
+  color: var(--text-muted, #78867c);
+  opacity: 0.7;
+}
+
+/* @-mention rendering + popover */
+.comms-mention {
+  display: inline-block;
+  background: var(--gold-soft, rgba(193,154,60,0.06));
+  color: var(--gold-dark, #8a6d22);
+  padding: 0 5px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.comms-mention.me {
+  background: var(--gold-fill, rgba(193,154,60,0.12));
+  border: 1px solid var(--gold-light, #ead89b);
+}
+.comms-mention-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 18px;
+  margin-bottom: 4px;
+  background: var(--card, #faf9ef);
+  border: 1px solid var(--divider, #d6d6c5);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  padding: 4px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+}
+.comms-channel-input-row { position: relative; }
+.comms-mention-cand {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #1d2d26);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.comms-mention-cand:hover, .comms-mention-cand.active {
+  background: var(--gold-fill, rgba(193,154,60,0.12));
+  color: var(--gold-dark, #8a6d22);
+}
+
+/* Broadcast draft saved indicator + extra footer buttons */
+.comms-bc-draft-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gold-dark, #8a6d22);
+  font-style: italic;
+  margin-right: auto;
+  padding: 4px 0;
+}
+.comms-bc-send-test {
+  font-size: 13px !important;
+  padding: 8px 14px !important;
+}
+.comms-bc-discard-draft {
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  color: var(--text-muted, #78867c) !important;
+}

@@ -4746,4 +4746,816 @@ async function pushSaveWithMergeRetry(){
 // No code change required; the entries emit through existing infrastructure.
 // This block exists to document the design decision for future-Claude.
 
+/* ════════════════════════════════════════════════════════════════════════════════
+   STAGE 3 PHASE C — QoL EXTENSIONS (organizer-coordination-aligned)
+   ════════════════════════════════════════════════════════════════════════════════
+   Added 2026-04-26 after Scrybal clarified the Comms tab's purpose: organizer
+   coordination, NOT a guest-reply surface. Guest replies happen in Stan's/Hannah's
+   personal Gmail (Zoho forwards). The Comms inbox is a shared visibility layer on
+   incoming guest signals so organizers can coordinate around them.
+
+   QoL pack: 11 items across Inbox, Channels, Broadcast — high-value + medium-value,
+   organizer-coordination-aligned only. Bolt-on extensions to existing Phase C
+   functions via wrapping + override pattern (same approach as Edit Mode redesign).
+   ──────────────────────────────────────────────────────────────────────────────── */
+
+/* ────────────── State extensions ────────────── */
+let COMMS_INBOX_SEARCH = '';
+let COMMS_INBOX_SELECTED_IDS = new Set();  // multi-select for bulk actions
+let COMMS_CHANNEL_INPUT_DRAFT = {};         // per-channel input draft, keyed by channelId
+let COMMS_CHANNEL_EDITING_MSG_ID = null;    // currently-editing channel message
+const BC_DRAFT_KEY = 'hansWed.broadcastDraft';
+
+// Restore broadcast draft from localStorage on boot. Same applyServerState wrap as Edit Mode.
+const _origApplyServerStateForQoL = applyServerState;
+applyServerState = function(s, isLive){
+  _origApplyServerStateForQoL(s, isLive);
+  try {
+    const persisted = localStorage.getItem(BC_DRAFT_KEY);
+    if(persisted){
+      const d = JSON.parse(persisted);
+      if(d && typeof d === 'object'){
+        // Only adopt if the saved draft has actual content
+        if((d.subject && d.subject.trim()) || (d.body && d.body.trim())){
+          COMMS_BROADCAST_DRAFT = Object.assign(COMMS_BROADCAST_DRAFT, d);
+        }
+      }
+    }
+  } catch (e) { /* silent */ }
+};
+
+function persistBroadcastDraft(){
+  try {
+    localStorage.setItem(BC_DRAFT_KEY, JSON.stringify({
+      fromAlias: COMMS_BROADCAST_DRAFT.fromAlias,
+      subject: COMMS_BROADCAST_DRAFT.subject,
+      body: COMMS_BROADCAST_DRAFT.body,
+      recipientFilter: COMMS_BROADCAST_DRAFT.recipientFilter,
+      selectedContactIds: COMMS_BROADCAST_DRAFT.selectedContactIds || [],
+      ts: Date.now()
+    }));
+  } catch (e) { /* silent */ }
+}
+function clearBroadcastDraft(){
+  try { localStorage.removeItem(BC_DRAFT_KEY); } catch (e) {}
+  COMMS_BROADCAST_DRAFT = { fromAlias: 'hello', subject: '', body: '', recipientFilter: 'all', selectedContactIds: [] };
+}
+
+/* ────────────── INBOX QoL — search, mark all read, multi-select bulk, assign-to ──── */
+
+// Wrap renderCommsInbox to add: search box, "Mark all read" button, per-card select
+// checkbox with bulk action bar, and assign-to dropdown per card.
+const _origRenderCommsInbox = renderCommsInbox;
+renderCommsInbox = function(){
+  // Build the original markup, then surgically replace pieces.
+  const notes = (window.NOTES || []).slice();
+  const search = COMMS_INBOX_SEARCH.toLowerCase().trim();
+  const filtered = notes.filter(n => {
+    if(!n) return false;
+    if(COMMS_INBOX_FILTER === 'unread' && n.status !== 'unread') return false;
+    if(COMMS_INBOX_FILTER === 'asq' && !(n.channel || '').startsWith('asq-')) return false;
+    if(COMMS_INBOX_FILTER === 'zoho' && !(n.channel || '').startsWith('zoho-')) return false;
+    if(COMMS_INBOX_FILTER === 'organizer'){
+      const isExternal = (n.channel || '').startsWith('asq-') || (n.channel || '').startsWith('zoho-');
+      if(isExternal) return false;
+    }
+    if(search){
+      const haystack = ((n.text || '') + ' ' + (n.by || '') + ' ' + (n.assignee || '') + ' ' + (n.channel || '')).toLowerCase();
+      if(!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+  filtered.sort((a, b) => {
+    if(COMMS_INBOX_SORT === 'oldest') return (a.ts || '').localeCompare(b.ts || '');
+    if(COMMS_INBOX_SORT === 'channel') return (a.channel || '~').localeCompare(b.channel || '~');
+    return (b.ts || '').localeCompare(a.ts || '');
+  });
+
+  let h = '<div class="comms-inbox">';
+  // Filter bar (extended with search input + Mark-all-read)
+  h += '<div class="comms-filter-bar">';
+  h += '<div class="comms-filter-chips">';
+  for(const f of [
+    { id: 'all', label: 'All', count: notes.length },
+    { id: 'unread', label: 'Unread', count: notes.filter(n => n.status === 'unread').length },
+    { id: 'asq', label: 'Public Q', count: notes.filter(n => (n.channel || '').startsWith('asq-')).length },
+    { id: 'zoho', label: 'Email', count: notes.filter(n => (n.channel || '').startsWith('zoho-')).length },
+    { id: 'organizer', label: 'Organizers', count: notes.filter(n => !((n.channel || '').startsWith('asq-')) && !((n.channel || '').startsWith('zoho-'))).length }
+  ]){
+    const sel = COMMS_INBOX_FILTER === f.id;
+    h += `<button class="comms-chip${sel ? ' active' : ''}" data-comms-filter="${f.id}">${f.label}${f.count > 0 ? ` <span class="comms-chip-count">${f.count}</span>` : ''}</button>`;
+  }
+  h += '</div>';
+  h += '<div class="comms-filter-actions">';
+  h += `<input type="search" class="comms-inbox-search" id="commsInboxSearch" placeholder="Search inbox…" value="${esc(COMMS_INBOX_SEARCH)}">`;
+  const unreadCount = notes.filter(n => n.status === 'unread').length;
+  if(unreadCount > 0){
+    h += `<button class="comms-mark-all-read" id="commsMarkAllRead" title="Mark all as read">✓ All read</button>`;
+  }
+  if(identity && identity.isMaster){
+    const syncLabel = (
+      COMMS_SYNC_STATE === 'loading' ? '⏳ Syncing…' :
+      COMMS_SYNC_STATE === 'success' ? '✓ Synced' :
+      COMMS_SYNC_STATE === 'no-new' ? '✓ No new' :
+      COMMS_SYNC_STATE === 'error' ? '⚠ Failed' :
+      COMMS_SYNC_STATE === 'auth-error' ? '⚠ Auth' :
+      '🔄 Sync inbox'
+    );
+    const syncDisabled = COMMS_SYNC_STATE === 'loading';
+    h += `<button class="comms-sync-btn" id="commsSyncBtn"${syncDisabled ? ' disabled' : ''} title="Pull new mail from stan@ / hannah@ / hello@">${syncLabel}</button>`;
+  }
+  h += '</div>';
+  h += '</div>';
+
+  // Bulk-action bar (visible when ≥1 selected)
+  if(COMMS_INBOX_SELECTED_IDS.size > 0){
+    h += `<div class="comms-bulk-bar">`;
+    h += `<span class="comms-bulk-count">${COMMS_INBOX_SELECTED_IDS.size} selected</span>`;
+    h += `<button class="btn comms-bulk-act" data-comms-bulk-act="read">Mark read</button>`;
+    h += `<button class="btn comms-bulk-act" data-comms-bulk-act="archive">Archive</button>`;
+    h += `<button class="btn comms-bulk-act ghost" data-comms-bulk-act="delete">Delete</button>`;
+    h += `<button class="btn ghost comms-bulk-clear" data-comms-bulk-act="clear">Clear selection</button>`;
+    h += `</div>`;
+  }
+
+  // Cards
+  if(!filtered.length){
+    h += '<div class="comms-empty">';
+    if(search){
+      h += `<p class="comms-empty-title">Nothing matches "${esc(search)}".</p><p class="comms-empty-sub">Clear the search box or switch filters.</p>`;
+    } else if(COMMS_INBOX_FILTER === 'unread'){
+      h += '<p class="comms-empty-title">All caught up.</p><p class="comms-empty-sub">No unread notes. Switch to <strong>All</strong> to see processed ones.</p>';
+    } else if(COMMS_INBOX_FILTER === 'asq'){
+      h += '<p class="comms-empty-title">No public questions yet.</p><p class="comms-empty-sub">When guests ask via the website Ask-A-Question form, their messages appear here.</p>';
+    } else if(COMMS_INBOX_FILTER === 'zoho'){
+      h += '<p class="comms-empty-title">No emails synced yet.</p>' + (identity && identity.isMaster ? '<p class="comms-empty-sub">Click <strong>Sync inbox</strong> above to pull new mail from stan@ / hannah@ / hello@.</p>' : '<p class="comms-empty-sub">Master will sync mail when needed.</p>');
+    } else if(COMMS_INBOX_FILTER === 'organizer'){
+      h += '<p class="comms-empty-title">No organizer notes.</p><p class="comms-empty-sub">Notes left via the planner FAB Note button (📝) appear here.</p>';
+    } else {
+      h += '<p class="comms-empty-title">Inbox is empty.</p><p class="comms-empty-sub">Notes from organizers, public questions, and synced email all land here.</p>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div class="comms-inbox-list">';
+    for(const n of filtered){
+      h += renderInboxCardExtended(n);
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+};
+
+function renderInboxCardExtended(n){
+  const isUnread = n.status === 'unread';
+  const isSelected = COMMS_INBOX_SELECTED_IDS.has(n.id);
+  const sourceLabel = (
+    (n.channel || '').startsWith('asq-') ? 'Public Question' :
+    (n.channel || '').startsWith('zoho-') ? 'Email (' + (n.channel.replace('zoho-', '')) + '@)' :
+    'Note from ' + (n.by || 'organizer')
+  );
+  const ts = n.ts ? new Date(n.ts) : null;
+  const tsLabel = ts ? ts.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  const text = (n.text || '').replace(/</g, '&lt;');
+  const assignee = n.assignee || '';
+  const assigneeLabel = assignee ? `<span class="comms-note-assignee" title="Assigned to ${esc(assignee)}">→ ${esc(assignee)}</span>` : '';
+  // Build assign-to dropdown: master + non-master coordinators by name
+  const coordNames = [];
+  if(window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels){
+    // Coordinators don't live on state.* — use the coordinators hint via MASTER_TOKEN identity for now.
+    // For Stage 3 simplicity, surface contacts whose role looks organizer-ish as assignable.
+  }
+  // Use contacts as assignable list (organizers + master + bride + groom)
+  const assignableContacts = (C || []).filter(c => c && c.name && ['groom','bride','bridal','organizer','coordinator','officiant','helper'].includes((c.role || '').toLowerCase()));
+  return `
+    <div class="comms-note-card${isUnread ? ' unread' : ''}${isSelected ? ' selected' : ''}" data-note-id="${esc(n.id)}">
+      <div class="comms-note-head">
+        <label class="comms-note-select" title="Select for bulk actions">
+          <input type="checkbox" class="comms-note-select-cb" data-comms-note-select="${esc(n.id)}"${isSelected ? ' checked' : ''}>
+        </label>
+        <span class="comms-note-source">${esc(sourceLabel)}</span>
+        ${assigneeLabel}
+        <span class="comms-note-ts">${esc(tsLabel)}</span>
+      </div>
+      <div class="comms-note-text">${text}</div>
+      <div class="comms-note-actions">
+        ${isUnread ? `<button class="btn comms-note-act" data-comms-note-act="read" data-id="${esc(n.id)}" title="Mark read">✓ Read</button>` : ''}
+        <button class="btn comms-note-act" data-comms-note-act="convert" data-id="${esc(n.id)}" title="Convert to a planner task">→ Task</button>
+        <div class="comms-note-assign-wrap">
+          <select class="comms-note-assign" data-comms-note-assign="${esc(n.id)}" title="Assign this note to an organizer">
+            <option value="">${assignee ? 'Reassign…' : 'Assign to…'}</option>
+            ${assignableContacts.map(c => `<option value="${esc(c.name)}"${c.name === assignee ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}
+            ${assignee ? `<option value="__unassign__">— Unassign —</option>` : ''}
+          </select>
+        </div>
+        ${n.status !== 'archived' ? `<button class="btn comms-note-act ghost" data-comms-note-act="archive" data-id="${esc(n.id)}" title="Archive">Archive</button>` : ''}
+        <button class="btn comms-note-act ghost" data-comms-note-act="delete" data-id="${esc(n.id)}" title="Delete permanently">Delete</button>
+      </div>
+    </div>`;
+}
+
+// Wrap wireCommsBody to add new wirings without losing existing ones.
+const _origWireCommsBody = wireCommsBody;
+wireCommsBody = function(){
+  _origWireCommsBody();
+  // Inbox search
+  const searchEl = document.getElementById('commsInboxSearch');
+  if(searchEl){
+    searchEl.oninput = function(){ COMMS_INBOX_SEARCH = this.value; renderComms(); setTimeout(() => { const s = document.getElementById('commsInboxSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 0); };
+  }
+  // Mark all read
+  const mark = document.getElementById('commsMarkAllRead');
+  if(mark) mark.onclick = handleMarkAllRead;
+  // Per-note select checkboxes
+  document.querySelectorAll('#viewComms [data-comms-note-select]').forEach(cb => {
+    cb.onclick = function(e){
+      e.stopPropagation();
+      const id = this.dataset.commsNoteSelect;
+      if(this.checked) COMMS_INBOX_SELECTED_IDS.add(id);
+      else COMMS_INBOX_SELECTED_IDS.delete(id);
+      renderComms();
+    };
+  });
+  // Assign-to dropdowns
+  document.querySelectorAll('#viewComms [data-comms-note-assign]').forEach(sel => {
+    sel.onchange = function(){
+      const id = this.dataset.commsNoteAssign;
+      const val = this.value;
+      if(!val) return; // empty placeholder option
+      handleAssignNote(id, val === '__unassign__' ? '' : val);
+    };
+  });
+  // Bulk actions
+  document.querySelectorAll('#viewComms [data-comms-bulk-act]').forEach(b => {
+    b.onclick = function(){ handleBulkAction(this.dataset.commsBulkAct); };
+  });
+  // Channel input draft persistence + edit-message wirings
+  const chTxt = document.getElementById('commsChannelInput');
+  if(chTxt && COMMS_CHANNEL_ACTIVE){
+    if(COMMS_CHANNEL_INPUT_DRAFT[COMMS_CHANNEL_ACTIVE]){
+      chTxt.value = COMMS_CHANNEL_INPUT_DRAFT[COMMS_CHANNEL_ACTIVE];
+    }
+    chTxt.oninput = function(){ COMMS_CHANNEL_INPUT_DRAFT[COMMS_CHANNEL_ACTIVE] = this.value; };
+  }
+  // Channel message edit/delete
+  document.querySelectorAll('#viewComms [data-comms-msg-edit]').forEach(b => {
+    b.onclick = function(){ COMMS_CHANNEL_EDITING_MSG_ID = this.dataset.commsMsgEdit; renderComms(); };
+  });
+  document.querySelectorAll('#viewComms [data-comms-msg-edit-cancel]').forEach(b => {
+    b.onclick = function(){ COMMS_CHANNEL_EDITING_MSG_ID = null; renderComms(); };
+  });
+  document.querySelectorAll('#viewComms [data-comms-msg-edit-save]').forEach(b => {
+    b.onclick = function(){ handleChannelMessageEditSave(this.dataset.commsMsgEditSave); };
+  });
+  document.querySelectorAll('#viewComms [data-comms-msg-delete]').forEach(b => {
+    b.onclick = function(){ handleChannelMessageDelete(this.dataset.commsMsgDelete); };
+  });
+  // @-mention autocomplete on channel input
+  if(chTxt && COMMS_CHANNEL_ACTIVE){
+    chTxt.addEventListener('input', handleChannelInputForMention);
+    chTxt.addEventListener('keydown', handleMentionKeyboard);
+  }
+  // Member-list popover toggle
+  const memBtn = document.getElementById('commsChannelMembersBtn');
+  if(memBtn) memBtn.onclick = handleChannelMembersToggle;
+  const memClose = document.getElementById('commsChannelMembersClose');
+  if(memClose) memClose.onclick = handleChannelMembersClose;
+  const memAdd = document.getElementById('commsChannelMemberAdd');
+  if(memAdd) memAdd.onclick = handleChannelMemberAdd;
+  document.querySelectorAll('#viewComms [data-comms-member-remove]').forEach(b => {
+    b.onclick = function(){ handleChannelMemberRemove(this.dataset.commsMemberRemove); };
+  });
+  // Broadcast: persist draft on every keystroke + send-test
+  ['commsBcSubject', 'commsBcBody', 'commsBcFromAlias'].forEach(id => {
+    const f = document.getElementById(id);
+    if(!f) return;
+    const orig = f.oninput;
+    f.oninput = function(e){ if(orig) orig.call(this, e); persistBroadcastDraft(); };
+  });
+  const bcTest = document.getElementById('commsBcSendTest');
+  if(bcTest) bcTest.onclick = handleBroadcastSendTest;
+  const bcDiscardDraft = document.getElementById('commsBcDiscardDraft');
+  if(bcDiscardDraft) bcDiscardDraft.onclick = handleBroadcastDiscardDraft;
+};
+
+async function handleMarkAllRead(){
+  if(!Array.isArray(window.NOTES)) return;
+  const unread = window.NOTES.filter(n => n && n.status === 'unread');
+  if(!unread.length) return;
+  for(const n of unread){
+    n.status = 'read';
+  }
+  save();
+  toast('Marked ' + unread.length + ' note' + (unread.length === 1 ? '' : 's') + ' read', false);
+  renderComms();
+  updateCommsBadge();
+}
+
+async function handleAssignNote(id, assigneeName){
+  if(!Array.isArray(window.NOTES)) return;
+  const note = window.NOTES.find(n => n && n.id === id);
+  if(!note) return;
+  if(assigneeName) note.assignee = assigneeName;
+  else delete note.assignee;
+  save();
+  toast(assigneeName ? ('Assigned to ' + assigneeName) : 'Unassigned', false);
+  renderComms();
+}
+
+async function handleBulkAction(act){
+  if(act === 'clear'){
+    COMMS_INBOX_SELECTED_IDS.clear();
+    renderComms();
+    return;
+  }
+  if(!COMMS_INBOX_SELECTED_IDS.size) return;
+  if(act === 'delete'){
+    const ok = await customConfirm('Delete ' + COMMS_INBOX_SELECTED_IDS.size + ' note' + (COMMS_INBOX_SELECTED_IDS.size === 1 ? '' : 's') + '?', 'This cannot be undone.');
+    if(!ok) return;
+  }
+  if(!Array.isArray(window.NOTES)) return;
+  let count = 0;
+  if(act === 'delete'){
+    window.NOTES = window.NOTES.filter(n => {
+      if(!COMMS_INBOX_SELECTED_IDS.has(n.id)) return true;
+      count++;
+      return false;
+    });
+  } else {
+    const status = act === 'read' ? 'read' : (act === 'archive' ? 'archived' : null);
+    if(!status) return;
+    for(const n of window.NOTES){
+      if(COMMS_INBOX_SELECTED_IDS.has(n.id)){
+        n.status = status;
+        count++;
+      }
+    }
+  }
+  COMMS_INBOX_SELECTED_IDS.clear();
+  save();
+  toast(count + ' note' + (count === 1 ? '' : 's') + ' ' + (act === 'delete' ? 'deleted' : (act === 'read' ? 'marked read' : 'archived')), false);
+  renderComms();
+  updateCommsBadge();
+}
+
+/* ────────────── CHANNELS QoL — unread indicators, edit/delete own message,
+                  member view, @-mentions ────────────── */
+
+// Track per-channel last-read timestamp in PREFS (server-side persistence; survives reload)
+function getChannelLastReadTs(channelId){
+  if(!PREFS.channelLastRead) return null;
+  return PREFS.channelLastRead[channelId] || null;
+}
+function setChannelLastReadTs(channelId, ts){
+  if(!PREFS.channelLastRead) PREFS.channelLastRead = {};
+  PREFS.channelLastRead[channelId] = ts;
+  // PREFS persists via the regular state-save path; trigger a save soon.
+  save();
+}
+function channelUnreadCount(channelId){
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[channelId];
+  if(!ch || !Array.isArray(ch.messages)) return 0;
+  const lastRead = getChannelLastReadTs(channelId);
+  if(!lastRead) return ch.messages.length; // never opened, all unread
+  return ch.messages.filter(m => m && m.ts && m.ts > lastRead && m.by !== (identity ? identity.name : '')).length;
+}
+function channelTotalUnread(){
+  const ch = (window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels) || {};
+  let total = 0;
+  for(const id of Object.keys(ch)) total += channelUnreadCount(id);
+  return total;
+}
+
+// Wrap renderCommsChannels to add unread count per row, member-list popover, and
+// edit-own-message UI in the thread.
+const _origRenderCommsChannels = renderCommsChannels;
+renderCommsChannels = function(){
+  // Mark the active channel read on render
+  if(COMMS_CHANNEL_ACTIVE){
+    const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+    if(ch && Array.isArray(ch.messages) && ch.messages.length){
+      const lastTs = ch.messages[ch.messages.length - 1].ts;
+      const prevLastRead = getChannelLastReadTs(COMMS_CHANNEL_ACTIVE);
+      if(lastTs && lastTs !== prevLastRead){
+        setChannelLastReadTs(COMMS_CHANNEL_ACTIVE, lastTs);
+      }
+    }
+  }
+  // Build extended markup directly (don't call _orig to avoid double-render quirks)
+  const channels = (window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels) || {};
+  const channelIds = Object.keys(channels);
+  const myToken = (identity && identity.token) || '';
+  const isMaster = identity && identity.isMaster;
+  const visibleChannels = isMaster ? channelIds : channelIds.filter(id => {
+    const ch = channels[id];
+    if(!ch) return false;
+    if(ch.scopedToMaster) return false;
+    return Array.isArray(ch.members) ? ch.members.includes(myToken) : false;
+  });
+  if(!visibleChannels.length){
+    return '<div class="comms-empty"><p class="comms-empty-title">No channels you can access yet.</p><p class="comms-empty-sub">' + (isMaster ? 'Create one with the <strong>+ New channel</strong> button.' : 'Master organizers will add you to channels you need.') + '</p></div>';
+  }
+  let h = '<div class="comms-channels' + (COMMS_CHANNEL_ACTIVE ? ' channel-selected' : '') + '">';
+  // Channel list pane
+  h += '<div class="comms-channel-list">';
+  h += '<div class="comms-channel-list-head">';
+  h += '<span class="comms-channel-list-title">Channels</span>';
+  if(isMaster) h += '<button class="btn comms-channel-new-btn" id="commsChannelNewBtn" title="Create channel">+ New</button>';
+  h += '</div>';
+  for(const id of visibleChannels){
+    const ch = channels[id];
+    const sel = COMMS_CHANNEL_ACTIVE === id;
+    const msgs = Array.isArray(ch.messages) ? ch.messages : [];
+    const lastMsg = msgs[msgs.length - 1];
+    const lastTs = lastMsg && lastMsg.ts ? new Date(lastMsg.ts) : null;
+    const lastTsLabel = lastTs ? lastTs.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const unread = channelUnreadCount(id);
+    const unreadBadge = (unread > 0 && !sel) ? `<span class="comms-channel-unread" title="${unread} unread">${unread}</span>` : '';
+    h += `<button class="comms-channel-row${sel ? ' active' : ''}${unread > 0 && !sel ? ' has-unread' : ''}" data-comms-channel="${esc(id)}">
+      <span class="comms-channel-name">${esc(ch.name || ('#' + id))}${unreadBadge}</span>
+      <span class="comms-channel-meta">${msgs.length} msg${msgs.length === 1 ? '' : 's'}${lastTsLabel ? ' · ' + lastTsLabel : ''}</span>
+    </button>`;
+  }
+  h += '</div>';
+  // Thread pane
+  h += '<div class="comms-channel-thread">';
+  if(!COMMS_CHANNEL_ACTIVE){
+    h += '<div class="comms-empty"><p class="comms-empty-title">Pick a channel.</p><p class="comms-empty-sub">Or start a new conversation.</p></div>';
+  } else {
+    const ch = channels[COMMS_CHANNEL_ACTIVE];
+    if(!ch){
+      h += '<div class="comms-empty"><p class="comms-empty-title">Channel not found.</p></div>';
+    } else {
+      const msgs = Array.isArray(ch.messages) ? ch.messages : [];
+      const memberCount = Array.isArray(ch.members) ? ch.members.length : 0;
+      h += '<div class="comms-channel-thread-head">';
+      h += `<button class="comms-channel-back" data-comms-channel-back="1" aria-label="Back to channel list">←</button>`;
+      h += `<span class="comms-channel-thread-title">${esc(ch.name || ('#' + COMMS_CHANNEL_ACTIVE))}</span>`;
+      h += `<button class="comms-channel-members-btn" id="commsChannelMembersBtn" title="View members">${memberCount} member${memberCount === 1 ? '' : 's'}</button>`;
+      h += '</div>';
+      // Member popover (rendered inline; toggled visible via class)
+      h += `<div class="comms-channel-members-pop" id="commsChannelMembersPop" style="display:none">`;
+      h += `<div class="comms-channel-members-pop-head"><span>Members of ${esc(ch.name || ('#' + COMMS_CHANNEL_ACTIVE))}</span><button class="comms-channel-members-close" id="commsChannelMembersClose" aria-label="Close">×</button></div>`;
+      h += '<div class="comms-channel-members-list">';
+      if(memberCount === 0){
+        h += '<p class="comms-empty-sub" style="padding:8px 0">No members yet.</p>';
+      } else {
+        for(const tk of ch.members){
+          // Find a name: master coordinator has the master token; others use coordinators registry — we don't have it here, so render token
+          const isMe = tk === myToken;
+          const displayName = isMe ? (identity ? identity.name : 'You') + ' (you)' : tk;
+          h += `<div class="comms-channel-member-row">
+            <span class="comms-channel-member-name">${esc(displayName)}</span>
+            ${isMaster && !isMe ? `<button class="btn ghost comms-channel-member-remove" data-comms-member-remove="${esc(tk)}" title="Remove from channel">Remove</button>` : ''}
+          </div>`;
+        }
+      }
+      h += '</div>';
+      if(isMaster){
+        h += `<div class="comms-channel-member-add-row">
+          <input type="text" class="comms-channel-member-add-input" id="commsChannelMemberAddInput" placeholder="Coordinator token to add" autocomplete="off">
+          <button class="btn primary comms-channel-member-add-btn" id="commsChannelMemberAdd">Add</button>
+        </div>`;
+      }
+      h += `</div>`;
+      // Messages
+      h += '<div class="comms-channel-msgs" id="commsChannelMsgs">';
+      if(!msgs.length){
+        h += '<div class="comms-empty"><p class="comms-empty-sub" style="padding:20px 0">No messages yet. Be the first to say hello.</p></div>';
+      } else {
+        const myName = identity ? identity.name : '';
+        for(const m of msgs){
+          const ts = m.ts ? new Date(m.ts) : null;
+          const tsLabel = ts ? ts.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+          const isMe = m.by === myName;
+          const isEditing = COMMS_CHANNEL_EDITING_MSG_ID === m.id;
+          // Edit window: 10 minutes. Past that, no edit (server doesn't enforce; soft client cap).
+          const editWindowMs = 10 * 60 * 1000;
+          const tsMs = ts ? ts.getTime() : 0;
+          const inEditWindow = isMe && tsMs && (Date.now() - tsMs < editWindowMs);
+          if(isEditing){
+            h += `<div class="comms-msg me editing">
+              <div class="comms-msg-head"><span class="comms-msg-by">${esc(m.by || '')}</span><span class="comms-msg-ts">${esc(tsLabel)} · editing</span></div>
+              <textarea class="comms-msg-edit-input" id="commsMsgEditInput-${esc(m.id)}" rows="2">${esc(m.text || '')}</textarea>
+              <div class="comms-msg-edit-actions">
+                <button class="btn ghost" data-comms-msg-edit-cancel="${esc(m.id)}">Cancel</button>
+                <button class="btn primary" data-comms-msg-edit-save="${esc(m.id)}">Save</button>
+                <button class="btn ghost danger" data-comms-msg-delete="${esc(m.id)}" title="Delete this message">Delete</button>
+              </div>
+            </div>`;
+          } else {
+            const editedTag = m.editedAt ? `<span class="comms-msg-edited" title="Edited ${esc(new Date(m.editedAt).toLocaleString())}">edited</span>` : '';
+            const editBtn = inEditWindow ? `<button class="comms-msg-edit-btn" data-comms-msg-edit="${esc(m.id)}" title="Edit">✎</button>` : '';
+            // Render @-mentions as visually distinct
+            const renderedText = renderMentions(esc(m.text || ''), myName);
+            h += `<div class="comms-msg${isMe ? ' me' : ''}${m.deleted ? ' deleted' : ''}">
+              <div class="comms-msg-head"><span class="comms-msg-by">${esc(m.by || '')}</span><span class="comms-msg-ts">${esc(tsLabel)}</span>${editedTag}${editBtn}</div>
+              <div class="comms-msg-text">${m.deleted ? '<em>(message deleted)</em>' : renderedText}</div>
+            </div>`;
+          }
+        }
+      }
+      h += '</div>';
+      // Input row
+      h += '<div class="comms-channel-input-row">';
+      h += `<textarea class="comms-channel-input" id="commsChannelInput" placeholder="Write a message… (use @ to mention)" rows="2"></textarea>`;
+      h += '<div class="comms-mention-popover" id="commsMentionPopover" style="display:none"></div>';
+      h += `<button class="btn primary" id="commsChannelSendBtn">Send</button>`;
+      h += '</div>';
+    }
+  }
+  h += '</div>'; // thread pane
+  h += '</div>'; // comms-channels
+  return h;
+};
+
+function renderMentions(text, myName){
+  // Highlight @<name> tokens. If the mention matches myName, add a "you-mentioned" class.
+  return text.replace(/@([\w'\-]+(?:\s+[\w'\-]+)?)/g, (full, name) => {
+    const isMe = name.toLowerCase() === (myName || '').toLowerCase();
+    return `<span class="comms-mention${isMe ? ' me' : ''}" title="@${esc(name)}">@${esc(name)}</span>`;
+  });
+}
+
+async function handleChannelMessageEditSave(msgId){
+  const input = document.getElementById('commsMsgEditInput-' + msgId);
+  if(!input) return;
+  const newText = input.value.trim();
+  if(!newText){ toast('Message cannot be empty', true); return; }
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+  if(!ch) return;
+  const m = (ch.messages || []).find(x => x.id === msgId);
+  if(!m) return;
+  if(m.by !== (identity ? identity.name : '')){ toast('Can only edit your own messages', true); return; }
+  m.text = newText;
+  m.editedAt = new Date().toISOString();
+  COMMS_CHANNEL_EDITING_MSG_ID = null;
+  save();
+  toast('Message updated', false);
+  renderComms();
+}
+
+async function handleChannelMessageDelete(msgId){
+  const ok = await customConfirm('Delete this message?', 'Other members will see "(message deleted)".');
+  if(!ok) return;
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+  if(!ch) return;
+  const m = (ch.messages || []).find(x => x.id === msgId);
+  if(!m) return;
+  if(m.by !== (identity ? identity.name : '')){ toast('Can only delete your own messages', true); return; }
+  m.deleted = true;
+  m.text = ''; // wipe content; keep tombstone
+  m.editedAt = new Date().toISOString();
+  COMMS_CHANNEL_EDITING_MSG_ID = null;
+  save();
+  toast('Message deleted', false);
+  renderComms();
+}
+
+let _membersPopVisible = false;
+function handleChannelMembersToggle(){
+  _membersPopVisible = !_membersPopVisible;
+  const pop = document.getElementById('commsChannelMembersPop');
+  if(pop) pop.style.display = _membersPopVisible ? 'block' : 'none';
+}
+function handleChannelMembersClose(){
+  _membersPopVisible = false;
+  const pop = document.getElementById('commsChannelMembersPop');
+  if(pop) pop.style.display = 'none';
+}
+async function handleChannelMemberAdd(){
+  const input = document.getElementById('commsChannelMemberAddInput');
+  if(!input) return;
+  const tk = (input.value || '').trim();
+  if(!tk){ toast('Coordinator token required', true); return; }
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+  if(!ch) return;
+  if(!Array.isArray(ch.members)) ch.members = [];
+  if(ch.members.includes(tk)){ toast('Already a member', true); return; }
+  ch.members.push(tk);
+  save();
+  input.value = '';
+  toast('Added member', false);
+  renderComms();
+}
+async function handleChannelMemberRemove(tk){
+  const ch = window.MESSAGE_BOARD && window.MESSAGE_BOARD.channels && window.MESSAGE_BOARD.channels[COMMS_CHANNEL_ACTIVE];
+  if(!ch) return;
+  if(!Array.isArray(ch.members)) return;
+  const i = ch.members.indexOf(tk);
+  if(i < 0) return;
+  ch.members.splice(i, 1);
+  save();
+  toast('Removed member', false);
+  renderComms();
+}
+
+/* @-mentions: simple autocomplete popover when user types `@` followed by chars.
+   Uses contacts (organizers) as the source list. Inserts @<full-name> on selection. */
+let MENTION_OPEN_AT = -1; // char index where '@' was typed
+let MENTION_CANDIDATES = [];
+let MENTION_HIGHLIGHTED = 0;
+
+function handleChannelInputForMention(e){
+  const ta = e.target;
+  const val = ta.value;
+  const caret = ta.selectionStart || 0;
+  // Find the most recent '@' before caret with no space between '@' and caret
+  let atIdx = -1;
+  for(let i = caret - 1; i >= 0; i--){
+    const c = val.charAt(i);
+    if(c === '@'){ atIdx = i; break; }
+    if(c === ' ' || c === '\n') break;
+  }
+  if(atIdx < 0){ closeMentionPopover(); return; }
+  const query = val.slice(atIdx + 1, caret).toLowerCase();
+  if(query.length > 30){ closeMentionPopover(); return; } // unlikely a real name
+  // Source candidates: organizer-role contacts + master "Hannah & Stan"
+  const candidates = (C || [])
+    .filter(c => c && c.name && ['groom','bride','bridal','organizer','coordinator','officiant','helper'].includes((c.role || '').toLowerCase()))
+    .map(c => c.name)
+    .filter(n => !query || n.toLowerCase().includes(query));
+  if(!candidates.length){ closeMentionPopover(); return; }
+  MENTION_OPEN_AT = atIdx;
+  MENTION_CANDIDATES = candidates.slice(0, 6);
+  MENTION_HIGHLIGHTED = Math.min(MENTION_HIGHLIGHTED, MENTION_CANDIDATES.length - 1);
+  if(MENTION_HIGHLIGHTED < 0) MENTION_HIGHLIGHTED = 0;
+  renderMentionPopover();
+}
+
+function renderMentionPopover(){
+  const pop = document.getElementById('commsMentionPopover');
+  if(!pop) return;
+  if(!MENTION_CANDIDATES.length){ pop.style.display = 'none'; return; }
+  pop.innerHTML = MENTION_CANDIDATES.map((name, i) =>
+    `<button class="comms-mention-cand${i === MENTION_HIGHLIGHTED ? ' active' : ''}" data-comms-mention-pick="${esc(name)}">@${esc(name)}</button>`
+  ).join('');
+  pop.style.display = 'block';
+  pop.querySelectorAll('[data-comms-mention-pick]').forEach(b => {
+    b.onclick = function(){ pickMention(this.dataset.commsMentionPick); };
+  });
+}
+
+function closeMentionPopover(){
+  MENTION_OPEN_AT = -1;
+  MENTION_CANDIDATES = [];
+  MENTION_HIGHLIGHTED = 0;
+  const pop = document.getElementById('commsMentionPopover');
+  if(pop) pop.style.display = 'none';
+}
+
+function handleMentionKeyboard(e){
+  if(MENTION_OPEN_AT < 0 || !MENTION_CANDIDATES.length) return;
+  if(e.key === 'ArrowDown'){ e.preventDefault(); MENTION_HIGHLIGHTED = (MENTION_HIGHLIGHTED + 1) % MENTION_CANDIDATES.length; renderMentionPopover(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); MENTION_HIGHLIGHTED = (MENTION_HIGHLIGHTED - 1 + MENTION_CANDIDATES.length) % MENTION_CANDIDATES.length; renderMentionPopover(); }
+  else if(e.key === 'Enter' && !e.shiftKey){
+    if(MENTION_OPEN_AT >= 0 && MENTION_CANDIDATES[MENTION_HIGHLIGHTED]){
+      e.preventDefault();
+      pickMention(MENTION_CANDIDATES[MENTION_HIGHLIGHTED]);
+    }
+  } else if(e.key === 'Escape'){
+    closeMentionPopover();
+  }
+}
+
+function pickMention(name){
+  const ta = document.getElementById('commsChannelInput');
+  if(!ta || MENTION_OPEN_AT < 0) return;
+  const val = ta.value;
+  const caret = ta.selectionStart || 0;
+  const before = val.slice(0, MENTION_OPEN_AT);
+  const after = val.slice(caret);
+  const insert = '@' + name + ' ';
+  ta.value = before + insert + after;
+  const newCaret = (before + insert).length;
+  ta.focus();
+  ta.setSelectionRange(newCaret, newCaret);
+  if(COMMS_CHANNEL_ACTIVE) COMMS_CHANNEL_INPUT_DRAFT[COMMS_CHANNEL_ACTIVE] = ta.value;
+  closeMentionPopover();
+}
+
+/* ────────────── BROADCAST QoL — send-test, draft auto-save, discard-draft ────── */
+
+async function handleBroadcastSendTest(){
+  if(!identity || !identity.email && !(identity.isMaster)){ /* allow master */ }
+  const subject = COMMS_BROADCAST_DRAFT.subject.trim();
+  const body = COMMS_BROADCAST_DRAFT.body.trim();
+  if(!subject){ toast('Subject required', true); return; }
+  if(!body){ toast('Body required', true); return; }
+  // Find Stan's contact email + Hannah's via contacts; fall back to known personal Gmail
+  const stanContact = (C || []).find(c => c && c.id === 'p2');
+  const stanEmail = (stanContact && stanContact.email) || 'scryballer@gmail.com';
+  const ok = await customConfirm('Send test to ' + stanEmail + '?', 'Just to you. Guests will not see this.');
+  if(!ok) return;
+  try {
+    const res = await fetch('/.netlify/functions/zoho-broadcast-send', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fromAlias: COMMS_BROADCAST_DRAFT.fromAlias,
+        subject: '[TEST] ' + subject,
+        bodyText: body,
+        bodyHtml: body.replace(/\n/g, '<br>'),
+        recipients: [{ email: stanEmail, name: 'Stan (test)' }],
+        broadcastId: 'bc-test-' + Date.now()
+      })
+    });
+    const data = await res.json();
+    if(data.ok){
+      toast('Test sent to ' + stanEmail, false);
+    } else {
+      toast('Test failed: ' + (data.error || 'unknown'), true);
+    }
+  } catch (e) {
+    toast('Send error: ' + e.message, true);
+  }
+}
+
+async function handleBroadcastDiscardDraft(){
+  if(!COMMS_BROADCAST_DRAFT.subject && !COMMS_BROADCAST_DRAFT.body){ return; }
+  const ok = await customConfirm('Discard broadcast draft?', 'Subject and body will be cleared.');
+  if(!ok) return;
+  clearBroadcastDraft();
+  COMMS_BROADCAST_STEP = 1;
+  renderComms();
+  toast('Draft discarded', false);
+}
+
+// Wrap handleBroadcastSend to clear the draft on successful send
+const _origHandleBroadcastSend = handleBroadcastSend;
+handleBroadcastSend = async function(){
+  const before = COMMS_BROADCAST_RESULT;
+  await _origHandleBroadcastSend();
+  if(COMMS_BROADCAST_RESULT && COMMS_BROADCAST_RESULT.ok){
+    clearBroadcastDraft();
+    // Don't re-render here; the original already did
+  }
+};
+
+// Wrap renderCommsBroadcast to add Send-Test + Discard-Draft buttons in the footer
+// + draft-saved indicator
+const _origRenderCommsBroadcast = renderCommsBroadcast;
+renderCommsBroadcast = function(){
+  let h = _origRenderCommsBroadcast();
+  // Inject Send-Test + Discard-Draft into the existing footer.
+  // Simplest path: post-process the rendered string to inject our buttons before the footer's closing div.
+  const hasDraft = (COMMS_BROADCAST_DRAFT.subject && COMMS_BROADCAST_DRAFT.subject.trim()) || (COMMS_BROADCAST_DRAFT.body && COMMS_BROADCAST_DRAFT.body.trim());
+  const draftIndicator = hasDraft ? `<span class="comms-bc-draft-saved" title="Draft auto-saved">💾 Draft saved</span>` : '';
+  // Replace the footer to add Send-Test + Discard-Draft + draft indicator. Detect footer by class.
+  // We use a tolerant regex to keep this resilient if the original markup tightens later.
+  h = h.replace(
+    /<div class="comms-bc-footer">([\s\S]*?)<\/div>\s*<\/div>\s*$/,
+    function(_, inner){
+      const sendTestBtn = `<button class="btn ghost comms-bc-send-test" id="commsBcSendTest" title="Send a copy to Stan only — guests do not see this">Send test to Stan</button>`;
+      const discardBtn = hasDraft ? `<button class="btn ghost comms-bc-discard-draft" id="commsBcDiscardDraft" title="Clear subject + body">Discard draft</button>` : '';
+      return `<div class="comms-bc-footer">${draftIndicator}${sendTestBtn}${discardBtn}${inner}</div></div>`;
+    }
+  );
+  return h;
+};
+
+/* ────────────── BOUNCE / FAILED-RECIPIENT HANDLING (Stage 3 QoL #15) ─────────
+   When zoho-broadcast-send returns a per-recipient failure, mark the contact's
+   email as bouncing so future broadcasts skip it. Add a "skipBroadcast: true"
+   flag on the contact + an "emailBounced": true diagnostic field. Both visible
+   in audit log via the existing diff machinery. */
+const _origHandleBroadcastSendForBounce = handleBroadcastSend;
+handleBroadcastSend = async function(){
+  await _origHandleBroadcastSendForBounce();
+  if(!COMMS_BROADCAST_RESULT || !Array.isArray(COMMS_BROADCAST_RESULT.failedRecipients)) return;
+  let flaggedCount = 0;
+  for(const f of COMMS_BROADCAST_RESULT.failedRecipients){
+    if(!f || !f.email) continue;
+    // Heuristic: only flag as bouncing on errors that look terminal (not network errors).
+    // "zoho_send_failed" with a 5xx in detail OR "invalid_email" → flag.
+    const looksTerminal = (f.error === 'invalid_email') || (f.error === 'zoho_send_failed' && /5\d\d/.test(f.detail || ''));
+    if(!looksTerminal) continue;
+    const contact = (C || []).find(c => c && c.email && c.email.toLowerCase() === (f.email || '').toLowerCase());
+    if(!contact) continue;
+    contact.skipBroadcast = true;
+    contact.emailBouncedAt = new Date().toISOString();
+    flaggedCount++;
+  }
+  if(flaggedCount > 0){
+    save();
+    toast('Flagged ' + flaggedCount + ' bouncing email' + (flaggedCount === 1 ? '' : 's') + ' on contacts', false);
+    renderComms();
+  }
+};
+
+// Filter bcResolveRecipients to skip bouncing contacts
+const _origBcResolveRecipients = bcResolveRecipients;
+bcResolveRecipients = function(){
+  const all = _origBcResolveRecipients();
+  return all.filter(r => {
+    const c = (C || []).find(x => x && x.id === r.id);
+    if(c && c.skipBroadcast) return false;
+    return true;
+  });
+};
+
 })();  // IIFE end
