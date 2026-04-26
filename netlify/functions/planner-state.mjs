@@ -111,6 +111,13 @@ function diffTasks(prev, next, by, whyNote) {
       const nSec = new Set(t.secondaryGroups || []);
       for (const g of nSec) if (!pSec.has(g)) { const e = { ts, by, entity: "task", action: "task.secondaryGroup.add", target, field: "secondaryGroups", to: g, summary: "Added to secondary group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
       for (const g of pSec) if (!nSec.has(g)) { const e = { ts, by, entity: "task", action: "task.secondaryGroup.remove", target, field: "secondaryGroups", from: g, summary: "Removed from secondary group: " + g }; if (whyNote) e.why = whyNote; entries.push(e); }
+      // visibilitySet[]: array-diff (Stage 2 Phase A second-pass — the audit fix run on 2026-04-26
+      // surfaced that visibilitySet changes were silently undiffed by the set-union scalar loop
+      // because typeof [] === "object" causes the loop to skip arrays. Adding explicit array-diff.)
+      const pVis = new Set(p.visibilitySet || []);
+      const nVis = new Set(t.visibilitySet || []);
+      for (const v of nVis) if (!pVis.has(v)) { const e = { ts, by, entity: "task", action: "task.visibility.add", target, field: "visibilitySet", to: v, summary: "Granted visibility: " + v }; if (whyNote) e.why = whyNote; entries.push(e); }
+      for (const v of pVis) if (!nVis.has(v)) { const e = { ts, by, entity: "task", action: "task.visibility.remove", target, field: "visibilitySet", from: v, summary: "Revoked visibility: " + v }; if (whyNote) e.why = whyNote; entries.push(e); }
     }
   }
   for (const [id, p] of pm) {
@@ -130,7 +137,23 @@ function diffContacts(prev, next, by, whyNote) {
   const nm = new Map((next || []).map(c => [c.id, c]));
   for (const [id, c] of nm) {
     if (!pm.has(id)) { const e = { ts, by, entity: "contact", action: "person.create", target: id, summary: "Added person: " + (c.name || "") }; if (whyNote) e.why = whyNote; entries.push(e); }
-    else entries.push(...diffScalars(pm.get(id), c, "contact", id, by, ts, whyNote));
+    else {
+      const p = pm.get(id);
+      entries.push(...diffScalars(p, c, "contact", id, by, ts, whyNote));
+      // Array-typed contact fields: visibilitySet[] and constraints[]. Set-union scalar
+      // loop in diffScalars skips object-typed values, so arrays need explicit handling
+      // (closes audit-coverage gap surfaced 2026-04-26 during Stage 2 close audit).
+      const pVis = new Set(p.visibilitySet || []);
+      const nVis = new Set(c.visibilitySet || []);
+      for (const v of nVis) if (!pVis.has(v)) { const e = { ts, by, entity: "contact", action: "contact.visibility.add", target: id, field: "visibilitySet", to: v, summary: "Granted visibility: " + v }; if (whyNote) e.why = whyNote; entries.push(e); }
+      for (const v of pVis) if (!nVis.has(v)) { const e = { ts, by, entity: "contact", action: "contact.visibility.remove", target: id, field: "visibilitySet", from: v, summary: "Revoked visibility: " + v }; if (whyNote) e.why = whyNote; entries.push(e); }
+      const pCon = (p.constraints || []).map(s => String(s));
+      const nCon = (c.constraints || []).map(s => String(s));
+      const pConSet = new Set(pCon);
+      const nConSet = new Set(nCon);
+      for (const v of nConSet) if (!pConSet.has(v)) { const e = { ts, by, entity: "contact", action: "contact.constraint.add", target: id, field: "constraints", to: v.slice(0, 80), summary: "Added constraint: " + v.slice(0, 80) }; if (whyNote) e.why = whyNote; entries.push(e); }
+      for (const v of pConSet) if (!nConSet.has(v)) { const e = { ts, by, entity: "contact", action: "contact.constraint.remove", target: id, field: "constraints", from: v.slice(0, 80), summary: "Removed constraint: " + v.slice(0, 80) }; if (whyNote) e.why = whyNote; entries.push(e); }
+    }
   }
   for (const [id, p] of pm) if (!nm.has(id)) { const e = { ts, by, entity: "contact", action: "person.delete", target: id, summary: "Removed person: " + (p.name || "") }; if (whyNote) e.why = whyNote; entries.push(e); }
   return entries;
