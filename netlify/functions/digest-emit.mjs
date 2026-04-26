@@ -235,8 +235,12 @@ export default async function handler(request) {
   }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
 
+// Stage 3 Phase D fix-forward (2026-04-26): the original config block had a
+// `schedule: "0 0,12 * * *"` field for Netlify Scheduled Functions. That feature
+// requires a non-Free plan tier and the build rejected the export shape on this
+// site's tier. Dropped the schedule. Endpoint is master-authenticated manual
+// trigger only; Stan/Hannah hit "Email digest now" via planner UI when wanted.
+// If we ever upgrade the Netlify tier, re-add: schedule: "0 0,12 * * *".
 export const config = {
-  path: "/.netlify/functions/digest-emit",
-  // Netlify Scheduled Functions: 12h cadence (every 12 hours, 0 0/12 * * *)
-  schedule: "0 0,12 * * *"
+  path: "/.netlify/functions/digest-emit"
 };
