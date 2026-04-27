@@ -1181,28 +1181,351 @@ function touchEnd(e, id){
 }
 
 /* ════════════════ CONTEXT MENU (patches 12, 13) ════════════════ */
+/* ════════════════════════════════════════════════════════════════════════
+   CONTEXT MENU — OneNote-style: one menu, well-grouped, icon column,
+   section dividers. Replaces the native menu cleanly because it covers
+   everything you'd want from it for this surface. Shift+right-click is
+   the universal escape hatch back to the native browser menu.
+
+   Two flavors share the same visual + interaction language:
+     • showCtx(e, taskId)  — when right-clicking a task card; offers
+                             task-shaped actions (edit/duplicate/etc)
+                             + dev affordances (copy taskId / selector).
+     • showGenericCtx(e)   — when right-clicking anywhere else; offers
+                             dev affordances only (copy selector, copy
+                             text, copy outerHTML, ancestor picker).
+   ════════════════════════════════════════════════════════════════════════ */
+
+// Build a stable CSS selector for an element. Stops at first ancestor with
+// an id (anchors via #id). Drops status/priority utility classes (s-*, p-*)
+// so the result targets the structural shape, not the current state.
+function ctxBuildSelector(el){
+  if(!el || el === document.body) return 'body';
+  if(el.id) return '#' + CSS.escape(el.id);
+  let cur = el;
+  const parts = [];
+  while(cur && cur !== document.body){
+    const tag = cur.tagName.toLowerCase();
+    const cls = (cur.className && typeof cur.className === 'string')
+      ? cur.className.trim().split(/\s+/)
+          .filter(c => c && !c.startsWith('s-') && !c.startsWith('p-'))
+          .slice(0, 2).map(c => CSS.escape(c)).join('.')
+      : '';
+    parts.unshift(tag + (cls ? '.' + cls : ''));
+    if(cur.parentElement && cur.parentElement.id){
+      parts.unshift('#' + CSS.escape(cur.parentElement.id));
+      break;
+    }
+    cur = cur.parentElement;
+  }
+  return parts.join(' > ');
+}
+
+function ctxAncestorChain(el){
+  const out = [];
+  let cur = el;
+  while(cur && cur !== document.body){ out.push(cur); cur = cur.parentElement; }
+  return out;
+}
+
+async function ctxCopy(text, label){
+  try{ await navigator.clipboard.writeText(text); }
+  catch(err){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta);
+  }
+  toast((label || 'Copied') + ': ' + (text.length > 80 ? text.slice(0, 77) + '…' : text), false);
+}
+
+// Reusable row builder. Icon-column + label + optional shortcut/aside.
+function ctxRow(opts){
+  // opts: { icon, label, sub, shortcut, danger, onClick, disabled }
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'ctx-item ctx-row' + (opts.danger ? ' danger' : '') + (opts.disabled ? ' disabled' : '');
+  if(opts.disabled) item.disabled = true;
+  item.innerHTML =
+    '<span class="ctx-icon" aria-hidden="true">' + (opts.icon || '') + '</span>' +
+    '<span class="ctx-label">' +
+      esc(opts.label) +
+      (opts.sub ? '<span class="ctx-sub">' + esc(opts.sub) + '</span>' : '') +
+    '</span>' +
+    (opts.shortcut ? '<span class="ctx-shortcut">' + esc(opts.shortcut) + '</span>' : '');
+  if(opts.onClick && !opts.disabled){
+    item.addEventListener('click', function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      opts.onClick(ev);
+      closeCtx();
+    });
+  }
+  return item;
+}
+function ctxDivider(){
+  const d = document.createElement('div');
+  d.className = 'ctx-divider';
+  return d;
+}
+function ctxSectionLabel(text){
+  const s = document.createElement('div');
+  s.className = 'ctx-section-label';
+  s.textContent = text;
+  return s;
+}
+
+function ctxPositionMenu(el, x, y, opts){
+  // opts: { placement: 'below' | 'above' }
+  // Default: below + slightly right of the cursor.
+  // 'above': anchor menu's BOTTOM at y (so menu sits above the cursor).
+  // Used when the css panel's own context menu is going to occupy the
+  // below-cursor space, so we get the two menus on opposite sides.
+  el.classList.add('open');
+  const mw = el.offsetWidth, mh = el.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const placement = (opts && opts.placement) || 'below';
+  let left = x;
+  let top;
+  if(placement === 'above'){
+    top = y - mh - 8;
+    if(top < 8) top = 8; // viewport floor — fall back to top edge if needed
+  } else {
+    top = y;
+    if(top + mh + 8 > vh) top = vh - mh - 8;
+    if(top < 8) top = 8;
+  }
+  if(left + mw + 8 > vw) left = vw - mw - 8;
+  if(left < 8) left = 8;
+  el.style.left = left + 'px';
+  el.style.top  = top + 'px';
+}
+
 function showCtx(e, id){
+  // Shift+right-click = universal escape hatch to the native browser menu.
+  if(e.shiftKey){ closeCtx(); return; }
   e.preventDefault?.();
+  e.stopPropagation?.();
   ctxTaskId = id;
   const t = T.find(x => x.id === id);
   if(!t) return;
+
+  // The originating element (the task-card itself, used for the
+  // selector copy entry).
+  const targetCard = e.target && e.target.closest ? e.target.closest('.task-card') : null;
+
   const el = $('ctxMenu');
-  el.innerHTML = `
-    <button class="ctx-item" onclick="ctxAction('edit')">Edit</button>
-    <button class="ctx-item" onclick="ctxAction('duplicate')">Duplicate</button>
-    <button class="ctx-item" onclick="ctxAction('moveGroup')">Move Group</button>
-    <div class="ctx-divider"></div>
-    <button class="ctx-item" onclick="ctxAction('batch')">Select Multiple</button>
-    <div class="ctx-divider"></div>
-    <button class="ctx-item danger" onclick="ctxAction('delete')">Delete</button>`;
+  el.innerHTML = '';
+
+  // Header — task identity, so right-click feels like it's about THIS task.
+  const hdr = document.createElement('div');
+  hdr.className = 'ctx-header';
+  hdr.innerHTML =
+    '<div class="ctx-header-id">' + esc(t.taskId || '(no taskId)') + '</div>' +
+    '<div class="ctx-header-title">' + esc((t.title || '(no title)').slice(0, 60)) + '</div>';
+  el.appendChild(hdr);
+
+  // ── Section: state actions ──
+  const isDone = t.status === 'done';
+  el.appendChild(ctxRow({
+    icon: isDone ? '↺' : '✓',
+    label: isDone ? 'Mark not done' : 'Mark done',
+    onClick: () => {
+      t.status = isDone ? 'not-started' : 'done';
+      logHistory(t, isDone ? 'Marked not done (ctx)' : 'Marked done (ctx)');
+      save(); render();
+    }
+  }));
+  el.appendChild(ctxRow({
+    icon: '✎',
+    label: 'Edit task…',
+    shortcut: '⏎',
+    onClick: () => openTaskEditor(t.id)
+  }));
+  el.appendChild(ctxDivider());
+
+  // ── Section: organize ──
+  el.appendChild(ctxRow({
+    icon: '⎘',
+    label: 'Duplicate',
+    onClick: () => ctxAction('duplicate')
+  }));
+  el.appendChild(ctxRow({
+    icon: '⇄',
+    label: 'Move group…',
+    sub: 'currently: ' + (t.group || 'All'),
+    onClick: () => ctxAction('moveGroup')
+  }));
+  el.appendChild(ctxRow({
+    icon: '☑',
+    label: 'Select multiple',
+    onClick: () => ctxAction('batch')
+  }));
+  el.appendChild(ctxDivider());
+
+  // ── Section: copy / dev affordances ──
+  el.appendChild(ctxSectionLabel('Copy'));
+  if(t.taskId){
+    el.appendChild(ctxRow({
+      icon: '#',
+      label: 'Copy taskId',
+      sub: t.taskId,
+      onClick: () => ctxCopy(t.taskId, 'taskId')
+    }));
+  }
+  el.appendChild(ctxRow({
+    icon: '“',
+    label: 'Copy title',
+    onClick: () => ctxCopy(t.title || '', 'title')
+  }));
+  if(targetCard){
+    const cardSel = ctxBuildSelector(targetCard);
+    el.appendChild(ctxRow({
+      icon: '🎯',
+      label: 'Copy CSS selector',
+      sub: cardSel,
+      onClick: () => ctxCopy(cardSel, 'selector')
+    }));
+  }
+  el.appendChild(ctxDivider());
+
+  // ── Section: destructive ──
+  el.appendChild(ctxRow({
+    icon: '🗑',
+    label: 'Delete task',
+    danger: true,
+    onClick: () => ctxAction('delete')
+  }));
+
+  // Position + open
   const x = e.touches ? (e.touches[0]?.clientX || e.clientX) : e.clientX;
   const y = e.touches ? (e.touches[0]?.clientY || e.clientY) : e.clientY;
-  el.style.left = Math.min(x, window.innerWidth - 220) + 'px';
-  el.style.top = Math.min(y, window.innerHeight - 200) + 'px';
-  el.classList.add('open');
-  setTimeout(() => document.addEventListener('click', closeCtx, {once: true}), 10);
+  // When the css panel is active it pops its own menu BELOW the cursor.
+  // So our task-card menu floats ABOVE the cursor — the two stack vertically
+  // around the click point instead of overlapping.
+  const placement = document.getElementById('veRoot') ? 'above' : 'below';
+  ctxPositionMenu(el, x, y, { placement });
+  setTimeout(() => document.addEventListener('mousedown', _closeCtxOnOutside, {once: false}), 10);
 }
-function closeCtx(){$('ctxMenu').classList.remove('open')}
+
+function _closeCtxOnOutside(ev){
+  const m = $('ctxMenu');
+  if(m && m.classList.contains('open') && !m.contains(ev.target)){
+    closeCtx();
+  }
+}
+function closeCtx(){
+  const m = $('ctxMenu');
+  if(m){ m.classList.remove('open'); m.innerHTML = ''; }
+  document.removeEventListener('mousedown', _closeCtxOnOutside);
+}
+
+/* ── Generic context menu — for elements that aren't task cards.
+   Same visual language. Dev affordances only (copy selector, copy
+   text, copy outerHTML, ancestor picker). ────────────────────── */
+function showGenericCtx(e){
+  if(e.shiftKey) return; // native menu escape hatch
+  // Don't shadow native menu on form fields, links, images, selects —
+  // their semantic right-click (paste, save image, open in new tab) is
+  // genuinely useful.
+  if(e.target.closest('input, textarea, select, a, img')) return;
+  // If user has selected text, native cut/copy/paste menu is the right
+  // affordance.
+  const sel = window.getSelection && window.getSelection();
+  if(sel && sel.toString && sel.toString().length > 0) return;
+  // When the css panel is active it pops its own menu and ALSO calls
+  // preventDefault, so on its own there's no native menu either way.
+  // We coexist with it: the panel's menu goes BELOW the cursor (its
+  // built-in placement), ours goes ABOVE — so they don't overlap.
+  const panelOn = !!document.getElementById('veRoot');
+
+  e.preventDefault();
+  closeCtx(); // Close any open task ctx
+  const el = $('ctxMenu');
+  el.innerHTML = '';
+  const target = e.target;
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'ctx-header';
+  const tag = target.tagName.toLowerCase();
+  const cls = (target.className && typeof target.className === 'string')
+    ? target.className.trim().split(/\s+/).slice(0, 3).join('.')
+    : '';
+  hdr.innerHTML =
+    '<div class="ctx-header-id">&lt;' + esc(tag) + '&gt;' + (target.id ? ' #' + esc(target.id) : '') + '</div>' +
+    (cls ? '<div class="ctx-header-title">.' + esc(cls) + '</div>' : '');
+  el.appendChild(hdr);
+
+  // Element actions
+  const sel0 = ctxBuildSelector(target);
+  el.appendChild(ctxRow({
+    icon: '🎯',
+    label: 'Copy CSS selector',
+    sub: sel0,
+    onClick: () => ctxCopy(sel0, 'selector')
+  }));
+
+  const text = (target.textContent || '').trim();
+  if(text){
+    el.appendChild(ctxRow({
+      icon: '“',
+      label: 'Copy text',
+      sub: text.length > 50 ? text.slice(0, 47) + '…' : text,
+      onClick: () => ctxCopy(text, 'text')
+    }));
+  }
+  el.appendChild(ctxRow({
+    icon: '<>',
+    label: 'Copy outerHTML',
+    onClick: () => ctxCopy(target.outerHTML || '', 'outerHTML')
+  }));
+
+  // Ancestor picker — only show if target isn't already body
+  const chain = ctxAncestorChain(target);
+  if(chain.length > 1){
+    el.appendChild(ctxDivider());
+    el.appendChild(ctxSectionLabel('Pick ancestor selector'));
+    chain.slice(1, 7).forEach(node => {
+      const ntag = node.tagName.toLowerCase();
+      const ncls = (node.className && typeof node.className === 'string')
+        ? node.className.trim().split(/\s+/).slice(0, 2).join('.')
+        : '';
+      const label = node.id ? '#' + node.id : (ntag + (ncls ? '.' + ncls : ''));
+      const nsel = ctxBuildSelector(node);
+      el.appendChild(ctxRow({
+        icon: '↑',
+        label: label,
+        sub: nsel,
+        onClick: () => ctxCopy(nsel, 'selector')
+      }));
+    });
+  }
+
+  ctxPositionMenu(el, e.clientX, e.clientY, { placement: panelOn ? 'above' : 'below' });
+  setTimeout(() => document.addEventListener('mousedown', _closeCtxOnOutside, {once: false}), 10);
+}
+
+// Wire the generic ctx to the document, but bail out on task-cards
+// (their inline oncontextmenu calls showCtx) and on header edit btn
+// (it has its own handler).
+document.addEventListener('contextmenu', function(e){
+  if(e.target.closest('.task-card')) return;        // showCtx handles
+  if(e.target.closest('#hdrEditMode')) return;      // _hdrEditBtn handles
+  // Future-proof: any ancestor with an inline contextmenu wins
+  let cur = e.target;
+  while(cur && cur !== document.body){
+    if(cur.hasAttribute && cur.hasAttribute('oncontextmenu')) return;
+    cur = cur.parentElement;
+  }
+  showGenericCtx(e);
+});
+
+// Esc closes the menu
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeCtx();
+});
 
 async function ctxAction(action){
   closeCtx();

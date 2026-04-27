@@ -666,14 +666,110 @@ input[type="date"], textarea, select { font-size: 16px; }
 .progress-mini .p-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s; }
 .progress-mini .p-pct { font-size: 12px; color: var(--text-muted); min-width: 30px; text-align: right; }
 
-/* CONTEXT MENU — §9.2 */
+/* CONTEXT MENU — §9.2  (OneNote-style: icon column + label + section dividers) */
 .ctx-menu {
-  position: fixed; background: var(--card); border: 1px solid var(--divider);
+  position: fixed; background: var(--card); border: 1px solid var(--hair-gold, var(--divider));
   border-radius: var(--r); box-shadow: var(--shadow-elevated);
-  z-index: 250; min-width: 200px; padding: 6px 0;
+  z-index: 9500; min-width: 240px; max-width: 360px;
+  padding: 4px 0;
   display: none;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--text-primary);
 }
 .ctx-menu.open { display: block; }
+
+/* Header: task identity (or element identity for the generic menu) */
+.ctx-menu .ctx-header {
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 4px;
+}
+.ctx-menu .ctx-header-id {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-dark, #8a6d22);
+}
+.ctx-menu .ctx-header-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Section labels */
+.ctx-menu .ctx-section-label {
+  padding: 6px 14px 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Rows: icon | label | optional shortcut */
+.ctx-menu .ctx-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-primary);
+  border: none; background: none; width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.ctx-menu .ctx-row:hover {
+  background: var(--gold-wash, var(--bg-elevated));
+}
+.ctx-menu .ctx-row.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.ctx-menu .ctx-row.disabled:hover { background: none; }
+.ctx-menu .ctx-row.danger { color: var(--s-overdue, #a1424f); }
+.ctx-menu .ctx-row.danger:hover {
+  background: var(--s-overdue-bg, #f0d2d5);
+  color: var(--s-overdue, #a1424f);
+}
+
+.ctx-menu .ctx-icon {
+  font-size: 14px;
+  text-align: center;
+  color: var(--gold-dark, #8a6d22);
+  line-height: 1;
+}
+.ctx-menu .ctx-row.danger .ctx-icon { color: var(--s-overdue, #a1424f); }
+
+.ctx-menu .ctx-label {
+  display: flex; flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.ctx-menu .ctx-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  letter-spacing: 0;
+}
+.ctx-menu .ctx-shortcut {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* Legacy .ctx-item — kept for any other call sites that still use the
+   old shape (none in the planner currently, but defensive). */
 .ctx-item {
   padding: 10px 16px; font-size: 14px; color: var(--text-primary);
   cursor: pointer; border: none; background: none; width: 100%;
