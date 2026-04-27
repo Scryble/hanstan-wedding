@@ -4428,3 +4428,26 @@ body :where(.app-header, .hdr-row1, .hdr-row2, .main-nav, .group-tabs,
 .task-card .tc-note { margin-left: 30px; }
 .task-card.has-children .tc-note,
 .task-card .tc-note.has-expand { margin-left: 62px; }
+
+/* Every DM-Sans-using element should match the .mc pill: Cinzel @ 10px,
+   lowercase. CSS can't query "is this element using DM Sans right now"
+   directly — fonts cascade. So instead: redefine DM Sans's role.
+   `body` originally declared `font-family: 'DM Sans', system-ui, ...`.
+   Override body's font-family to Cinzel; everything that inherits
+   (anything that hasn't explicitly opted into Cormorant / Allura /
+   another font) now resolves to Cinzel. Explicit non-DM-Sans elements
+   (headings using Cormorant, the wedding-name in Allura, etc.)
+   continue using their declared fonts unaffected. */
+body {
+  font-family: 'Cinzel', serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: lowercase !important;
+}
+
+/* Section header (#viewFocus > div.section-hdr) — center horizontally. */
+.section-hdr {
+  justify-content: center !important;
+  text-align: center !important;
+}
