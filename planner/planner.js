@@ -1268,6 +1268,12 @@ function closeCtx(){$('ctxMenu').classList.remove('open')}
     const sel = buildSelectorFor(e.target);
     if(!sel) return;
     altBuffer.push(sel);
+    // Show what was just picked so the user can verify the selector
+    // before the buffer flushes to clipboard.
+    if(typeof toast === 'function'){
+      const n = altBuffer.length;
+      toast((n > 1 ? '+ ' : '') + sel + (n > 1 ? '  (' + n + ' picked)' : ''), false);
+    }
     // Flush on a short debounce — the user can keep alt+right-clicking
     // to accumulate, but we also want immediate single-selector copies
     // to land on the clipboard within ~200ms of the last click.
