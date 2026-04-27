@@ -137,11 +137,21 @@ var _sObs=null;function setupScrollAnims(){if(_sObs)_sObs.disconnect();_sObs=new
 function startTextEdit(el){if(!el||S.editingText)return;S.editingText=true;el.contentEditable='true';el.classList.add('ve-editing');el.focus();var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);el.addEventListener('blur',function(){el.contentEditable='false';el.classList.remove('ve-editing');S.editingText=false;var cs=gSel(el);pu();var vid=el.getAttribute('data-ve-id');if(vid){var ed=S.elements.find(function(e){return e.id===vid;});if(ed)ed.content=el.textContent;}else S.text[cs]=el.textContent;sv();},{once:true});el.addEventListener('keydown',function(e){if(e.key==='Escape'||e.key==='Enter'){e.preventDefault();el.blur();}});}
 
 function injectCtx(){
+  /* Capture-phase: when panel is ON, we own the contextmenu fully —
+     suppress task-card inline oncontextmenu="" handlers and any other
+     in-app contextmenu wiring, and directly fire the panel's menu.
+     This stops the dual-menu bug where both #ctxMenu and #veCtx open. */
   document.addEventListener('contextmenu',function(e){
-    if(!S.on||isVE(e.target))return;
-    e.preventDefault();pick(e.target);
+    if(!S.on)return;
+    if(isVE(e.target))return;
+    if(e.altKey)return; /* Alt+right-click handled by separate listener */
+    if(e.shiftKey)return; /* Shift+right-click → native menu */
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+    pick(e.target);
     showCtxMenu(e.clientX,e.clientY,e.target);
-  });
+  },true);
   document.addEventListener('click',function(e){
     var ctx=$('veCtx');if(ctx&&ctx.style.display==='block'&&!ctx.contains(e.target))hideCtxMenu();
   });
@@ -1080,14 +1090,73 @@ function clearSpacing(){document.querySelectorAll('.ve-spacing').forEach(functio
 var _origPick=pick;
 pick=function(el,multi){_origPick(el,multi);showSpacing(el);};
 
-/* Right-click context menu */
+/* ══════════════════════════════════════════
+   RIGHT-CLICK CONTEXT MENU
+   Layout:
+     [quick-action toolbar — icon-only, OneNote-style]
+     ─────
+     Header (multi-select count if applicable)
+     ─────
+     Inline-cell rows: Add | Sample | Hide on | Reset
+     ─────
+     Vertical list: Copy selector / Copy styles / Paste styles / Edit text /
+                    Delete element / Select-all-by-class items
+     ─────
+     [Task-card section, conditional on right-click target being a card]
+   Tooltips on hover deliver labels; rows are icon-only where possible. */
+
+/* Helpers for the quick-action toolbar — operate on S.selCSS (multi-target
+   if S.multiSelCSS is populated). All write through pu()→S.ov→sv()→applyCSS. */
+function _ctxTargets(){return S.multiSelCSS.length?S.multiSelCSS:(S.selCSS?[S.selCSS]:[]);}
+function _ctxSetProp(prop,val){
+  var targets=_ctxTargets();if(!targets.length)return;
+  pu();
+  targets.forEach(function(sel){
+    if(!S.ov[sel])S.ov[sel]={};
+    if(val===''||val==null)delete S.ov[sel][prop];
+    else S.ov[sel][prop]=val;
+  });
+  sv();applyCSS();
+}
+function _ctxBumpFontSize(deltaPx){
+  var targets=_ctxTargets();if(!targets.length)return;
+  pu();
+  targets.forEach(function(sel){
+    var el=document.querySelector(sel);if(!el)return;
+    var cur=parseFloat(getComputedStyle(el).fontSize)||16;
+    var next=Math.max(6,Math.round(cur+deltaPx));
+    if(!S.ov[sel])S.ov[sel]={};
+    S.ov[sel]['font-size']=next+'px';
+  });
+  sv();applyCSS();
+}
+function _ctxBumpSpacing(deltaPx){
+  /* Tighten or loosen padding on all four sides simultaneously. */
+  var targets=_ctxTargets();if(!targets.length)return;
+  pu();
+  targets.forEach(function(sel){
+    var el=document.querySelector(sel);if(!el)return;
+    var cs=getComputedStyle(el);
+    ['padding-top','padding-right','padding-bottom','padding-left'].forEach(function(p){
+      var cur=parseFloat(cs[cam(p)])||0;
+      var next=Math.max(0,Math.round(cur+deltaPx));
+      if(!S.ov[sel])S.ov[sel]={};
+      S.ov[sel][p]=next+'px';
+    });
+  });
+  sv();applyCSS();
+}
+function _ctxSwatch(prop){
+  if(!S.sel)return 'transparent';
+  return getComputedStyle(S.sel)[cam(prop)] || 'transparent';
+}
+
 function showCtxMenu(x,y,el){
-  // Hide hover tooltip — it would clash with the menu visually.
   var _tip=document.getElementById('veTip');if(_tip)_tip.style.display='none';
   var ctx=$('veCtx');
   if(!ctx){
     ctx=mk('div');ctx.id='veCtx';
-    ctx.style.cssText='position:fixed;z-index:999999;background:rgba(14,10,22,0.97);border:1px solid rgba(216,181,91,0.3);border-radius:6px;padding:2px 0;min-width:220px;display:none;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ddd0ee;box-shadow:0 8px 30px rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
+    ctx.style.cssText='position:fixed;z-index:999999;background:rgba(14,10,22,0.97);border:1px solid rgba(216,181,91,0.3);border-radius:6px;padding:0;min-width:260px;max-width:340px;display:none;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ddd0ee;box-shadow:0 8px 30px rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden;';
     document.body.appendChild(ctx);
   }
   var SEP='<div style="height:1px;background:rgba(216,181,91,0.15);margin:2px 0"></div>';
@@ -1095,41 +1164,116 @@ function showCtxMenu(x,y,el){
   var classItems='';
   classes.forEach(function(cls){
     var count=0;try{count=document.querySelectorAll('.'+CSS.escape(cls)).length;}catch(ex){}
-    if(count>1)classItems+=ctxItem('selclass:'+cls,'\u2295 Select all .'+cls+' ('+count+')');
+    if(count>1)classItems+=ctxItem('selclass:'+cls,'\u2295','Select all .'+cls+' ('+count+')');
   });
   var vid=el.getAttribute&&el.getAttribute('data-ve-id');
   var rv=S.responsive[S.selCSS]||{};
-  var parts=[
-    ctxItem('copy-selector','\uD83C\uDFAF Copy CSS selector'),
-    SEP,
-    ctxItem('copy','\uD83D\uDCCB Copy styles'),
-    ctxItem('paste','\uD83D\uDCCB Paste styles'),
-    SEP,
-    ctxItem('edit','\u270F\uFE0F Edit text'),
-    vid?ctxItem('del','\uD83D\uDDD1 Delete element'):'',
-    SEP,
-    ctxItem('addA','\u2795 Add after'),
-    ctxItem('addB','\u2795 Add before'),
-    ctxItem('addI','\u2795 Add inside'),
-    SEP,
-    ctxItem('sample-color','\uD83D\uDCA7 Sample text color from...'),
-    ctxItem('sample-bg','\uD83D\uDCA7 Sample background from...'),
-    ctxItem('sample-border','\uD83D\uDCA7 Sample border color from...'),
-    classItems?SEP+classItems:'',
-    SEP,
-    ctxItem('hd','\uD83D\uDC41 '+(rv.hideDesktop?'Show':'Hide')+' on desktop'),
-    ctxItem('ht','\uD83D\uDC41 '+(rv.hideTablet?'Show':'Hide')+' on tablet'),
-    ctxItem('hm','\uD83D\uDC41 '+(rv.hideMobile?'Show':'Hide')+' on mobile'),
-    SEP,
-    ctxItem('reset-this','\u21A9 Reset this element'),
-    ctxItem('delete','\uD83D\uDDD1 Clear overrides'+(S.multiSelCSS.length?' ('+S.multiSelCSS.length+' selected)':'')),
-    ctxItem('reset','\u21A9 Reset ALL to original')
-  ];
-  ctx.innerHTML=parts.filter(function(p){return p;}).join('');
+
+  /* Quick-action toolbar */
+  var bodyFont=S.globals.fonts.body||'';
+  var fontVal=(S.ov[S.selCSS]&&S.ov[S.selCSS]['font-family'])||bodyFont||'';
+  var toolbar='<div class="veCtxToolbar" style="display:flex;align-items:center;gap:2px;padding:6px 8px;background:rgba(216,181,91,0.05);border-bottom:1px solid rgba(216,181,91,0.18);flex-wrap:wrap;">';
+  var fonts=[['','Default'],["\u0027Cormorant Garamond\u0027,Georgia,serif",'Cormorant'],["\u0027Cinzel\u0027,serif",'Cinzel'],["\u0027DM Sans\u0027,sans-serif",'DM Sans'],["\u0027Allura\u0027,cursive",'Allura'],["\u0027Playfair Display\u0027,serif",'Playfair'],["\u0027Lora\u0027,serif",'Lora'],["Georgia,serif",'Georgia']];
+  toolbar+='<select data-tb="font-family" title="Font family" style="background:rgba(30,20,48,0.7);border:1px solid rgba(216,181,91,0.2);border-radius:4px;color:#e8ddf5;padding:3px 4px;font-size:11px;max-width:100px;">';
+  fonts.forEach(function(f){toolbar+='<option value="'+esc(f[0])+'"'+(f[0]===fontVal?' selected':'')+'>'+f[1]+'</option>';});
+  toolbar+='</select>';
+  toolbar+=ctxTbBtn('size-down','A\u2212','Decrease font size');
+  toolbar+=ctxTbBtn('size-up','A+','Increase font size');
+  toolbar+=ctxTbDiv();
+  var colorVal=toHex(_ctxSwatch('color'));
+  toolbar+='<input type="color" data-tb="color" value="'+colorVal+'" title="Text color" style="width:24px;height:24px;border:1px solid rgba(216,181,91,0.25);border-radius:4px;background:rgba(30,20,48,0.5);cursor:pointer;padding:1px;">';
+  var bgVal=toHex(_ctxSwatch('background-color'));
+  toolbar+='<input type="color" data-tb="background-color" value="'+bgVal+'" title="Background color" style="width:24px;height:24px;border:1px solid rgba(216,181,91,0.25);border-radius:4px;background:rgba(30,20,48,0.5);cursor:pointer;padding:1px;">';
+  toolbar+=ctxTbDiv();
+  toolbar+=ctxTbBtn('align-left','\u2B05','Align left');
+  toolbar+=ctxTbBtn('align-center','\u2B0D','Align center');
+  toolbar+=ctxTbBtn('align-right','\u27A1','Align right');
+  toolbar+=ctxTbDiv();
+  toolbar+=ctxTbBtn('spacing-down','\u2194\u2212','Decrease padding');
+  toolbar+='</div>';
+
+  /* Header */
+  var hdrId=(el.id?'#'+el.id:el.tagName.toLowerCase());
+  var hdrCls=(el.className&&typeof el.className==='string')?el.className.split(/\s+/).filter(function(c){return c&&c.indexOf('ve')!==0;}).slice(0,2).map(function(c){return'.'+c;}).join(''):'';
+  var multiNote=S.multiSelCSS.length>1?' \u00B7 <span style="color:#50c878;">('+S.multiSelCSS.length+' selected)</span>':'';
+  var header='<div style="padding:5px 12px;border-bottom:1px solid rgba(216,181,91,0.10);background:rgba(216,181,91,0.04);font-size:10px;color:#b8a8d0;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(hdrId+hdrCls)+multiNote+'</div>';
+
+  /* Inline-cell rows */
+  var inlineRows='';
+  inlineRows+=ctxRowGroup('Add', [
+    ['addB','\u2191',null,'Add before'],
+    ['addA','\u2193',null,'Add after'],
+    ['addI','\u21B3',null,'Add inside']
+  ]);
+  var swText=toHex(_ctxSwatch('color'));
+  var swBg=toHex(_ctxSwatch('background-color'));
+  var swBd=toHex(_ctxSwatch('border-color'));
+  inlineRows+=ctxRowGroupSwatch('Sample', [
+    ['sample-color','Aa', swText, 'Sample text color from\u2026'],
+    ['sample-bg','\u25A0', swBg, 'Sample background from\u2026'],
+    ['sample-border','\u25A2', swBd, 'Sample border color from\u2026']
+  ]);
+  inlineRows+=ctxRowGroup('Hide on', [
+    ['hd','\uD83D\uDDA5', rv.hideDesktop, (rv.hideDesktop?'Show':'Hide')+' on desktop'],
+    ['ht','\uD83D\uDCF1', rv.hideTablet, (rv.hideTablet?'Show':'Hide')+' on tablet'],
+    ['hm','\uD83D\uDCF2', rv.hideMobile, (rv.hideMobile?'Show':'Hide')+' on mobile']
+  ]);
+  inlineRows+=ctxRowGroup('Reset', [
+    ['reset-this','\u21A9',null,'Reset this element'],
+    ['delete','\uD83E\uDDF9',null,'Clear overrides'+(S.multiSelCSS.length?' ('+S.multiSelCSS.length+' selected)':'')],
+    ['reset','\u26A0',null,'Reset ALL to original']
+  ]);
+
+  /* Vertical list */
+  var listItems='';
+  listItems+=ctxItem('copy-selector','\uD83C\uDFAF','Copy CSS selector');
+  listItems+=ctxItem('copy','\uD83D\uDCCB','Copy styles');
+  listItems+=ctxItem('paste','\uD83D\uDCCB','Paste styles');
+  listItems+=ctxItem('edit','\u270F\uFE0F','Edit text');
+  if(vid)listItems+=ctxItem('del','\uD83D\uDDD1','Delete element');
+  if(classItems)listItems+=SEP+classItems;
+
+  /* Task-card section, conditional */
+  var taskCard=el.closest&&el.closest('.task-card');
+  var taskSection='';
+  if(taskCard){
+    var tid=taskCard.getAttribute('data-id');
+    taskSection=SEP+
+      '<div style="padding:4px 12px 2px;font-size:9px;color:#8878a0;text-transform:uppercase;letter-spacing:.08em;">Task card</div>'+
+      ctxItem('task-edit','\u270F\uFE0F','Edit task',tid)+
+      ctxItem('task-duplicate','\u2398','Duplicate task',tid)+
+      ctxItem('task-delete','\uD83D\uDDD1','Delete task',tid);
+  }
+
+  ctx.innerHTML=toolbar+header+inlineRows+SEP+listItems+taskSection;
+
+  /* Wire toolbar */
+  var fontSel=ctx.querySelector('[data-tb="font-family"]');
+  if(fontSel)fontSel.onchange=function(){_ctxSetProp('font-family',fontSel.value);hideCtxMenu();};
+  ctx.querySelectorAll('[data-tb-btn]').forEach(function(b){
+    b.onclick=function(ev){
+      ev.stopPropagation();
+      var act=b.getAttribute('data-tb-btn');
+      if(act==='size-up')_ctxBumpFontSize(1);
+      else if(act==='size-down')_ctxBumpFontSize(-1);
+      else if(act==='align-left')_ctxSetProp('text-align','left');
+      else if(act==='align-center')_ctxSetProp('text-align','center');
+      else if(act==='align-right')_ctxSetProp('text-align','right');
+      else if(act==='spacing-down')_ctxBumpSpacing(-2);
+      hideCtxMenu();
+    };
+  });
+  var colorIn=ctx.querySelector('[data-tb="color"]');
+  if(colorIn)colorIn.oninput=function(){_ctxSetProp('color',colorIn.value);};
+  var bgIn=ctx.querySelector('[data-tb="background-color"]');
+  if(bgIn)bgIn.oninput=function(){_ctxSetProp('background-color',bgIn.value);};
+
+  /* Wire main item dispatch */
   ctx.querySelectorAll('[data-ctx]').forEach(function(b){
     b.onclick=function(ev){
       ev.stopPropagation();
       var act=b.getAttribute('data-ctx');
+      var taskIdAttr=b.getAttribute('data-ctx-tid');
       if(act==='copy-selector'){
         var selToCopy=S.selCSS||'';
         if(!selToCopy){toast('No element picked');hideCtxMenu();return;}
@@ -1186,15 +1330,66 @@ function showCtxMenu(x,y,el){
           toast('Sampled '+targetProp+': '+sampled);
         },true);
       }
+      else if(act==='task-edit'&&taskIdAttr){
+        if(typeof window.openTaskEditor==='function')window.openTaskEditor(taskIdAttr);
+        else toast('Task editor not available');
+      }
+      else if(act==='task-duplicate'&&taskIdAttr){
+        window.ctxTaskId=taskIdAttr;
+        if(typeof window.ctxAction==='function')window.ctxAction('duplicate');
+      }
+      else if(act==='task-delete'&&taskIdAttr){
+        window.ctxTaskId=taskIdAttr;
+        if(typeof window.ctxAction==='function')window.ctxAction('delete');
+      }
       hideCtxMenu();
     };
   });
   ctx.style.display='block';
-  ctx.style.left=Math.min(x,window.innerWidth-240)+'px';
+  ctx.style.left=Math.min(x,window.innerWidth-280)+'px';
   ctx.style.top=Math.min(y,window.innerHeight-ctx.offsetHeight-10)+'px';
 }
-function ctxItem(act,label){
-  return '<div data-ctx="'+act+'" style="padding:3px 14px;cursor:pointer;transition:background .1s;font-size:12px;line-height:1.5;" onmouseover="this.style.background=\'rgba(216,181,91,0.1)\'" onmouseout="this.style.background=\'none\'">'+label+'</div>';
+
+/* Vertical list item: icon + label, native title tooltip on hover. */
+function ctxItem(act,icon,tooltip,extraTaskId){
+  var attr=extraTaskId?(' data-ctx-tid="'+esc(extraTaskId)+'"'):'';
+  return '<div data-ctx="'+act+'"'+attr+' title="'+esc(tooltip||'')+'" style="display:flex;align-items:center;gap:8px;padding:4px 12px;cursor:pointer;transition:background .1s;font-size:12px;line-height:1.4;" onmouseover="this.style.background=\'rgba(216,181,91,0.1)\'" onmouseout="this.style.background=\'none\'"><span style="width:16px;text-align:center;color:#d8b55b;">'+icon+'</span><span>'+esc(tooltip||'')+'</span></div>';
+}
+
+/* Inline-cell row: label on left, icon-only cells on right. */
+function ctxRowGroup(label, cells){
+  var h='<div class="veCtxRowGroup" style="display:flex;align-items:center;padding:3px 8px 3px 12px;gap:6px;">';
+  h+='<span style="font-size:10px;color:#8878a0;text-transform:uppercase;letter-spacing:.06em;flex:0 0 56px;">'+esc(label)+'</span>';
+  h+='<div style="display:flex;flex:1;gap:1px;background:rgba(216,181,91,0.15);border-radius:4px;overflow:hidden;">';
+  cells.forEach(function(c){
+    var act=c[0],icon=c[1],active=c[2],tip=c[3];
+    var bg=active?'rgba(216,181,91,0.25)':'rgba(30,20,48,0.5)';
+    var col=active?'#ead89b':'#d8b55b';
+    h+='<button data-ctx="'+act+'" title="'+esc(tip)+'" style="flex:1;border:none;background:'+bg+';color:'+col+';padding:4px 0;cursor:pointer;font-size:13px;line-height:1;transition:background .1s;" onmouseover="this.style.background=\'rgba(216,181,91,0.18)\'" onmouseout="this.style.background=\''+bg+'\'">'+icon+'</button>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+/* Inline-cell row with color-swatch preview underneath each icon. */
+function ctxRowGroupSwatch(label, cells){
+  var h='<div class="veCtxRowGroup" style="display:flex;align-items:center;padding:3px 8px 3px 12px;gap:6px;">';
+  h+='<span style="font-size:10px;color:#8878a0;text-transform:uppercase;letter-spacing:.06em;flex:0 0 56px;">'+esc(label)+'</span>';
+  h+='<div style="display:flex;flex:1;gap:1px;background:rgba(216,181,91,0.15);border-radius:4px;overflow:hidden;">';
+  cells.forEach(function(c){
+    var act=c[0],icon=c[1],sw=c[2],tip=c[3];
+    h+='<button data-ctx="'+act+'" title="'+esc(tip)+'" style="flex:1;border:none;background:rgba(30,20,48,0.5);color:#d8b55b;padding:4px 0;cursor:pointer;font-size:11px;line-height:1;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .1s;" onmouseover="this.style.background=\'rgba(216,181,91,0.18)\'" onmouseout="this.style.background=\'rgba(30,20,48,0.5)\'"><span>'+icon+'</span><span style="display:block;width:14px;height:4px;background:'+esc(sw)+';border:1px solid rgba(216,181,91,0.3);border-radius:1px;"></span></button>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+/* Toolbar button — square icon, native title tooltip. */
+function ctxTbBtn(act,icon,tooltip){
+  return '<button data-tb-btn="'+act+'" title="'+esc(tooltip||'')+'" style="border:1px solid rgba(216,181,91,0.2);background:rgba(30,20,48,0.5);color:#d8b55b;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:inherit;">'+icon+'</button>';
+}
+function ctxTbDiv(){
+  return '<div style="width:1px;height:18px;background:rgba(216,181,91,0.2);margin:0 4px;"></div>';
 }
 function hideCtxMenu(){var ctx=$('veCtx');if(ctx)ctx.style.display='none';}
 function showTip(el,mx,my){
