@@ -4354,3 +4354,8 @@ body.design-fix .sched-phase-nav { justify-content: center; }
   padding: 6px 12px !important;
   color: var(--text-muted, #78867c) !important;
 }
+
+/* taskIds are internal handles for Claude only — never user-facing.
+   Keep the .tc-id node in the DOM (audit log + cross-reference still
+   work) but hide it from view everywhere. */
+.tc-id { display: none !important; }
