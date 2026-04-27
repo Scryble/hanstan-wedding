@@ -712,6 +712,37 @@ function logHistory(task, action){
   task.modified = now();
 }
 
+/* ════════════════ PROGRESS MATH (PL-34: granular subtask-aware completion) ════════════════ */
+// A subtask is "done" if either schema marks it: {done: true} OR {status: 'done'}.
+// Both schemas exist in live state (M1 uses {id,text,done}; D11 uses {title,status}).
+function isSubtaskDone(s){
+  if(!s) return false;
+  if(s.done === true) return true;
+  if(s.status === 'done') return true;
+  return false;
+}
+// Returns a completion ratio in [0, 1] for a single task.
+// - status === 'done' → 1 (terminal)
+// - has subtasks → fraction done (lets in-progress parents contribute partial credit)
+// - else → 0
+function effectiveCompletion(t){
+  if(!t) return 0;
+  if(t.status === 'done') return 1;
+  const subs = t.subtasks || [];
+  if(subs.length){
+    const d = subs.filter(isSubtaskDone).length;
+    return d / subs.length;
+  }
+  return 0;
+}
+// Aggregate completion across a task list. Sum of per-task ratios divided by count,
+// rendered as integer percent. Returns 0 for empty lists.
+function aggregateCompletionPct(tasks){
+  if(!tasks || !tasks.length) return 0;
+  const total = tasks.reduce((acc, t) => acc + effectiveCompletion(t), 0);
+  return Math.round(total / tasks.length * 100);
+}
+
 /* ════════════════ HEADER + STATS ════════════════ */
 function updateHeader(){
   const days = Math.floor((WD - new Date()) / 864e5);
@@ -719,7 +750,7 @@ function updateHeader(){
   const tot = T.length, done = T.filter(t => t.status === 'done').length;
   const act = T.filter(t => t.status === 'in-progress' || t.status === 'mostly-done').length;
   const od = T.filter(t => t.deadline && daysDiff(t.deadline) < 0 && t.status !== 'done').length;
-  const pct = tot ? Math.round(done / tot * 100) : 0;
+  const pct = aggregateCompletionPct(T);  // PL-34: subtask-aware
   $('hdrStats').innerHTML = `<span><strong>${pct}%</strong> complete</span>` +
     `<span><strong>${done}</strong>/${tot} done</span>` +
     `<span><strong>${act}</strong> active</span>` +
@@ -1042,7 +1073,7 @@ function taskCard(t){
 
   const title = q ? highlight(t.title, q) : esc(t.title);
   const notePreview = t.desc ? (esc(t.desc).substring(0, 60) + (t.desc.length > 60 ? '…' : '')) : '';
-  const stDone = t.subtasks?.length ? t.subtasks.filter(s => s.done).length : 0;
+  const stDone = t.subtasks?.length ? t.subtasks.filter(isSubtaskDone).length : 0;  // PL-34: dual schema
   const stTotal = t.subtasks?.length || 0;
 
   return `<div class="task-card ${pCls} ${sCls} ${selCls}" data-id="${t.id}"
@@ -1451,12 +1482,11 @@ function renderFocus(){
   const blocked = sortTasks(active.filter(t => t.status === 'blocked'));
 
   let h = '';
-  // §11.3 progress summaries
+  // §11.3 progress summaries (PL-34: subtask-aware)
   h += '<div style="margin-bottom:12px">';
   G.filter(g => g !== 'All').forEach(g => {
     const gTasks = T.filter(t => taskBelongsToGroup(t, g));
-    const gDone = gTasks.filter(t => t.status === 'done').length;
-    const pct = gTasks.length ? Math.round(gDone / gTasks.length * 100) : 0;
+    const pct = aggregateCompletionPct(gTasks);
     h += `<div class="progress-mini"><span class="p-label">${esc(g)}</span><div class="p-bar"><div class="p-fill" style="width:${pct}%"></div></div><span class="p-pct">${pct}%</span></div>`;
   });
   h += '</div>';
@@ -2020,7 +2050,7 @@ function renderHistoryEntries(entries){
 /* ════════════════ RENDER: SETTINGS (no Reset to Defaults — patch 08 superseded) ════════════════ */
 async function renderSettings(){
   const el = $('viewSettings');
-  const pct = T.length ? Math.round(T.filter(t => t.status === 'done').length / T.length * 100) : 0;
+  const pct = aggregateCompletionPct(T);  // PL-34: subtask-aware
   const done = T.filter(t => t.status === 'done').length;
 
   let h = `
@@ -2482,16 +2512,28 @@ $('tagArea').onclick = function(e){
 };
 
 // PATCH 02: type="button" prevents form submit
+// PL-34 dual-schema: render reads s.text || s.title, completion reads isSubtaskDone(s).
+// Toggle writes to s.done (canonical schema); existing s.status entries are preserved.
 function renderSubtasks(){
   const el = $('subtaskList');
-  el.innerHTML = editSubtasks.map((s, i) => `
-    <div class="subtask-item${s.done ? ' done' : ''}">
-      <button type="button" class="subtask-check" onclick="toggleSubtask(${i})">${s.done ? '✓' : ''}</button>
-      <span class="subtask-text">${esc(s.text)}</span>
+  el.innerHTML = editSubtasks.map((s, i) => {
+    const isDone = isSubtaskDone(s);
+    const text = s.text || s.title || '';
+    return `<div class="subtask-item${isDone ? ' done' : ''}">
+      <button type="button" class="subtask-check" onclick="toggleSubtask(${i})">${isDone ? '✓' : ''}</button>
+      <span class="subtask-text">${esc(text)}</span>
       <button type="button" class="subtask-rm" onclick="rmSubtask(${i})">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
-function toggleSubtask(i){editSubtasks[i].done = !editSubtasks[i].done; tmDirty = true; renderSubtasks()}
+function toggleSubtask(i){
+  const s = editSubtasks[i];
+  const next = !isSubtaskDone(s);
+  s.done = next;
+  if(s.status !== undefined) s.status = next ? 'done' : 'not-started';  // keep status-schema in sync
+  tmDirty = true;
+  renderSubtasks();
+}
 function rmSubtask(i){editSubtasks.splice(i, 1); tmDirty = true; renderSubtasks()}
 $('subtaskBtn').onclick = function(){
   const v = $('subtaskInput').value.trim();
