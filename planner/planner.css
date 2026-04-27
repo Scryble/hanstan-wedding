@@ -338,8 +338,7 @@ input[type="date"], textarea, select { font-size: 16px; }
 }
 .tc-note {
   font-size: 13px; color: var(--text-muted); margin-top: 4px;
-  line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.4;
 }
 .tc-subtasks {
   font-size: 12px; color: var(--text-muted); margin-top: 4px;
@@ -4543,18 +4542,6 @@ body {
 .section-hdr {
   justify-content: center !important;
   text-align: center !important;
-}
-
-/* No description truncation — show the full .tc-note text. The default
-   rule clamps to 1 line via -webkit-line-clamp; override that. */
-.tc-note {
-  display: block !important;
-  -webkit-line-clamp: unset !important;
-  line-clamp: unset !important;
-  -webkit-box-orient: unset !important;
-  overflow: visible !important;
-  white-space: normal !important;
-  text-overflow: clip !important;
 }
 
 /* Task-card titles: Cinzel, sentence case (no transform), 18px.

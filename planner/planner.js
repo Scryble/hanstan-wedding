@@ -1072,7 +1072,7 @@ function taskCard(t){
   if(extraCount > 0) metaHtml += `<span class="mc mc-more">+${extraCount}</span>`;
 
   const title = q ? highlight(t.title, q) : esc(t.title);
-  const notePreview = t.desc ? (esc(t.desc).substring(0, 60) + (t.desc.length > 60 ? '…' : '')) : '';
+  const notePreview = t.desc ? esc(t.desc) : '';
   const stDone = t.subtasks?.length ? t.subtasks.filter(isSubtaskDone).length : 0;  // PL-34: dual schema
   const stTotal = t.subtasks?.length || 0;
 
