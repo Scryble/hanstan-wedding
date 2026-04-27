@@ -4359,3 +4359,15 @@ body.design-fix .sched-phase-nav { justify-content: center; }
    Keep the .tc-id node in the DOM (audit log + cross-reference still
    work) but hide it from view everywhere. */
 .tc-id { display: none !important; }
+
+/* Pill restyle: lowercase Cinzel @ 10px with tighter padding. Applies to
+   all .mc-* metadata pills (overdue/assignee/tag/more/date/dep/neutral). */
+.mc {
+  font-family: 'Cinzel', serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: lowercase !important;
+  padding: 2px 8px !important;
+  line-height: 1.3 !important;
+}

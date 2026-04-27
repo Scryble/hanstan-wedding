@@ -1346,8 +1346,30 @@ function showCtxMenu(x,y,el){
     };
   });
   ctx.style.display='block';
-  ctx.style.left=Math.min(x,window.innerWidth-280)+'px';
-  ctx.style.top=Math.min(y,window.innerHeight-ctx.offsetHeight-10)+'px';
+  /* Position the menu so it never overlaps the panel.
+     If the panel is docked on the right, clamp menu's right edge to
+     the panel's left edge minus a gap. If the menu would still extend
+     into the panel, anchor it to the panel-left edge minus its width. */
+  var panelEl=document.getElementById(PID);
+  var menuW=ctx.offsetWidth||280;
+  var menuH=ctx.offsetHeight||300;
+  var rightLimit=window.innerWidth-8;
+  if(panelEl && S.on){
+    var pr=panelEl.getBoundingClientRect();
+    /* Only treat the panel as a no-go zone if it's actually visible
+       (it could be partially off-screen if user dragged it). */
+    if(pr.left < window.innerWidth && pr.right > 0){
+      rightLimit=Math.min(rightLimit, pr.left - 8);
+    }
+  }
+  var leftPos=x;
+  if(leftPos + menuW > rightLimit){
+    leftPos = rightLimit - menuW;
+    /* If clamping pushed it offscreen left, fall back to anchoring at 8 */
+    if(leftPos < 8) leftPos = 8;
+  }
+  ctx.style.left=leftPos+'px';
+  ctx.style.top=Math.min(y,window.innerHeight-menuH-10)+'px';
 }
 
 /* Vertical list item: icon + label, native title tooltip on hover. */
