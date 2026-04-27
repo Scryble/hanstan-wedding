@@ -1031,6 +1031,8 @@ pick=function(el,multi){_origPick(el,multi);showSpacing(el);};
 
 /* Right-click context menu */
 function showCtxMenu(x,y,el){
+  // Hide hover tooltip — it would clash with the menu visually.
+  var _tip=document.getElementById('veTip');if(_tip)_tip.style.display='none';
   var ctx=$('veCtx');
   if(!ctx){
     ctx=mk('div');ctx.id='veCtx';
@@ -1146,6 +1148,11 @@ function ctxItem(act,label){
 function hideCtxMenu(){var ctx=$('veCtx');if(ctx)ctx.style.display='none';}
 function showTip(el,mx,my){
   var t=$('veTip');if(!t||!el||el===document.body||el===document.documentElement)return;
+  // Suppress when ANY context menu is open — the tooltip would clash with menus.
+  var veCtx=document.getElementById('veCtx');
+  if(veCtx && veCtx.style.display==='block') return;
+  var appCtx=document.getElementById('ctxMenu');
+  if(appCtx && appCtx.classList.contains('open')) return;
   var cs=getComputedStyle(el);
   var tag=el.tagName.toLowerCase();
   var id=el.id&&el.id.indexOf('ve')!==0?'#'+el.id:'';

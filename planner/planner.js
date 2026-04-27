@@ -1282,6 +1282,9 @@ function ctxPositionMenu(el, x, y, opts){
   // 'above': anchor menu's BOTTOM at y (so menu sits above the cursor).
   // Used when the css panel's own context menu is going to occupy the
   // below-cursor space, so we get the two menus on opposite sides.
+  // Hide the css panel's hover tooltip (#veTip) — it would clash visually.
+  var _veTip = document.getElementById('veTip');
+  if(_veTip) _veTip.style.display = 'none';
   el.classList.add('open');
   const mw = el.offsetWidth, mh = el.offsetHeight;
   const vw = window.innerWidth, vh = window.innerHeight;
