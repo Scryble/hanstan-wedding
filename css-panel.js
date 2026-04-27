@@ -41,6 +41,14 @@ var ELTYPES=[
   {type:'shapedivider',icon:'\uD83C\uDF0A',label:'Shape Divider'},
 ];
 
+/* Defensive dedup at script load: if a prior bug left more than one
+   #veRoot in the DOM, reap the extras before we do anything else. */
+(function(){
+  var existing=document.querySelectorAll('#'+PID);
+  if(existing.length>1){
+    for(var i=1;i<existing.length;i++) existing[i].remove();
+  }
+})();
 if(loc('panel')||sessionStorage.getItem(OK)==='1')go();
 // Stage 3 (2026-04-26): expose go() + tog() on window so the planner header CSS-tool
 // button (master-only) can invoke them. Triple-tap-bottom-right + Ctrl-Shift-P shortcuts
@@ -78,16 +86,35 @@ function go(){
   }
   S.on=true;sessionStorage.setItem(OK,'1');
   document.body.classList.add('ve-active');
+  /* If a panel was already injected in a previous on→off→on cycle, re-show
+     it instead of building a duplicate. Catches the case where tog() hid
+     the panel and a fresh go() call was issued via the launcher. */
+  var existing=document.getElementById(PID);
+  if(existing){
+    existing.style.display='';
+    applyPanelStyle();
+    return;
+  }
   initCheckpoints();ld();injectCSS();injectPanel();injectOverlay();injectCtx();rebuildEls();applyCSS();loadServerCSS();applyPanelStyle();
   fetch(SAVE_EP,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':t},body:JSON.stringify({action:'list'})}).then(function(r){if(r.status===401)toast('\u26A0 Token may be invalid');});
 }
 function tog(){
-  var e=$(PID);if(!e)return;
-  var goingOn = (e.style.display==='none');
-  e.style.display = goingOn ? '' : 'none';
+  /* Find ALL panels — if a previous bug spawned duplicates, we need to
+     toggle every one of them, not just the first. */
+  var panels=document.querySelectorAll('#'+PID);
+  if(!panels.length)return;
+  /* Determine current state from the FIRST panel — they should all be
+     in sync from now on, but the first is canonical if they drift. */
+  var first=panels[0];
+  var goingOn=(first.style.display==='none');
+  panels.forEach(function(e){ e.style.display=goingOn?'':'none'; });
+  /* Reap duplicates: if more than one exists, remove all but the first
+     so subsequent toggles don't have to deal with stragglers. */
+  if(panels.length>1){
+    for(var i=1;i<panels.length;i++) panels[i].remove();
+  }
   S.on = goingOn;
   sessionStorage.setItem(OK, goingOn?'1':'0');
-  // Hide all editor overlays/menus when toggling off
   if(!goingOn){
     var hl=$(HID); if(hl) hl.style.display='none';
     var sl=$(SLID); if(sl) sl.style.display='none';
@@ -97,6 +124,7 @@ function tog(){
     document.body.classList.remove('ve-active');
   } else {
     document.body.classList.add('ve-active');
+    applyPanelStyle();
   }
 }
 
