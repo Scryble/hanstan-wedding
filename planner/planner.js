@@ -4027,7 +4027,7 @@ let COMMS_SUB = 'inbox'; // 'inbox' | 'channels' | 'broadcast'
 let COMMS_INBOX_FILTER = 'all'; // 'all' | 'unread' | 'asq' | 'zoho' | 'organizer'
 let COMMS_INBOX_SORT = 'newest'; // 'newest' | 'oldest' | 'channel'
 let COMMS_CHANNEL_ACTIVE = null; // channel id of selected channel; null = list view (mobile)
-let COMMS_BROADCAST_STEP = 1; // 1=compose, 2=recipients, 3=review
+/* COMMS_BROADCAST_STEP retired — single-page form. */
 let COMMS_BROADCAST_DRAFT = { fromAlias: 'hello', subject: '', body: '', recipientFilter: 'all', selectedContactIds: [] };
 let COMMS_SYNC_STATE = 'idle'; // 'idle' | 'loading' | 'success' | 'no-new' | 'error' | 'auth-error'
 let COMMS_SYNC_LAST_RESULT = null;
@@ -4226,14 +4226,7 @@ function wireCommsBody(){
   }
   const chNew = document.getElementById('commsChannelNewBtn');
   if(chNew) chNew.onclick = handleChannelCreate;
-  // Broadcast
-  document.querySelectorAll('#viewComms [data-comms-bc-step]').forEach(b => {
-    b.onclick = function(){ COMMS_BROADCAST_STEP = parseInt(this.dataset.commsBcStep, 10) || 1; renderComms(); };
-  });
-  const bcNext = document.getElementById('commsBcNext');
-  if(bcNext) bcNext.onclick = handleBroadcastNext;
-  const bcBack = document.getElementById('commsBcBack');
-  if(bcBack) bcBack.onclick = handleBroadcastBack;
+  // Broadcast — single-page form, no step machine
   const bcSend = document.getElementById('commsBcSend');
   if(bcSend) bcSend.onclick = handleBroadcastSend;
   // Broadcast field bindings
@@ -4502,116 +4495,105 @@ function renderCommsBroadcast(){
   if(!identity || !identity.isMaster){
     return '<div class="comms-empty"><p class="comms-empty-title">Master only.</p></div>';
   }
+  /* Single-page email form: From → To → Subject → Body → Send.
+     Replaces the prior 3-step wizard. State machine retired. */
+  const recipients = bcResolveRecipients();
   let h = '<div class="comms-broadcast">';
-  // Stepper
-  h += '<div class="comms-bc-stepper">';
-  for(const s of [{n:1,l:'Compose'},{n:2,l:'Recipients'},{n:3,l:'Review & send'}]){
-    const sel = COMMS_BROADCAST_STEP === s.n;
-    h += `<button class="comms-bc-step${sel ? ' active' : ''}" data-comms-bc-step="${s.n}">${s.n}. ${s.l}</button>`;
+  h += '<form class="comms-bc-form" id="commsBcForm" autocomplete="off" onsubmit="return false;">';
+
+  /* From */
+  h += '<div class="comms-bc-field">';
+  h += '<label class="comms-bc-label" for="commsBcFromAlias">From</label>';
+  h += `<select class="comms-bc-input" id="commsBcFromAlias">`;
+  for(const a of ['hello', 'stan', 'hannah', 'rsvp', 'registry']){
+    const sel = COMMS_BROADCAST_DRAFT.fromAlias === a ? ' selected' : '';
+    h += `<option value="${a}"${sel}>${a}@hanstan.wedding</option>`;
+  }
+  h += '</select>';
+  h += '</div>';
+
+  /* To — recipient filter chips inline + count + collapsible list */
+  h += '<div class="comms-bc-field">';
+  h += '<label class="comms-bc-label">To</label>';
+  h += '<div class="comms-bc-to">';
+  h += '<div class="comms-bc-recip-filters">';
+  for(const f of [
+    { id: 'all', label: 'all' },
+    { id: 'guests', label: 'guests' },
+    { id: 'organizers', label: 'organizers' },
+    { id: 'custom', label: 'custom' }
+  ]){
+    const sel = COMMS_BROADCAST_DRAFT.recipientFilter === f.id;
+    h += `<button type="button" class="comms-chip${sel ? ' active' : ''}" data-comms-bc-recipfilter="${f.id}">${f.label}</button>`;
   }
   h += '</div>';
-  h += '<div class="comms-bc-body">';
-
-  if(COMMS_BROADCAST_STEP === 1){
-    h += '<div class="comms-bc-compose">';
-    h += '<label class="comms-bc-label">From alias</label>';
-    h += `<select class="comms-bc-input" id="commsBcFromAlias">`;
-    for(const a of ['hello', 'stan', 'hannah', 'rsvp', 'registry']){
-      const sel = COMMS_BROADCAST_DRAFT.fromAlias === a ? ' selected' : '';
-      h += `<option value="${a}"${sel}>${a}@hanstan.wedding</option>`;
-    }
-    h += '</select>';
-    h += '<label class="comms-bc-label">Subject</label>';
-    h += `<input type="text" class="comms-bc-input" id="commsBcSubject" value="${esc(COMMS_BROADCAST_DRAFT.subject)}" placeholder="e.g. Save the date — final venue details">`;
-    h += '<label class="comms-bc-label">Body</label>';
-    h += `<textarea class="comms-bc-input comms-bc-body-input" id="commsBcBody" rows="10" placeholder="Hi {{firstName}},&#10;&#10;…">${esc(COMMS_BROADCAST_DRAFT.body)}</textarea>`;
-    h += '<p class="comms-bc-hint">Use <code>{{name}}</code> or <code>{{firstName}}</code> for personalization.</p>';
-    h += '</div>';
-  }
-  else if(COMMS_BROADCAST_STEP === 2){
-    h += '<div class="comms-bc-recipients">';
-    h += '<div class="comms-bc-recip-filters">';
-    for(const f of [
-      { id: 'all', label: 'All contacts with email' },
-      { id: 'guests', label: 'Guests only' },
-      { id: 'organizers', label: 'Organizers only' },
-      { id: 'custom', label: 'Custom selection' }
-    ]){
-      const sel = COMMS_BROADCAST_DRAFT.recipientFilter === f.id;
-      h += `<button class="comms-chip${sel ? ' active' : ''}" data-comms-bc-recipfilter="${f.id}">${f.label}</button>`;
-    }
-    h += '</div>';
+  h += `<span class="comms-bc-recip-count">${recipients.length} recipient${recipients.length === 1 ? '' : 's'}</span>`;
+  h += '</div>';
+  /* Recipient list — always-visible when 'custom' (the user has to pick),
+     collapsed under <details> for the other filters since the count is
+     usually enough on its own. */
+  if(COMMS_BROADCAST_DRAFT.recipientFilter === 'custom'){
     const eligible = bcEligibleContacts();
-    if(COMMS_BROADCAST_DRAFT.recipientFilter === 'custom'){
-      h += '<div class="comms-bc-recip-list">';
-      for(const c of eligible){
-        const sel = COMMS_BROADCAST_DRAFT.selectedContactIds.includes(c.id);
-        h += `<button class="comms-bc-recip-row${sel ? ' selected' : ''}" data-comms-bc-recip-toggle="${esc(c.id)}">
-          <span class="comms-bc-recip-check">${sel ? '☑' : '☐'}</span>
-          <span class="comms-bc-recip-name">${esc(c.name)}</span>
-          <span class="comms-bc-recip-email">${esc(c.email)}</span>
-        </button>`;
-      }
-      h += '</div>';
-    } else {
-      const recipients = bcResolveRecipients();
-      h += `<p class="comms-bc-recip-summary">${recipients.length} recipient${recipients.length === 1 ? '' : 's'} match this filter.</p>`;
-      if(recipients.length){
-        h += '<div class="comms-bc-recip-list">';
-        for(const r of recipients.slice(0, 50)){
-          h += `<div class="comms-bc-recip-row preview">
-            <span class="comms-bc-recip-name">${esc(r.name)}</span>
-            <span class="comms-bc-recip-email">${esc(r.email)}</span>
-          </div>`;
-        }
-        if(recipients.length > 50){
-          h += `<p class="comms-bc-hint">…and ${recipients.length - 50} more.</p>`;
-        }
-        h += '</div>';
-      }
+    h += '<div class="comms-bc-recip-list">';
+    for(const c of eligible){
+      const sel = COMMS_BROADCAST_DRAFT.selectedContactIds.includes(c.id);
+      h += `<button type="button" class="comms-bc-recip-row${sel ? ' selected' : ''}" data-comms-bc-recip-toggle="${esc(c.id)}">
+        <span class="comms-bc-recip-check">${sel ? '☑' : '☐'}</span>
+        <span class="comms-bc-recip-name">${esc(c.name)}</span>
+        <span class="comms-bc-recip-email">${esc(c.email)}</span>
+      </button>`;
     }
     h += '</div>';
-  }
-  else if(COMMS_BROADCAST_STEP === 3){
-    const recipients = bcResolveRecipients();
-    h += '<div class="comms-bc-review">';
-    h += '<dl class="comms-bc-review-dl">';
-    h += `<dt>From</dt><dd>${esc(COMMS_BROADCAST_DRAFT.fromAlias)}@hanstan.wedding</dd>`;
-    h += `<dt>Subject</dt><dd>${esc(COMMS_BROADCAST_DRAFT.subject)}</dd>`;
-    h += `<dt>Recipients</dt><dd>${recipients.length}</dd>`;
-    h += '</dl>';
-    h += '<div class="comms-bc-body-preview">' + esc(COMMS_BROADCAST_DRAFT.body).replace(/\n/g, '<br>') + '</div>';
-    if(COMMS_BROADCAST_RESULT){
-      const r = COMMS_BROADCAST_RESULT;
-      const cls = r.ok ? 'success' : (r.failedCount > 0 ? 'partial' : 'error');
-      h += `<div class="comms-bc-result ${cls}">`;
-      h += `<strong>${r.ok ? 'Sent.' : 'Send result:'}</strong> ${r.sentCount || 0} delivered, ${r.failedCount || 0} failed.`;
-      if(r.failedRecipients && r.failedRecipients.length){
-        h += '<details><summary>Failed recipients</summary><ul>';
-        for(const f of r.failedRecipients) h += `<li>${esc(f.email || '')} — ${esc(f.error || '')}</li>`;
-        h += '</ul></details>';
-      }
-      h += '</div>';
+  } else if(recipients.length){
+    h += '<details class="comms-bc-recip-details">';
+    h += `<summary>show recipients</summary>`;
+    h += '<div class="comms-bc-recip-list">';
+    for(const r of recipients.slice(0, 100)){
+      h += `<div class="comms-bc-recip-row preview">
+        <span class="comms-bc-recip-name">${esc(r.name)}</span>
+        <span class="comms-bc-recip-email">${esc(r.email)}</span>
+      </div>`;
     }
-    h += '</div>';
+    if(recipients.length > 100){
+      h += `<p class="comms-bc-hint">…and ${recipients.length - 100} more.</p>`;
+    }
+    h += '</div></details>';
   }
+  h += '</div>';
 
-  h += '</div>'; // body
-  // Footer buttons
+  /* Subject */
+  h += '<div class="comms-bc-field">';
+  h += '<label class="comms-bc-label" for="commsBcSubject">Subject</label>';
+  h += `<input type="text" class="comms-bc-input" id="commsBcSubject" value="${esc(COMMS_BROADCAST_DRAFT.subject)}" placeholder="e.g. Save the date — final venue details">`;
+  h += '</div>';
+
+  /* Body */
+  h += '<div class="comms-bc-field">';
+  h += '<label class="comms-bc-label" for="commsBcBody">Body</label>';
+  h += `<textarea class="comms-bc-input comms-bc-body-input" id="commsBcBody" rows="12" placeholder="Hi {{firstName}},&#10;&#10;…">${esc(COMMS_BROADCAST_DRAFT.body)}</textarea>`;
+  h += '<p class="comms-bc-hint">Use <code>{{name}}</code> or <code>{{firstName}}</code> for personalization.</p>';
+  h += '</div>';
+
+  /* Send + secondary actions */
   h += '<div class="comms-bc-footer">';
-  if(COMMS_BROADCAST_STEP > 1){
-    h += '<button class="btn ghost" id="commsBcBack">← Back</button>';
-  } else {
-    h += '<span></span>';
-  }
-  if(COMMS_BROADCAST_STEP < 3){
-    h += '<button class="btn primary" id="commsBcNext">Next →</button>';
-  } else {
-    h += `<button class="btn primary" id="commsBcSend"${COMMS_BROADCAST_SENDING ? ' disabled' : ''}>${COMMS_BROADCAST_SENDING ? 'Sending…' : 'Send broadcast'}</button>`;
-  }
+  h += `<button type="button" class="btn primary" id="commsBcSend"${COMMS_BROADCAST_SENDING ? ' disabled' : ''}>${COMMS_BROADCAST_SENDING ? 'Sending…' : 'Send'}</button>`;
   h += '</div>';
 
-  h += '</div>';
+  /* Result panel — appears below form after a send completes */
+  if(COMMS_BROADCAST_RESULT){
+    const r = COMMS_BROADCAST_RESULT;
+    const cls = r.ok ? 'success' : (r.failedCount > 0 ? 'partial' : 'error');
+    h += `<div class="comms-bc-result ${cls}">`;
+    h += `<strong>${r.ok ? 'Sent.' : 'Send result:'}</strong> ${r.sentCount || 0} delivered, ${r.failedCount || 0} failed.`;
+    if(r.failedRecipients && r.failedRecipients.length){
+      h += '<details><summary>Failed recipients</summary><ul>';
+      for(const f of r.failedRecipients) h += `<li>${esc(f.email || '')} — ${esc(f.error || '')}</li>`;
+      h += '</ul></details>';
+    }
+    h += '</div>';
+  }
+
+  h += '</form></div>';
   return h;
 }
 
@@ -4627,24 +4609,13 @@ function bcResolveRecipients(){
   return eligible;
 }
 
-function handleBroadcastNext(){
-  if(COMMS_BROADCAST_STEP === 1){
-    if(!COMMS_BROADCAST_DRAFT.subject.trim()){ toast('Subject required', true); return; }
-    if(!COMMS_BROADCAST_DRAFT.body.trim()){ toast('Body required', true); return; }
-    COMMS_BROADCAST_STEP = 2;
-  } else if(COMMS_BROADCAST_STEP === 2){
-    const recipients = bcResolveRecipients();
-    if(!recipients.length){ toast('Pick at least one recipient', true); return; }
-    COMMS_BROADCAST_STEP = 3;
-    COMMS_BROADCAST_RESULT = null; // reset prior result on re-entry
-  }
-  renderComms();
-}
-function handleBroadcastBack(){
-  if(COMMS_BROADCAST_STEP > 1){ COMMS_BROADCAST_STEP--; renderComms(); }
-}
+/* Step-machine retired — single-page form. handleBroadcastSend
+   does its own pre-flight validation (subject + body + recipients)
+   so no Next/Back transitions remain. */
 async function handleBroadcastSend(){
   if(COMMS_BROADCAST_SENDING) return;
+  if(!COMMS_BROADCAST_DRAFT.subject.trim()){ toast('Subject required', true); return; }
+  if(!COMMS_BROADCAST_DRAFT.body.trim()){ toast('Body required', true); return; }
   const recipients = bcResolveRecipients();
   if(!recipients.length){ toast('No recipients', true); return; }
   const ok = await customConfirm('Send to ' + recipients.length + ' recipient' + (recipients.length === 1 ? '' : 's') + '?', 'Each will receive an individual email from ' + COMMS_BROADCAST_DRAFT.fromAlias + '@hanstan.wedding.');
@@ -5608,7 +5579,6 @@ async function handleBroadcastDiscardDraft(){
   const ok = await customConfirm('Discard broadcast draft?', 'Subject and body will be cleared.');
   if(!ok) return;
   clearBroadcastDraft();
-  COMMS_BROADCAST_STEP = 1;
   renderComms();
   toast('Draft discarded', false);
 }
@@ -5629,18 +5599,18 @@ handleBroadcastSend = async function(){
 const _origRenderCommsBroadcast = renderCommsBroadcast;
 renderCommsBroadcast = function(){
   let h = _origRenderCommsBroadcast();
-  // Inject Send-Test + Discard-Draft into the existing footer.
-  // Simplest path: post-process the rendered string to inject our buttons before the footer's closing div.
+  // Inject Send-Test + Discard-Draft + draft indicator into the footer.
+  // Match only the footer block — keep the post-process resilient to whatever
+  // closes the form/wrapper afterwards.
   const hasDraft = (COMMS_BROADCAST_DRAFT.subject && COMMS_BROADCAST_DRAFT.subject.trim()) || (COMMS_BROADCAST_DRAFT.body && COMMS_BROADCAST_DRAFT.body.trim());
   const draftIndicator = hasDraft ? `<span class="comms-bc-draft-saved" title="Draft auto-saved">💾 Draft saved</span>` : '';
-  // Replace the footer to add Send-Test + Discard-Draft + draft indicator. Detect footer by class.
-  // We use a tolerant regex to keep this resilient if the original markup tightens later.
   h = h.replace(
-    /<div class="comms-bc-footer">([\s\S]*?)<\/div>\s*<\/div>\s*$/,
+    /<div class="comms-bc-footer">([\s\S]*?)<\/div>/,
     function(_, inner){
-      const sendTestBtn = `<button class="btn ghost comms-bc-send-test" id="commsBcSendTest" title="Send a copy to Stan only — guests do not see this">Send test to Stan</button>`;
-      const discardBtn = hasDraft ? `<button class="btn ghost comms-bc-discard-draft" id="commsBcDiscardDraft" title="Clear subject + body">Discard draft</button>` : '';
-      return `<div class="comms-bc-footer">${draftIndicator}${sendTestBtn}${discardBtn}${inner}</div></div>`;
+      const sendTestBtn = `<button type="button" class="btn ghost comms-bc-send-test" id="commsBcSendTest" title="Send a copy to Stan only — guests do not see this">Send test to Stan</button>`;
+      const discardBtn = hasDraft ? `<button type="button" class="btn ghost comms-bc-discard-draft" id="commsBcDiscardDraft" title="Clear subject + body">Discard draft</button>` : '';
+      // Layout: [Send test] [Discard] [draft indicator] [Send →]
+      return `<div class="comms-bc-footer">${sendTestBtn}${discardBtn}${draftIndicator}${inner}</div>`;
     }
   );
   return h;
