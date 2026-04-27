@@ -4178,7 +4178,7 @@ async function handleCommsSyncInbox(){
     const res = await fetch('/.netlify/functions/zoho-inbound-pull', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Authorization': 'Bearer ' + (token || ''),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({})
@@ -4213,7 +4213,7 @@ async function loadServerState(){
   // Re-fetch state and re-apply (matches initApp's flow but as a refresh)
   try {
     const res = await fetch('/.netlify/functions/planner-state', {
-      headers: { 'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || '') }
+      headers: { 'Authorization': 'Bearer ' + (token || '') }
     });
     if(res.ok){
       const data = await res.json();
@@ -4316,7 +4316,7 @@ async function handleChannelSendMessage(){
     const res = await fetch('/.netlify/functions/channel-message', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Authorization': 'Bearer ' + (token || ''),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ channelId: COMMS_CHANNEL_ACTIVE, text })
@@ -4527,7 +4527,7 @@ async function handleBroadcastSend(){
     const res = await fetch('/.netlify/functions/zoho-broadcast-send', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Authorization': 'Bearer ' + (token || ''),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -4709,7 +4709,7 @@ async function pushSaveWithMergeRetry(){
   const res = await fetch('/.netlify/functions/planner-state', {
     method: 'POST',
     headers: {
-      'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+      'Authorization': 'Bearer ' + (token || ''),
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
@@ -4725,7 +4725,7 @@ async function pushSaveWithMergeRetry(){
     const retry = await fetch('/.netlify/functions/planner-state', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Authorization': 'Bearer ' + (token || ''),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
@@ -5452,7 +5452,7 @@ async function handleBroadcastSendTest(){
     const res = await fetch('/.netlify/functions/zoho-broadcast-send', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (window.MASTER_TOKEN || identity.token || ''),
+        'Authorization': 'Bearer ' + (token || ''),
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
