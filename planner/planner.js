@@ -1089,8 +1089,8 @@ function taskCard(t){
         </div>
         <span class="tc-status ${stCls}" onclick="event.stopPropagation();openStatusPicker('${t.id}')">${STATUS_LABELS[t.status] || t.status}</span>
       </div>
-      ${metaHtml ? `<div class="tc-meta">${metaHtml}</div>` : ''}
       ${notePreview ? `<div class="tc-note">${notePreview}</div>` : ''}
+      ${metaHtml ? `<div class="tc-meta">${metaHtml}</div>` : ''}
       ${stTotal ? `<div class="tc-subtasks"><span>${stDone}/${stTotal}</span><div class="bar"><div class="bar-fill" style="width:${Math.round(stDone/stTotal*100)}%"></div></div></div>` : ''}
     </div>
   </div>`;

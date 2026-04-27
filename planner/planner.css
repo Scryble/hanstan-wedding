@@ -4473,17 +4473,3 @@ body {
   font-weight: 600 !important;
 }
 
-/* Description goes directly under the title, BEFORE the pills row.
-   The DOM order is .tc-row1 → .tc-meta → .tc-note. Use flexbox + order
-   to render them as .tc-row1 → .tc-note → .tc-meta visually. */
-.tc-inner {
-  display: flex !important;
-  flex-direction: column !important;
-}
-.tc-inner > .tc-row1   { order: 1; }
-.tc-inner > .tc-note   { order: 2; }
-.tc-inner > .tc-meta   { order: 3; }
-.tc-inner > .tc-subtasks,
-.tc-inner > .tc-subtasks-agg { order: 4; }
-.tc-inner > .parent-children,
-.tc-inner > .inline-subs     { order: 5; }
