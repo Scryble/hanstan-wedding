@@ -4451,3 +4451,15 @@ body {
   justify-content: center !important;
   text-align: center !important;
 }
+
+/* No description truncation — show the full .tc-note text. The default
+   rule clamps to 1 line via -webkit-line-clamp; override that. */
+.tc-note {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  text-overflow: clip !important;
+}
