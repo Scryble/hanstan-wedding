@@ -432,41 +432,102 @@
 <script src="/ve-loader.js" defer></script>
 <script src="/css-panel.js"></script>
 
-<!-- ───────── Right-click → Copy CSS selector (dev affordance) ─────────
-     Pops a custom menu listing every ancestor of the right-clicked element,
-     each with its computed selector. Click an entry to copy it.
-     Bails out gracefully (i.e. native or app menu fires instead) when:
-      • Shift held (escape hatch to native browser menu)
-      • target is inside a .task-card  → existing showCtx wins
-      • target is #hdrEditMode         → existing handler wins
-      • any ancestor has [oncontextmenu] → respect future inline handlers
-      • target is an input/textarea/a/img/select → native menu (paste, etc.)
-      • there's a non-empty text selection → native menu (cut/copy/paste)  -->
+<!-- ───────── Right-click → Copy CSS selector (additive affordance) ─────────
+     Right-click anywhere → a small floating pill appears at the cursor
+     showing the element's CSS selector. Click the pill to copy. Ignore
+     it and it fades after 4 seconds. Native browser menu and any app
+     menus (task-card showCtx, etc.) run normally — this pill is purely
+     additive, never preventDefault'd, never replaces anything.
+
+     Hover the pill while it's up → expands to show the full ancestor
+     chain so you can pick a parent's selector instead of the leaf. -->
 <style>
-.css-selector-menu{position:fixed;background:#1d2d26;color:#faf9ef;border:1px solid var(--gold-deep,#8a6d22);border-radius:8px;min-width:280px;max-width:480px;max-height:70vh;overflow-y:auto;font-family:'DM Sans',system-ui,sans-serif;font-size:12px;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:none;}
-.css-selector-menu-h{padding:8px 12px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;color:var(--gold,#c19a3c);border-bottom:1px solid #445a4f;background:#0f1c16;font-weight:700;}
-.css-selector-menu-item{padding:8px 12px;border-bottom:1px solid #2a3a32;cursor:pointer;-webkit-user-select:none;user-select:none;}
-.css-selector-menu-item:last-child{border-bottom:none;}
-.css-selector-menu-item:hover{background:#2a3a32;}
-.css-selector-menu-item-primary{background:rgba(193,154,60,0.10);border-left:3px solid var(--gold,#c19a3c);padding-left:9px;}
-.css-selector-menu-item-primary:hover{background:rgba(193,154,60,0.18);}
-.css-selector-menu-label{font-weight:600;color:var(--gold-light,#ead89b);font-family:monospace;font-size:12px;}
-.css-selector-menu-sub{font-family:monospace;font-size:11px;color:#98a097;margin-top:2px;word-break:break-all;}
-.css-selector-menu-preview{font-style:italic;font-size:11px;color:#78867c;margin-top:3px;}
-.css-selector-target-highlight{outline:2px solid var(--gold,#c19a3c) !important;outline-offset:2px !important;background:rgba(193,154,60,0.12) !important;}
-.css-selector-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1d2d26;color:#faf9ef;padding:10px 18px;border-radius:8px;font-family:monospace;font-size:13px;z-index:99998;box-shadow:0 4px 16px rgba(0,0,0,0.3);border:1px solid var(--gold,#c19a3c);display:none;}
+.css-pill{
+  position:fixed; z-index:99999;
+  background:#1d2d26; color:#faf9ef;
+  border:1px solid #c19a3c;
+  border-radius:999px;
+  padding:6px 14px;
+  font:600 11px/1.2 'DM Sans',system-ui,sans-serif;
+  letter-spacing:.02em;
+  box-shadow:0 4px 16px rgba(0,0,0,0.35);
+  cursor:pointer;
+  -webkit-user-select:none; user-select:none;
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .15s ease, transform .15s ease;
+  pointer-events:auto;
+  white-space:nowrap;
+  max-width:min(420px, 80vw);
+  overflow:hidden; text-overflow:ellipsis;
+}
+.css-pill.show{ opacity:1; transform:translateY(0); }
+.css-pill:hover{ background:#2a3a32; border-color:#ead89b; }
+.css-pill .css-pill-icon{ color:#c19a3c; margin-right:6px; }
+.css-pill .css-pill-sel{ font-family:monospace; font-weight:500; color:#ead89b; }
+
+.css-chain{
+  position:fixed; z-index:99999;
+  background:#1d2d26; color:#faf9ef;
+  border:1px solid #c19a3c; border-radius:8px;
+  min-width:280px; max-width:480px; max-height:60vh; overflow-y:auto;
+  font:12px/1.4 'DM Sans',system-ui,sans-serif;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  display:none;
+}
+.css-chain-h{
+  padding:6px 12px;
+  font:700 10px/1.2 'Cinzel',serif;
+  letter-spacing:.5px; text-transform:uppercase;
+  color:#c19a3c; background:#0f1c16;
+  border-bottom:1px solid #445a4f;
+}
+.css-chain-item{
+  padding:7px 12px; border-bottom:1px solid #2a3a32; cursor:pointer;
+  -webkit-user-select:none; user-select:none;
+}
+.css-chain-item:last-child{ border-bottom:none; }
+.css-chain-item:hover{ background:#2a3a32; }
+.css-chain-item-primary{ background:rgba(193,154,60,0.10); border-left:3px solid #c19a3c; padding-left:9px; }
+.css-chain-item-primary:hover{ background:rgba(193,154,60,0.18); }
+.css-chain-label{ font:600 12px monospace; color:#ead89b; }
+.css-chain-sub{ font:11px monospace; color:#98a097; margin-top:2px; word-break:break-all; }
+
+.css-pill-toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:#1d2d26; color:#faf9ef;
+  padding:10px 18px; border-radius:8px;
+  font:13px monospace;
+  z-index:99998; box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  border:1px solid #c19a3c;
+  display:none;
+}
+.css-pill-target-hl{
+  outline:2px solid #c19a3c !important;
+  outline-offset:2px !important;
+  background:rgba(193,154,60,0.12) !important;
+}
 </style>
 <script>
 (function(){
-  const menu = document.createElement('div');
-  menu.id = 'cssSelectorMenu';
-  menu.className = 'css-selector-menu';
-  document.body.appendChild(menu);
+  const PILL_TIMEOUT_MS = 4000;
+  const pill = document.createElement('div');
+  pill.id = 'cssSelectorPill';
+  pill.className = 'css-pill';
+  pill.innerHTML = '<span class="css-pill-icon">🎯</span><span class="css-pill-sel"></span>';
+  document.body.appendChild(pill);
+
+  const chain = document.createElement('div');
+  chain.id = 'cssSelectorChain';
+  chain.className = 'css-chain';
+  document.body.appendChild(chain);
 
   const toast = document.createElement('div');
   toast.id = 'cssSelectorToast';
-  toast.className = 'css-selector-toast';
+  toast.className = 'css-pill-toast';
   document.body.appendChild(toast);
+
+  let pillTimer = null;
+  let currentTarget = null;
 
   function showToast(msg){
     toast.textContent = msg;
@@ -476,150 +537,168 @@
   }
 
   async function copyToClipboard(text){
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('Copied: ' + text);
-    } catch(err){
+    try { await navigator.clipboard.writeText(text); showToast('Copied: ' + text); }
+    catch(err){
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed'; ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
+      document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); showToast('Copied: ' + text); }
       catch(e){ showToast('Copy failed — selector: ' + text); }
       finally { document.body.removeChild(ta); }
     }
   }
 
+  // Build a stable selector for an element. Stops at the first ancestor with
+  // an id (uses #id as anchor) so the result stays short and stable.
   function buildSelector(el){
+    if (!el || el === document.body) return 'body';
     if (el.id) return '#' + CSS.escape(el.id);
     let cur = el;
-    const chain = [];
+    const parts = [];
     while (cur && cur !== document.body){
       const tag = cur.tagName.toLowerCase();
       const cls = (cur.className && typeof cur.className === 'string')
-        ? '.' + cur.className.trim().split(/\s+/)
-            .filter(c => c && !c.startsWith('s-') && !c.startsWith('p-'))
+        ? cur.className.trim().split(/\s+/)
+            .filter(c => c && !c.startsWith('s-') && !c.startsWith('p-')
+                         && !c.startsWith('css-pill') && !c.startsWith('css-chain'))
             .slice(0, 2).map(c => CSS.escape(c)).join('.')
         : '';
-      chain.unshift(tag + (cls === '.' ? '' : cls));
+      parts.unshift(tag + (cls ? '.' + cls : ''));
       if (cur.parentElement && cur.parentElement.id){
-        chain.unshift('#' + CSS.escape(cur.parentElement.id));
+        parts.unshift('#' + CSS.escape(cur.parentElement.id));
         break;
       }
       cur = cur.parentElement;
     }
-    return chain.join(' > ');
+    return parts.join(' > ');
   }
 
-  function describeElement(el){
-    const id = el.id || '';
-    const tag = el.tagName.toLowerCase();
-    const cls = (el.className && typeof el.className === 'string')
-      ? el.className.trim().split(/\s+/).slice(0, 3).join('.')
-      : '';
-    const text = (el.textContent || '').trim().slice(0, 40);
-    return { id, tag, cls, text };
-  }
-
-  function getAncestorChain(el){
-    const chain = [];
+  function ancestorChain(el){
+    const out = [];
     let cur = el;
-    while (cur && cur !== document.body){
-      chain.push(cur);
-      cur = cur.parentElement;
-    }
-    return chain;
+    while (cur && cur !== document.body){ out.push(cur); cur = cur.parentElement; }
+    return out;
   }
 
-  function shouldBailOut(e){
-    // Escape hatch to native browser context menu
-    if (e.shiftKey) return true;
-    // Visual editor (css panel) is active → its own context menu handles
-    // right-click and now includes a "Copy CSS selector" entry of its own,
-    // so we step aside entirely.
-    if (document.getElementById('veRoot')) return true;
-    // Existing handlers win
-    if (e.target.closest('.task-card')) return true;
-    if (e.target.closest('#hdrEditMode')) return true;
-    // Future-proof: respect any ancestor with its own inline contextmenu handler
-    let cur = e.target;
-    while (cur && cur !== document.body){
-      if (cur.hasAttribute && cur.hasAttribute('oncontextmenu')) return true;
-      cur = cur.parentElement;
-    }
-    // Native semantic right-click (paste, open-link-in-new-tab, save-image)
-    if (e.target.closest('input, textarea, select, a, img')) return true;
-    // If user has a text selection, native cut/copy/paste menu is what they want
-    const sel = window.getSelection && window.getSelection();
-    if (sel && sel.toString && sel.toString().length > 0) return true;
-    return false;
+  function hidePill(){
+    pill.classList.remove('show');
+    chain.style.display = 'none';
+    clearTimeout(pillTimer);
+    pillTimer = null;
+    document.querySelectorAll('.css-pill-target-hl').forEach(x => x.classList.remove('css-pill-target-hl'));
   }
 
-  document.addEventListener('contextmenu', function(e){
-    if (shouldBailOut(e)) return;
-    e.preventDefault();
-    menu.innerHTML = '';
-    const chain = getAncestorChain(e.target);
+  function placePill(x, y){
+    pill.style.display = 'inline-flex';
+    // Measure
+    const pw = pill.offsetWidth, ph = pill.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = x + 14;
+    let top  = y + 14;
+    if (left + pw + 8 > vw) left = x - pw - 14;
+    if (left < 8) left = 8;
+    if (top + ph + 8 > vh) top = y - ph - 14;
+    if (top < 8) top = 8;
+    pill.style.left = left + 'px';
+    pill.style.top  = top + 'px';
+  }
 
+  function showPillFor(el, x, y){
+    currentTarget = el;
+    const sel = buildSelector(el);
+    pill.querySelector('.css-pill-sel').textContent = sel;
+    placePill(x, y);
+    requestAnimationFrame(()=> pill.classList.add('show'));
+    clearTimeout(pillTimer);
+    pillTimer = setTimeout(hidePill, PILL_TIMEOUT_MS);
+  }
+
+  function showChainFor(el, x, y){
+    chain.innerHTML = '';
     const hdr = document.createElement('div');
-    hdr.className = 'css-selector-menu-h';
-    hdr.textContent = 'Copy CSS selector  ·  Shift+right-click for native menu';
-    menu.appendChild(hdr);
+    hdr.className = 'css-chain-h';
+    hdr.textContent = 'Pick an ancestor selector to copy';
+    chain.appendChild(hdr);
 
-    chain.forEach((el, i) => {
-      const sel = buildSelector(el);
-      const desc = describeElement(el);
+    ancestorChain(el).forEach((node, i) => {
+      const sel = buildSelector(node);
+      const tag = node.tagName.toLowerCase();
+      const cls = (node.className && typeof node.className === 'string')
+        ? node.className.trim().split(/\s+/).filter(c => c && !c.startsWith('css-pill') && !c.startsWith('css-chain')).slice(0, 3).join('.')
+        : '';
       const item = document.createElement('div');
-      item.className = 'css-selector-menu-item';
-      if (i === 0) item.classList.add('css-selector-menu-item-primary');
-
-      const label = document.createElement('div');
-      label.className = 'css-selector-menu-label';
-      label.textContent = desc.id ? ('#' + desc.id) : (desc.tag + (desc.cls ? '.' + desc.cls : ''));
-
+      item.className = 'css-chain-item' + (i === 0 ? ' css-chain-item-primary' : '');
+      const lbl = document.createElement('div');
+      lbl.className = 'css-chain-label';
+      lbl.textContent = node.id ? '#' + node.id : (tag + (cls ? '.' + cls : ''));
       const sub = document.createElement('div');
-      sub.className = 'css-selector-menu-sub';
+      sub.className = 'css-chain-sub';
       sub.textContent = sel;
-
-      const preview = document.createElement('div');
-      preview.className = 'css-selector-menu-preview';
-      preview.textContent = desc.text ? '"' + desc.text + (desc.text.length === 40 ? '…' : '') + '"' : '';
-
-      item.appendChild(label);
-      item.appendChild(sub);
-      if (preview.textContent) item.appendChild(preview);
-
+      item.appendChild(lbl); item.appendChild(sub);
+      item.addEventListener('mouseenter', () => node.classList.add('css-pill-target-hl'));
+      item.addEventListener('mouseleave', () => node.classList.remove('css-pill-target-hl'));
       item.addEventListener('click', ev => {
         ev.stopPropagation();
         copyToClipboard(sel);
-        menu.style.display = 'none';
-        document.querySelectorAll('.css-selector-target-highlight').forEach(x => x.classList.remove('css-selector-target-highlight'));
+        hidePill();
       });
-      item.addEventListener('mouseenter', () => { el.classList.add('css-selector-target-highlight'); });
-      item.addEventListener('mouseleave', () => { el.classList.remove('css-selector-target-highlight'); });
-      menu.appendChild(item);
+      chain.appendChild(item);
     });
 
-    const x = e.clientX, y = e.clientY;
-    menu.style.display = 'block';
-    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    chain.style.display = 'block';
+    const cw = chain.offsetWidth, ch = chain.offsetHeight;
     const vw = window.innerWidth, vh = window.innerHeight;
-    menu.style.left = Math.min(x, vw - mw - 8) + 'px';
-    menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
+    let left = x + 14;
+    let top  = y + 14;
+    if (left + cw + 8 > vw) left = vw - cw - 8;
+    if (top + ch + 8 > vh)  top  = vh - ch - 8;
+    if (left < 8) left = 8;
+    if (top < 8)  top  = 8;
+    chain.style.left = left + 'px';
+    chain.style.top  = top + 'px';
+    clearTimeout(pillTimer);
+    pillTimer = null;
+  }
+
+  // Right-click on ANYTHING → show the pill. Critically, we do NOT call
+  // preventDefault. The browser's native context menu still opens. The
+  // task-card oncontextmenu handler still fires. We're purely additive.
+  document.addEventListener('contextmenu', function(e){
+    // Don't show on our own UI
+    if (e.target.closest('#cssSelectorPill') || e.target.closest('#cssSelectorChain')) return;
+    // Visual editor (css panel) has its own context menu with a built-in
+    // "Copy CSS selector" item — don't double up. The panel's own menu
+    // covers this case fully when it's open.
+    if (document.getElementById('veRoot')) return;
+    showPillFor(e.target, e.clientX, e.clientY);
   });
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#cssSelectorMenu')){
-      menu.style.display = 'none';
-      document.querySelectorAll('.css-selector-target-highlight').forEach(x => x.classList.remove('css-selector-target-highlight'));
+  // Click the pill → copy the leaf selector immediately.
+  pill.addEventListener('click', function(ev){
+    ev.preventDefault(); ev.stopPropagation();
+    if (currentTarget) copyToClipboard(buildSelector(currentTarget));
+    hidePill();
+  });
+
+  // Hover the pill → expand into ancestor-chain picker so you can grab a
+  // parent's selector instead of the leaf.
+  pill.addEventListener('mouseenter', function(){
+    clearTimeout(pillTimer);
+    pillTimer = null;
+    if (currentTarget){
+      const r = pill.getBoundingClientRect();
+      showChainFor(currentTarget, r.left, r.bottom + 4);
     }
   });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape'){
-      menu.style.display = 'none';
-      document.querySelectorAll('.css-selector-target-highlight').forEach(x => x.classList.remove('css-selector-target-highlight'));
-    }
+
+  // Click outside or Esc → dismiss everything
+  document.addEventListener('mousedown', function(e){
+    if (e.target.closest('#cssSelectorPill') || e.target.closest('#cssSelectorChain')) return;
+    if (pill.classList.contains('show') || chain.style.display === 'block') hidePill();
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') hidePill();
   });
 })();
 </script>
