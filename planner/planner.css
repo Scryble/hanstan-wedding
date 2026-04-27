@@ -4399,3 +4399,23 @@ body.design-fix .sched-phase-nav { justify-content: center; }
   align-items: center !important;
   align-self: center !important;
 }
+
+/* GLOBAL vertical-center: every flex/grid container in the planner
+   gets align-items:center; inline elements get vertical-align:middle.
+   Per Scrybal directive — applies everywhere, not just task cards. */
+* { vertical-align: middle; }
+body :where(div, section, header, footer, nav, main, aside, article, span, button, label, ul, ol, li, dl, dd, dt) {
+  align-items: center;
+}
+/* Stronger override for known flex/grid layouts that explicitly set
+   align-items elsewhere and would otherwise win the cascade. */
+body :where(.app-header, .hdr-row1, .hdr-row2, .main-nav, .group-tabs,
+            .query-bar, .filter-tray, .batch-bar, .toast, .modal-bg,
+            .modal-card, .sheet-bg, .sheet-card, .ctx-menu, .edit-mode-bar,
+            .sched-event, .sched-phase, .sched-dashboard,
+            .comms-channels, .comms-thread, .people-row, .coord-row,
+            .settings-item, .veBar, .veTabs, .veCtxToolbar,
+            .veCtxRowGroup, .progress-mini, .tc-row1, .tc-row2,
+            .tc-meta, .tc-inner, .tc-subtasks, .tc-subtasks-agg) {
+  align-items: center !important;
+}
