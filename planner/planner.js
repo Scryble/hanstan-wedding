@@ -173,22 +173,46 @@ $('hdrSignout').onclick = () => {
   location.reload();
 };
 
-/* Design-fix toggle — applies audited visual corrections against visualDesign raw material.
-   OFF = original Rivendell Garden v1. ON = body.design-fix override block. */
-(function initDesignFixToggle(){
-  const KEY = 'hanstan_planner_design_fix';
+/* Theme toggle — cycles through three modes:
+     1. default              — base Rivendell stylesheet, no body class
+     2. design-fix           — audited visual corrections (body.design-fix)
+     3. rivendell-v3-dark    — Rivendell v3.1 dark mode with glows + motion
+   Click cycles default → design-fix → rivendell-v3-dark → default → …
+   Persists in localStorage. */
+(function initThemeToggle(){
+  const KEY = 'hanstan_planner_theme';
   const btn = $('hdrDesignFix');
   if(!btn) return;
-  const apply = (on) => {
-    document.body.classList.toggle('design-fix', on);
-    btn.textContent = 'Design Fix: ' + (on ? 'ON' : 'OFF');
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const MODES = ['default', 'design-fix', 'rivendell-v3-dark'];
+  const LABELS = {
+    'default':           'Theme: default',
+    'design-fix':        'Theme: design-fix',
+    'rivendell-v3-dark': 'Theme: Rivendell v3.1 dark'
   };
-  apply(localStorage.getItem(KEY) === '1');
+  const apply = (mode) => {
+    document.body.classList.remove('design-fix', 'theme-rivendell-v3-dark');
+    if(mode === 'design-fix') document.body.classList.add('design-fix');
+    else if(mode === 'rivendell-v3-dark') document.body.classList.add('theme-rivendell-v3-dark');
+    btn.textContent = LABELS[mode] || LABELS['default'];
+    btn.setAttribute('aria-pressed', mode === 'default' ? 'false' : 'true');
+    btn.dataset.themeMode = mode;
+  };
+  /* Migration: old key was 'hanstan_planner_design_fix' with values '0' or '1'.
+     If the new key is absent but the old one is set, translate. */
+  let saved = localStorage.getItem(KEY);
+  if(!saved){
+    const legacy = localStorage.getItem('hanstan_planner_design_fix');
+    if(legacy === '1') saved = 'design-fix';
+    else saved = 'default';
+  }
+  if(!MODES.includes(saved)) saved = 'default';
+  apply(saved);
   btn.onclick = () => {
-    const nextOn = !document.body.classList.contains('design-fix');
-    localStorage.setItem(KEY, nextOn ? '1' : '0');
-    apply(nextOn);
+    const cur = btn.dataset.themeMode || 'default';
+    const idx = MODES.indexOf(cur);
+    const next = MODES[(idx + 1) % MODES.length];
+    localStorage.setItem(KEY, next);
+    apply(next);
   };
 })();
 

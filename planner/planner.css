@@ -4553,3 +4553,248 @@ body {
   font-weight: 700 !important;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   THIRD THEME — Rivendell v3.1 dark
+   Activated by body.theme-rivendell-v3-dark.
+   Lifts from F:/Wedding Website/visualDesign_Rivendell_v3_1.html:
+     • Dark color palette + ink lifted for contrast on dark surfaces
+     • Glow tokens recalibrated for dark backgrounds
+     • Body radial-gradient ambient lights (lower opacity than light mode)
+     • Inner-light gradient on chips/buttons (recalibrated for dark)
+     • Tier-1 Magic ambient pulses on status pills
+     • Hearth-breath glow on the primary FAB quick-add button
+     • Ampersand-breath on the header monogram
+     • Component glows on focus, hover, and selected states
+     • prefers-reduced-motion fallback (static auras at 0.7 opacity)
+   Selectors are matched against ACTUAL planner markup, not v3.1 spec —
+   the live planner uses .tc-status-in-progress (not .tc-status.in-progress)
+   and the FAB is #fabQuickAdd (not .quick-add button).
+   Per-element typography overrides made earlier (status pills 14px Cinzel
+   max-bold, titles 18px Cinzel 700, etc.) are NOT touched here. */
+
+/* ── Color tokens ──────────────────────────────────────────────────── */
+body.theme-rivendell-v3-dark {
+  /* Surfaces — dark forest floor */
+  --bg:          #141e19;
+  --bg-warm:     #1a2620;
+  --bg-elevated: #1a2620;
+  --panel:       #1e2a24;
+  --card:        #222e28;
+  --card-rich:   #263230;
+
+  /* Ink — verified contrast against --card (oklch 28.8%) */
+  --ink:           #e4e8e2;
+  --ink-2:         #b8c4b8;
+  --ink-3:         #8a9a8f;
+  --ink-4:         #6a7c70;
+  --text-primary:  #e4e8e2;
+  --text-secondary:#b8c4b8;
+  --text-muted:    #8a9a8f;
+
+  /* Hairlines + metals */
+  --hair:        #2e3e34;
+  --hair-gold:   #6b5a2e;
+  --mithril:     #3a4840;
+  --border:      #2e3e34;
+  --divider:     #2e3e34;
+
+  /* Accent text colors — lightened + chroma reduced for dark surfaces */
+  --gold-deep:   #b8922e;
+  --gold-dark:   #b8922e;
+  --rose-deep:   #cd848a;
+  --emerald:     #74a18a;
+  --emerald-glow:#7fb89a;
+  --s-done:      #6da88a;
+  --lavender:    #a89ad0;
+  --sky:         #82a0c0;
+  --blush:       #d9a090;
+
+  /* Status backgrounds for dark */
+  --s-done-bg:      #1e3228;
+  --s-progress-bg:  rgba(193,154,60,0.12);
+  --s-blocked-bg:   rgba(161,66,79,0.15);
+  --s-delegated-bg: rgba(138,126,171,0.12);
+  --s-overdue-bg:   rgba(161,66,79,0.15);
+  --chip-neutral-bg:rgba(184,196,184,0.10);
+  --chip-neutral-fg:#b8c4b8;
+  --chip-tag-bg:    rgba(116,161,138,0.16);
+  --chip-tag-fg:    #aac9b8;
+  --chip-date-bg:   rgba(130,160,192,0.18);
+  --chip-date-fg:   #a8c0d8;
+  --chip-assignee-bg:rgba(168,154,208,0.18);
+  --chip-assignee-fg:#c4b8e0;
+  --chip-dep-bg:    rgba(217,160,144,0.18);
+  --chip-dep-fg:    #e6b8a8;
+
+  /* Pop accents */
+  --blush-bg:    rgba(197,136,119,0.15);
+  --lavender-bg: rgba(138,126,171,0.12);
+  --sky-bg:      rgba(102,132,166,0.12);
+  --rose-bg:     rgba(161,66,79,0.15);
+
+  /* Shadows — deeper for dark */
+  --shadow-card:     0 1px 2px rgba(0,0,0,0.2), 0 2px 10px rgba(0,0,0,0.15);
+  --shadow-lift:     0 2px 4px rgba(0,0,0,0.2), 0 12px 28px rgba(0,0,0,0.25);
+  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.25), 0 20px 48px rgba(0,0,0,0.35);
+
+  /* Glows — stronger on dark */
+  --glow-gold:     0 0 10px rgba(234,216,155,0.65), 0 0 24px rgba(234,216,155,0.35);
+  --glow-gold-sm:  0 0 8px rgba(234,216,155,0.55);
+  --glow-emerald:  0 0 12px rgba(95,176,137,0.45), 0 0 28px rgba(95,176,137,0.2);
+  --glow-mithril:  0 0 8px rgba(201,207,196,0.5), 0 0 16px rgba(201,207,196,0.25);
+}
+
+/* ── Body ambient gradient (low-opacity for dark) ─────────────────── */
+body.theme-rivendell-v3-dark {
+  background:
+    radial-gradient(900px 500px at 20% -10%, rgba(234,216,155,0.08), transparent 55%),
+    radial-gradient(800px 460px at 110% 20%, rgba(95,176,137,0.04), transparent 55%),
+    radial-gradient(1200px 700px at 50% 120%, rgba(193,154,60,0.03), transparent 60%),
+    var(--bg);
+}
+
+/* ── Tier-1 Magic keyframes ──────────────────────────────────────── */
+@keyframes vd-pulse-rose {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+@keyframes vd-flicker-gold {
+  /* Asymmetric — real candleflames surge and fade unevenly */
+  0%, 100% { opacity: 0.40; }
+  30%      { opacity: 0.95; }
+  65%      { opacity: 0.20; }
+}
+@keyframes vd-hearth-breath {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.95; }
+}
+@keyframes vd-ampersand-breath {
+  0%, 100% { text-shadow: 0 0 6px rgba(255,232,166,0.75), 0 0 16px rgba(234,216,155,0.45), 0 0 30px rgba(193,154,60,0.25); }
+  50%      { text-shadow: 0 0 9px rgba(255,232,166,0.95), 0 0 22px rgba(234,216,155,0.70), 0 0 40px rgba(193,154,60,0.45); }
+}
+
+/* ── Ambient pulses on status pills ──────────────────────────────── */
+body.theme-rivendell-v3-dark .tc-status {
+  position: relative;
+  isolation: isolate;
+}
+body.theme-rivendell-v3-dark .tc-status::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -2;
+}
+body.theme-rivendell-v3-dark .tc-status.tc-status-blocked::after {
+  box-shadow:
+    0 0 14px 0 rgba(161,66,79,0.55),
+    0 0 28px 0 rgba(161,66,79,0.28);
+  animation: vd-pulse-rose 3s ease-in-out infinite;
+}
+body.theme-rivendell-v3-dark .tc-status.tc-status-in-progress::after {
+  box-shadow:
+    0 0 10px 0 rgba(234,216,155,0.7),
+    0 0 22px 0 rgba(234,216,155,0.35);
+  animation: vd-flicker-gold 4.5s ease-in-out infinite;
+}
+body.theme-rivendell-v3-dark .tc-status.tc-status-done::after {
+  box-shadow:
+    0 0 10px 0 rgba(95,176,137,0.55),
+    0 0 22px 0 rgba(95,176,137,0.25);
+  opacity: 0.85;
+}
+
+/* ── Inner-light gradient on chips/buttons (recalibrated for dark) ─ */
+body.theme-rivendell-v3-dark .tc-status::before,
+body.theme-rivendell-v3-dark .mc::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.08) 0%,
+    rgba(255,255,255,0.02) 45%,
+    rgba(0,0,0,0.15) 100%);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+body.theme-rivendell-v3-dark .mc {
+  position: relative;
+  isolation: isolate;
+}
+/* Matte states stay matte — dormant elements don't hold light */
+body.theme-rivendell-v3-dark .tc-status.tc-status-not-started::before { display: none; }
+
+/* ── Header ampersand breath ──────────────────────────────────────── */
+body.theme-rivendell-v3-dark .hdr-brand em {
+  color: var(--gold);
+  font-style: normal;
+  text-shadow:
+    0 0 6px rgba(255,232,166,0.85),
+    0 0 16px rgba(234,216,155,0.55),
+    0 0 30px rgba(193,154,60,0.35);
+  animation: vd-ampersand-breath 4s ease-in-out infinite;
+}
+
+/* ── FAB hearth-breath (rebound from .quick-add button to #fabQuickAdd) */
+body.theme-rivendell-v3-dark #fabQuickAdd {
+  position: relative;
+  isolation: isolate;
+}
+body.theme-rivendell-v3-dark #fabQuickAdd::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  box-shadow:
+    0 0 20px 0 rgba(95,176,137,0.40),
+    0 0 40px 0 rgba(95,176,137,0.20);
+  opacity: 0.5;
+  animation: vd-hearth-breath 4s ease-in-out infinite;
+  transition: opacity 0.25s;
+}
+body.theme-rivendell-v3-dark #fabQuickAdd:hover::after {
+  animation: none;
+  opacity: 1;
+}
+
+/* ── Component glows on focus/hover ──────────────────────────────── */
+body.theme-rivendell-v3-dark :focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow: var(--glow-gold-sm);
+}
+body.theme-rivendell-v3-dark .task-card:hover {
+  box-shadow: var(--shadow-lift), 0 0 22px rgba(234,216,155,0.18);
+  border-color: var(--gold-light);
+}
+body.theme-rivendell-v3-dark .tc-check:hover {
+  border-color: var(--gold);
+  box-shadow: var(--glow-gold-sm);
+}
+body.theme-rivendell-v3-dark .task-card.s-done::before {
+  background: var(--s-done);
+  box-shadow: var(--glow-emerald);
+}
+body.theme-rivendell-v3-dark .task-card.s-done .tc-check {
+  box-shadow: var(--glow-emerald);
+}
+
+/* ── Reduced-motion fallback — static auras at 0.7 opacity ───────── */
+@media (prefers-reduced-motion: reduce) {
+  body.theme-rivendell-v3-dark .hdr-brand em {
+    animation: none;
+    text-shadow:
+      0 0 6px rgba(255,232,166,0.85),
+      0 0 16px rgba(234,216,155,0.55),
+      0 0 30px rgba(193,154,60,0.35);
+  }
+  body.theme-rivendell-v3-dark .tc-status.tc-status-blocked::after,
+  body.theme-rivendell-v3-dark .tc-status.tc-status-in-progress::after,
+  body.theme-rivendell-v3-dark #fabQuickAdd::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}
