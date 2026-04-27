@@ -2480,9 +2480,9 @@ function openTaskEditor(id){
   $('historyLog').innerHTML = hist.length ? hist.map(h => {
     const d = new Date(h.time);
     const stamp = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
-    const who = h.by ? ` <span style="opacity:0.7">by ${esc(h.by)}</span>` : '';
-    return `<div style="padding:4px 0;border-bottom:1px solid var(--divider)">${esc(h.action)}${who} <span style="float:right;opacity:0.5;font-size:12px">${stamp}</span></div>`;
-  }).join('') : '<div style="color:var(--text-muted)">No history yet.</div>';
+    const who = h.by ? ` <span class="hl-by">by ${esc(h.by)}</span>` : '';
+    return `<div class="hl-row">${esc(h.action)}${who} <span class="hl-stamp">${stamp}</span></div>`;
+  }).join('') : '<div class="hl-empty">No history yet.</div>';
 
   if(PREFS.advExpanded){$('advFields').classList.add('open'); $('advToggle').textContent = '▾ Fewer fields'}
   else{$('advFields').classList.remove('open'); $('advToggle').textContent = '▸ More fields'}

@@ -440,9 +440,11 @@ input[type="date"], textarea, select { font-size: 16px; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px 12px; border-bottom: 1px solid var(--divider);
 }
+/* TIER 1 — modal title. Apex of the modal hierarchy. */
 .modal-hdr h2 {
-  font-family: 'Cinzel', serif; font-size: 15px;
-  color: var(--gold-dark); letter-spacing: 0.06em; font-weight: 400;
+  font-family: 'Cinzel', serif; font-size: 22px;
+  color: var(--gold-dark); letter-spacing: 0.08em; font-weight: 500;
+  text-transform: uppercase;
 }
 .modal-close {
   width: 32px; height: 32px; border: none; background: var(--bg);
@@ -455,15 +457,23 @@ input[type="date"], textarea, select { font-size: 16px; }
 
 /* form fields */
 .ff { margin-bottom: 12px; }
+/* TIER 2 — field group label. Cinzel uppercase letter-spaced. */
 .ff label {
-  display: block; font-size: 12px; font-weight: 500;
+  display: block; font-family: 'Cinzel', serif;
+  font-size: 11px; font-weight: 500;
   color: var(--text-muted); text-transform: uppercase;
-  letter-spacing: 0.04em; margin-bottom: 4px;
+  letter-spacing: 0.08em; margin-bottom: 4px;
 }
+/* TIER 3 — field VALUE. Cormorant Garamond at 15px — the readable
+   body text the user types and reads, distinct from the small Cinzel
+   labels above and the muted metadata below. */
 .ff input, .ff select, .ff textarea {
   width: 100%; padding: 10px 12px; border: 1px solid var(--border);
   border-radius: var(--r-sm); background: var(--bg);
   color: var(--text-primary); outline: none;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px;
+  text-transform: none;
   transition: border-color var(--transition);
 }
 .ff input:focus, .ff select:focus, .ff textarea:focus { border-color: var(--gold); }
@@ -474,18 +484,24 @@ input[type="date"], textarea, select { font-size: 16px; }
   border: 1px solid var(--border); border-radius: var(--r-sm);
   background: var(--bg); min-height: 38px; cursor: text;
 }
+/* TIER 4 — inline pill metadata. */
 .ff-tag-pill {
-  font-size: 12px; padding: 2px 8px; background: var(--chip-tag-bg);
+  font-family: 'Cinzel', serif;
+  font-size: 11px; padding: 2px 8px; background: var(--chip-tag-bg);
   color: var(--chip-tag-fg); border-radius: var(--r-pill);
   display: flex; align-items: center; gap: 3px;
 }
 .ff-tag-pill .rx { cursor: pointer; opacity: 0.5; font-size: 13px; }
 .ff-tag-pill .rx:hover { opacity: 1; }
 .ff-tags input {
-  border: none; background: none; outline: none; font-size: 14px;
+  border: none; background: none; outline: none;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px;
+  text-transform: none;
   flex: 1; min-width: 60px; padding: 4px;
 }
-.ff-hint { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+/* TIER 4 — small helper / hint text below a field. */
+.ff-hint { font-family: 'Cinzel', serif; font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
 /* subtasks */
 .subtask-list { margin-bottom: 8px; }
@@ -503,7 +519,11 @@ input[type="date"], textarea, select { font-size: 16px; }
   background: var(--s-done); border-color: var(--s-done); color: #fff;
 }
 .subtask-item.done .subtask-text { text-decoration: line-through; color: var(--text-muted); }
-.subtask-text { flex: 1; font-size: 14px; }
+/* TIER 3 — subtask body text (a value). */
+.subtask-text {
+  flex: 1; font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; text-transform: none;
+}
 .subtask-rm {
   border: none; background: none; color: var(--text-muted);
   cursor: pointer; font-size: 16px; opacity: 0; transition: opacity var(--transition);
@@ -511,47 +531,89 @@ input[type="date"], textarea, select { font-size: 16px; }
 .subtask-item:hover .subtask-rm { opacity: 0.5; }
 .subtask-rm:hover { opacity: 1 !important; color: var(--s-overdue); }
 .subtask-add { display: flex; gap: 8px; margin-top: 4px; }
+/* TIER 3 — subtask input field (a value being entered). */
 .subtask-add input {
   flex: 1; padding: 6px 10px; border: 1px solid var(--border);
-  border-radius: var(--r-sm); background: var(--bg); font-size: 14px;
-  outline: none;
+  border-radius: var(--r-sm); background: var(--bg);
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px;
+  text-transform: none; outline: none;
 }
 .subtask-add input:focus { border-color: var(--gold); }
+/* Action button — Cinzel small caps to read as a control, not a value. */
 .subtask-add button {
   padding: 6px 12px; background: var(--gold-fill); border: 1px solid var(--gold);
-  border-radius: var(--r-sm); color: var(--gold-dark); font-size: 13px;
-  cursor: pointer; font-weight: 500;
+  border-radius: var(--r-sm); color: var(--gold-dark);
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; font-weight: 500;
 }
 
 /* comments */
 .comment-thread { margin-top: 8px; }
+/* TIER 3 — comment body. The text content is a value the user reads. */
 .comment-item {
   padding: 8px 0; border-bottom: 1px solid var(--divider);
-  font-size: 14px; color: var(--text-secondary); line-height: 1.45;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; color: var(--text-secondary); line-height: 1.45;
+  text-transform: none;
 }
-.comment-item .c-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+/* TIER 4 — comment timestamp metadata. */
+.comment-item .c-time {
+  font-family: 'Cinzel', serif;
+  font-size: 10px; color: var(--text-muted); margin-top: 2px;
+  letter-spacing: 0.04em;
+}
 .comment-add { display: flex; gap: 8px; margin-top: 8px; }
+/* TIER 3 — comment input field. */
 .comment-add input {
   flex: 1; padding: 8px 12px; border: 1px solid var(--border);
-  border-radius: var(--r-sm); background: var(--bg); font-size: 14px;
-  outline: none;
+  border-radius: var(--r-sm); background: var(--bg);
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px;
+  text-transform: none; outline: none;
 }
 .comment-add input:focus { border-color: var(--gold); }
 .comment-add button {
   padding: 8px 14px; background: var(--gold); color: #fff;
-  border: none; border-radius: var(--r-sm); font-size: 13px;
-  cursor: pointer; font-weight: 500;
+  border: none; border-radius: var(--r-sm);
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; font-weight: 500;
 }
 
 /* advanced toggle */
+/* TIER 2 — section expander ("More fields" / "Activity History").
+   Same typographic class as field labels — both are sectional signals. */
 .adv-toggle {
-  font-size: 13px; color: var(--text-muted); cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted); cursor: pointer;
   padding: 8px 0; display: flex; align-items: center; gap: 6px;
   user-select: none; transition: color var(--transition);
 }
 .adv-toggle:hover { color: var(--gold-dark); }
 .adv-section { display: none; }
 .adv-section.open { display: block; }
+/* TIER 4 — activity log entries (read-only metadata stream). */
+.history-log {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+.history-log .hl-row {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-log .hl-by { opacity: 0.7; }
+.history-log .hl-stamp {
+  opacity: 0.5;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.history-log .hl-empty { color: var(--text-muted); }
 
 /* modal footer */
 .modal-footer {
@@ -2534,11 +2596,12 @@ body.design-fix .modal-panel {
 body.design-fix .modal-hdr {
   padding: var(--sp-4) var(--sp-5) var(--sp-3);
 }
+/* TIER 1 — modal title (design-fix). Aligned with the base rule. */
 body.design-fix .modal-hdr h2 {
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 22px;
   font-weight: 500;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.08em;
   color: var(--gold-dark);
   text-transform: uppercase;
 }
@@ -2547,13 +2610,17 @@ body.design-fix .modal-footer { padding: var(--sp-3) var(--sp-5) var(--sp-4); ga
 
 /* Form fields: consistent padding + radius with nested-radius rule (break #47) */
 body.design-fix .ff { margin-bottom: var(--sp-3); }
+/* TIER 2 — field group label (design-fix). */
 body.design-fix .ff label {
+  font-family: 'Cinzel', serif;
   font-size: 11px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   font-weight: 500;
+  text-transform: uppercase;
   color: var(--ink-3);
   margin-bottom: var(--sp-1);
 }
+/* TIER 3 — field VALUE (design-fix). */
 body.design-fix .ff input,
 body.design-fix .ff select,
 body.design-fix .ff textarea {
@@ -2562,7 +2629,9 @@ body.design-fix .ff textarea {
      Inner = outer − padding = negative, so rd-sm (4px) flattens correctly. */
   border-radius: var(--rd-sm);
   background: var(--bg);
-  font-size: 14px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px;
+  text-transform: none;
 }
 body.design-fix .ff input:focus,
 body.design-fix .ff select:focus,
@@ -2571,21 +2640,46 @@ body.design-fix .ff textarea:focus {
   box-shadow: 0 0 0 2px var(--gold-wash);
 }
 body.design-fix .ff-row { gap: var(--sp-3); }
-body.design-fix .ff-hint { font-size: 11px; }
+/* TIER 4 — hint / pill metadata (design-fix). */
+body.design-fix .ff-hint { font-family: 'Cinzel', serif; font-size: 11px; }
 body.design-fix .ff-tags { gap: var(--sp-1); border-radius: var(--rd-md); }
 body.design-fix .ff-tag-pill {
+  font-family: 'Cinzel', serif;
   font-size: 11px;
   padding: 2px var(--sp-2);
 }
 
-/* Subtasks + comments (break #64 asymmetric padding) */
-body.design-fix .subtask-text { font-size: 13px; }
+/* Subtasks + comments + activity (design-fix) — body text is TIER 3
+   (Cormorant 15px), timestamps & toggles are TIER 4 (Cinzel small). */
+body.design-fix .subtask-text {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; text-transform: none;
+}
 body.design-fix .subtask-check { width: 16px; height: 16px; }
-body.design-fix .subtask-add input { padding: var(--sp-1) var(--sp-2); font-size: 13px; border-radius: var(--rd-sm); }
-body.design-fix .comment-item { font-size: 13px; }
-body.design-fix .comment-item .c-time { font-size: 10px; }
-body.design-fix .comment-add input { padding: var(--sp-2) var(--sp-3); font-size: 13px; border-radius: var(--rd-sm); }
-body.design-fix .adv-toggle { font-size: 12px; }
+body.design-fix .subtask-add input {
+  padding: var(--sp-1) var(--sp-2);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; text-transform: none; border-radius: var(--rd-sm);
+}
+body.design-fix .comment-item {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; text-transform: none;
+}
+body.design-fix .comment-item .c-time {
+  font-family: 'Cinzel', serif;
+  font-size: 10px; letter-spacing: 0.04em;
+}
+body.design-fix .comment-add input {
+  padding: var(--sp-2) var(--sp-3);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; text-transform: none; border-radius: var(--rd-sm);
+}
+/* TIER 2 — section toggles match field labels. */
+body.design-fix .adv-toggle {
+  font-family: 'Cinzel', serif;
+  font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; font-weight: 500;
+}
 
 /* ── PEOPLE CARDS (break #63: card style mismatch) ─────────────────────────── */
 body.design-fix .person-card {
