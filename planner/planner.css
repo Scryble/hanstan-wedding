@@ -4419,3 +4419,12 @@ body :where(.app-header, .hdr-row1, .hdr-row2, .main-nav, .group-tabs,
             .tc-meta, .tc-inner, .tc-subtasks, .tc-subtasks-agg) {
   align-items: center !important;
 }
+
+/* Description text (.tc-note) sits flush under the title (.tc-title)
+   instead of under the whole row including the checkbox column.
+   Indent by the width of [checkbox 22px + gap 8px = 30px] for leaf
+   cards. Parent cards add an expand-button column (~24px + 8px = 32px
+   more) — total 62px. */
+.task-card .tc-note { margin-left: 30px; }
+.task-card.has-children .tc-note,
+.task-card .tc-note.has-expand { margin-left: 62px; }
