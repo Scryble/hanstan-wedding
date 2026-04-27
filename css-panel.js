@@ -1036,10 +1036,10 @@ function showCtxMenu(x,y,el){
   var ctx=$('veCtx');
   if(!ctx){
     ctx=mk('div');ctx.id='veCtx';
-    ctx.style.cssText='position:fixed;z-index:999999;background:rgba(14,10,22,0.97);border:1px solid rgba(216,181,91,0.3);border-radius:8px;padding:4px 0;min-width:220px;display:none;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ddd0ee;box-shadow:0 8px 30px rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
+    ctx.style.cssText='position:fixed;z-index:999999;background:rgba(14,10,22,0.97);border:1px solid rgba(216,181,91,0.3);border-radius:6px;padding:2px 0;min-width:220px;display:none;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#ddd0ee;box-shadow:0 8px 30px rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
     document.body.appendChild(ctx);
   }
-  var SEP='<div style="height:1px;background:rgba(216,181,91,0.15);margin:4px 0"></div>';
+  var SEP='<div style="height:1px;background:rgba(216,181,91,0.15);margin:2px 0"></div>';
   var classes=el.className&&typeof el.className==='string'?el.className.split(/\s+/).filter(function(c){return c&&c.indexOf('ve')!==0;}):[];
   var classItems='';
   classes.forEach(function(cls){
@@ -1143,7 +1143,7 @@ function showCtxMenu(x,y,el){
   ctx.style.top=Math.min(y,window.innerHeight-ctx.offsetHeight-10)+'px';
 }
 function ctxItem(act,label){
-  return '<div data-ctx="'+act+'" style="padding:7px 14px;cursor:pointer;transition:background .1s;font-size:12px;" onmouseover="this.style.background=\'rgba(216,181,91,0.1)\'" onmouseout="this.style.background=\'none\'">'+label+'</div>';
+  return '<div data-ctx="'+act+'" style="padding:3px 14px;cursor:pointer;transition:background .1s;font-size:12px;line-height:1.5;" onmouseover="this.style.background=\'rgba(216,181,91,0.1)\'" onmouseout="this.style.background=\'none\'">'+label+'</div>';
 }
 function hideCtxMenu(){var ctx=$('veCtx');if(ctx)ctx.style.display='none';}
 function showTip(el,mx,my){
