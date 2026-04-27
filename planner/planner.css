@@ -304,9 +304,10 @@ input[type="date"], textarea, select { font-size: 16px; }
 }
 .task-card.p-critical .tc-title { color: var(--p-critical); }
 .tc-status {
-  flex-shrink: 0; padding: 3px 10px; font-size: 11px; font-weight: 500;
+  flex-shrink: 0; padding: 3px 10px; font-size: 18px; font-weight: 900;
+  font-family: 'Cinzel', serif;
   border-radius: var(--r-pill); cursor: pointer; margin-top: 2px;
-  text-transform: uppercase; letter-spacing: 0.03em;
+  text-transform: lowercase; letter-spacing: 0.03em;
   transition: all var(--transition); border: 1px solid transparent;
 }
 .tc-status:hover { filter: brightness(0.95); }
@@ -1236,18 +1237,16 @@ input[type="date"], textarea, select { font-size: 16px; }
 }
 .tc-status {
   font-family: 'Cinzel', serif;
-  font-size: 16px; font-weight: 500; letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 18px; font-weight: 900; letter-spacing: 0.08em;
+  text-transform: lowercase;
   padding: 6px 14px;
   border-radius: var(--r-pill);
   border: 1px solid transparent;
 }
-.tc-status-not-started { font-weight: 400; }
-.tc-status-in-progress { font-weight: 600; border-color: var(--gold-light); box-shadow: var(--glow-gold-sm); }
-.tc-status-blocked { font-weight: 700; }
-.tc-status-delegated { font-weight: 500; }
-.tc-status-mostly-done { font-weight: 600; }
-.tc-status-done { font-weight: 700; box-shadow: var(--glow-emerald); color: #fff; background: var(--s-done); }
+/* Per-status colour treatments only — weight is uniform max-bold across
+   every status so all pills carry the same typographic weight. */
+.tc-status-in-progress { border-color: var(--gold-light); box-shadow: var(--glow-gold-sm); }
+.tc-status-done { box-shadow: var(--glow-emerald); color: #fff; background: var(--s-done); }
 .mc { font-size: 16px; padding: 5px 12px; border-radius: var(--r-pill); }
 .mc-overdue { box-shadow: 0 0 8px rgba(161,66,79,0.35); }
 .tc-note { font-size: 16px; font-family: 'Cormorant Garamond', serif; font-style: italic; line-height: 1.5; margin-top: 8px; }
