@@ -150,6 +150,7 @@ input[type="date"], textarea, select { font-size: 16px; }
 /* §3.2 SECONDARY DOMAIN TABS */
 .group-tabs {
   display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  justify-content: safe center;
   border-bottom: 1px solid var(--divider);
   padding: 0 12px; gap: 2px; position: sticky; top: 47px; z-index: 79;
   scrollbar-width: none;
@@ -3343,32 +3344,77 @@ body.design-fix .sched-add-phase-wrap { margin: var(--sp-4) 0; }
 
 .edit-mode-bar {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
   z-index: 8500;
   display: none;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--gold-dark, #8a7345);
-  color: #fff;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+  gap: 14px;
+  padding: 8px 12px 8px 18px;
+  max-width: calc(100vw - 24px);
+  background: var(--card, #faf9ef);
+  color: var(--ink, #1d2d26);
+  border: 1px solid var(--hair-gold, #d4bf82);
+  border-radius: 999px;
+  box-shadow:
+    0 1px 2px rgba(32, 49, 43, 0.06),
+    0 12px 28px rgba(32, 49, 43, 0.16),
+    0 0 0 4px var(--gold-soft, rgba(193, 154, 60, 0.06));
+  font-family: 'DM Sans', system-ui, sans-serif;
 }
-.edit-mode-bar.show { display: flex; }
+.edit-mode-bar.show { display: inline-flex; }
+.edit-mode-bar .edit-mode-count {
+  font-size: 13px;
+  color: var(--ink-2, #445a4f);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
 .edit-mode-bar .edit-mode-discard,
 .edit-mode-bar .edit-mode-confirm {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 4px;
-  padding: 6px 14px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 7px 16px;
   cursor: pointer;
-  font-size: 14px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
 }
-.edit-mode-bar .edit-mode-discard:hover { background: rgba(255, 100, 100, 0.4); }
-.edit-mode-bar .edit-mode-confirm { background: rgba(120, 200, 120, 0.5); }
-.edit-mode-bar .edit-mode-confirm:hover { background: rgba(120, 200, 120, 0.75); }
-.edit-mode-bar .edit-mode-count { font-size: 13px; color: rgba(255, 255, 255, 0.9); }
+.edit-mode-bar .edit-mode-discard {
+  background: transparent;
+  color: var(--ink-3, #78867c);
+  border: 1px solid var(--hair, #d6d6c5);
+}
+.edit-mode-bar .edit-mode-discard:hover {
+  color: var(--ink, #1d2d26);
+  border-color: var(--ink-3, #78867c);
+  background: rgba(32, 49, 43, 0.03);
+}
+.edit-mode-bar .edit-mode-confirm {
+  background: var(--emerald, #2e5a45);
+  color: #faf9ef;
+  border: 1px solid var(--emerald, #2e5a45);
+}
+.edit-mode-bar .edit-mode-confirm:hover {
+  background: #244a39;
+  border-color: #244a39;
+}
+@media (max-width: 480px) {
+  .edit-mode-bar {
+    bottom: 10px;
+    gap: 8px;
+    padding: 6px 8px 6px 14px;
+  }
+  .edit-mode-bar .edit-mode-count { font-size: 12px; }
+  .edit-mode-bar .edit-mode-discard,
+  .edit-mode-bar .edit-mode-confirm {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
 body.edit-mode-on .task-card { box-shadow: 0 0 0 1.5px var(--gold-soft, #e9d59f) inset; }
 
 .settings-toggle {
