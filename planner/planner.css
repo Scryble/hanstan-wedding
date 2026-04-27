@@ -4798,3 +4798,84 @@ body.theme-rivendell-v3-dark .task-card.s-done .tc-check {
     opacity: 0.7;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   GLOBAL MOTION SMOOTHING
+   Every interactive surface gets a default transition on the properties
+   that change on state shifts (hover, focus, active, selected). Eliminates
+   the "snap" that happens when an element changes color/transform/shadow
+   without having declared a transition for that property.
+
+   Two tiers:
+     Default — generic interactive elements (buttons, links, inputs)
+               get a fast soft transition (180ms ease-out-quart).
+     Cards/pills — task-cards, status pills, chips, fab buttons,
+               edit-mode-bar, modal-panel, ctx-menu rows, etc. get
+               the longer curve (300ms ease-out-quart) because their
+               state shifts involve transform + shadow + multiple
+               color tokens at once.
+
+   Curve: cubic-bezier(0.22, 0.85, 0.32, 1) — Penner's easeOutQuart.
+   Fast acceleration off the start, gentle settle at the end.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Tier 1 — generic interactive surfaces (180ms) */
+:where(
+  a, button, input, textarea, select,
+  [role="button"], [role="tab"], [role="menuitem"], [role="option"],
+  .btn, .ctx-item, .ctx-row, .filter-pill, .mc, .pill, .chip,
+  .group-tab, .group-tab-add,
+  .comms-chip, .comms-subnav-btn,
+  .sheet-action, .modal-close,
+  .signout, .fab-css, .fab-menu button,
+  .veBtn, .veTab, .veChip, .vePaletteItem
+) {
+  transition:
+    color 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    background-color 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    background 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    border-color 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    outline-color 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    opacity 0.18s cubic-bezier(0.22, 0.85, 0.32, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    transform 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    filter 0.22s cubic-bezier(0.22, 0.85, 0.32, 1);
+}
+
+/* Tier 2 — bigger surfaces that move/lift on state (300ms) */
+:where(
+  .task-card, .tc-status, .tc-check, .tc-expand,
+  .modal-panel, .sheet-card, .ctx-menu, .edit-mode-bar,
+  .toast, .update-toast, .stale-banner,
+  .veCtxRowGroup button, .veCtxToolbar button,
+  .sched-event, .sched-phase
+) {
+  transition:
+    color 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    background-color 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    background 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    border-color 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    opacity 0.22s cubic-bezier(0.22, 0.85, 0.32, 1),
+    box-shadow 0.30s cubic-bezier(0.22, 0.85, 0.32, 1),
+    transform 0.30s cubic-bezier(0.22, 0.85, 0.32, 1),
+    filter 0.22s cubic-bezier(0.22, 0.85, 0.32, 1);
+}
+
+/* GPU promotion for the things that lift — prevents subpixel snap */
+:where(.task-card, .tc-status, .tc-check, .modal-panel, .sheet-card,
+       .toast, .ctx-menu, .veCtxRowGroup button) {
+  will-change: transform;
+}
+
+/* The --transition token continues to work for any rule that uses it,
+   so existing var(--transition) declarations get the same smooth curve. */
+:root { --transition: 0.22s cubic-bezier(0.22, 0.85, 0.32, 1); }
+body.design-fix { --transition: 0.22s cubic-bezier(0.22, 0.85, 0.32, 1); }
+
+/* Respect users with motion sensitivity */
+@media (prefers-reduced-motion: reduce) {
+  :where(*, *::before, *::after) {
+    transition-duration: 0.01ms !important;
+  }
+}
