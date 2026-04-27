@@ -1047,6 +1047,8 @@ function showCtxMenu(x,y,el){
   var vid=el.getAttribute&&el.getAttribute('data-ve-id');
   var rv=S.responsive[S.selCSS]||{};
   var parts=[
+    ctxItem('copy-selector','\uD83C\uDFAF Copy CSS selector'),
+    SEP,
     ctxItem('copy','\uD83D\uDCCB Copy styles'),
     ctxItem('paste','\uD83D\uDCCB Paste styles'),
     SEP,
@@ -1075,7 +1077,18 @@ function showCtxMenu(x,y,el){
     b.onclick=function(ev){
       ev.stopPropagation();
       var act=b.getAttribute('data-ctx');
-      if(act==='copy')copyStyles();
+      if(act==='copy-selector'){
+        var selToCopy=S.selCSS||'';
+        if(!selToCopy){toast('No element picked');hideCtxMenu();return;}
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(selToCopy).then(function(){toast('Copied: '+selToCopy);},function(){
+            try{var ta=mk('textarea');ta.value=selToCopy;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied: '+selToCopy);}catch(_){toast('Copy failed');}
+          });
+        } else {
+          try{var ta=mk('textarea');ta.value=selToCopy;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied: '+selToCopy);}catch(_){toast('Copy failed');}
+        }
+      }
+      else if(act==='copy')copyStyles();
       else if(act==='paste')pasteStyles();
       else if(act==='edit'){if(S.sel)startTextEdit(S.sel);}
       else if(act==='del'){if(!S.sel)return;var v=S.sel.getAttribute('data-ve-id');if(v)rmEl(v);else toast('Can only delete added elements');}

@@ -535,6 +535,10 @@
   function shouldBailOut(e){
     // Escape hatch to native browser context menu
     if (e.shiftKey) return true;
+    // Visual editor (css panel) is active → its own context menu handles
+    // right-click and now includes a "Copy CSS selector" entry of its own,
+    // so we step aside entirely.
+    if (document.getElementById('veRoot')) return true;
     // Existing handlers win
     if (e.target.closest('.task-card')) return true;
     if (e.target.closest('#hdrEditMode')) return true;
