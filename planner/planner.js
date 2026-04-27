@@ -572,7 +572,9 @@ async function editModeDiscardAll(){
 
 async function editModeConfirmAll(){
   if(PENDING_EDIT_COUNT === 0){ setEditMode(false); return; }
-  const why = await customInput('Add a note (optional)', '', 'Why these edits? — leaves an audit trail');
+  const n = PENDING_EDIT_COUNT;
+  const title = 'Confirm ' + n + ' edit' + (n === 1 ? '' : 's');
+  const why = await customInput(title, '', 'Optional: why these edits? (leaves an audit trail)');
   // Pass why-note through to the next save POST. Not yet wired into pushSave POST body —
   // pushSave currently does not accept a whyNote param. As a minimum-viable hook, we
   // store the whyNote on a window flag that pushSave reads.
@@ -581,7 +583,7 @@ async function editModeConfirmAll(){
   // Force flush — bypass the debounce-via-EDIT_MODE-guard
   clearTimeout(_saveDebounceTimer);
   _saveDebounceTimer = setTimeout(pushSave, SAVE_DEBOUNCE_MS);
-  toast(PENDING_EDIT_COUNT + ' edit' + (PENDING_EDIT_COUNT === 1 ? '' : 's') + ' confirmed', false);
+  toast(n + ' edit' + (n === 1 ? '' : 's') + ' confirmed', false);
 }
 
 /* Quick-Edit confirm-on-tap (PL-05/06/07/08, partial — focused on toggleDone since that's
@@ -701,27 +703,47 @@ function customConfirm(title, msg){
   });
 }
 
-function customInput(title, defaultValue){
+function customInput(title, defaultValue, placeholder){
   return new Promise(resolve => {
+    const field = $('inputSheetField');
     $('inputSheetTitle').textContent = title;
-    $('inputSheetField').value = defaultValue || '';
+    field.value = defaultValue || '';
+    field.placeholder = placeholder || '';
     $('inputSheetBg').classList.add('open');
-    setTimeout(() => {$('inputSheetField').focus(); $('inputSheetField').select()}, 80);
+    /* Update OK button label based on whether the input has content —
+       makes "(optional)" inputs feel actually optional: Skip vs OK. */
+    const okBtn = $('inputSheetOk');
+    const updateOkLabel = () => {
+      const hasContent = field.value.trim().length > 0;
+      okBtn.textContent = hasContent ? 'OK' : 'Skip';
+    };
+    updateOkLabel();
+    field.oninput = updateOkLabel;
+    /* Focus on desktop only — on mobile the keyboard pop interferes with
+       fast taps and can cause the user's next tap to land on the wrong
+       target. Mobile users tap the field themselves if they want to type. */
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    if(!isTouch){
+      setTimeout(() => {field.focus(); field.select();}, 80);
+    }
     const close = (val) => {
       $('inputSheetBg').classList.remove('open');
-      $('inputSheetOk').onclick = null;
+      okBtn.onclick = null;
       $('inputSheetCancel').onclick = null;
-      $('inputSheetField').onkeydown = null;
+      field.onkeydown = null;
+      field.oninput = null;
       $('inputSheetBg').onclick = null;
+      okBtn.textContent = 'OK';
+      field.placeholder = '';
       resolve(val);
     };
-    $('inputSheetOk').onclick = () => {const v = $('inputSheetField').value.trim(); close(v || null)};
+    okBtn.onclick = () => {const v = field.value.trim(); close(v || null);};
     $('inputSheetCancel').onclick = () => close(null);
-    $('inputSheetField').onkeydown = e => {
-      if(e.key === 'Enter'){e.preventDefault(); close($('inputSheetField').value.trim() || null)}
-      if(e.key === 'Escape'){close(null)}
+    field.onkeydown = e => {
+      if(e.key === 'Enter'){e.preventDefault(); close(field.value.trim() || null);}
+      if(e.key === 'Escape'){close(null);}
     };
-    $('inputSheetBg').onclick = function(e){if(e.target === this) close(null)};
+    $('inputSheetBg').onclick = function(e){if(e.target === this) close(null);};
   });
 }
 
