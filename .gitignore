@@ -1,2 +1,6 @@
 # Local Netlify folder
 .netlify
+
+# Node dependencies (added 2026-04-26; created during local netlify build)
+node_modules/
+package-lock.json
