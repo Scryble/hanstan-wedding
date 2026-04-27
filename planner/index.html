@@ -432,6 +432,202 @@
 <script src="/ve-loader.js" defer></script>
 <script src="/css-panel.js"></script>
 
+<!-- ───────── Slash-command palette ─────────
+     Press / on the planner → palette opens with every right-click-menu
+     action filterable by typing. Enter to commit, Esc to dismiss.
+     Suppressed when typing in inputs/textareas/contenteditable. -->
+<style>
+.slash-palette{position:fixed;z-index:99997;background:rgba(14,10,22,0.97);border:1px solid rgba(216,181,91,0.35);border-radius:8px;min-width:340px;max-width:480px;max-height:60vh;overflow:hidden;display:none;flex-direction:column;font:13px 'DM Sans',system-ui,sans-serif;color:#ddd0ee;box-shadow:0 12px 40px rgba(0,0,0,0.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
+.slash-palette.open{display:flex;}
+.slash-palette-input{width:100%;padding:10px 14px;background:rgba(30,20,48,0.5);border:none;border-bottom:1px solid rgba(216,181,91,0.2);color:#e8ddf5;font:13px 'DM Sans',system-ui,sans-serif;outline:none;}
+.slash-palette-input::placeholder{color:#605078;}
+.slash-palette-list{flex:1;overflow-y:auto;padding:4px 0;}
+.slash-palette-item{display:flex;align-items:center;gap:10px;padding:6px 14px;cursor:pointer;font-size:12px;line-height:1.4;}
+.slash-palette-item.active{background:rgba(216,181,91,0.15);}
+.slash-palette-item:hover{background:rgba(216,181,91,0.10);}
+.slash-palette-icon{width:18px;text-align:center;color:#d8b55b;font-size:13px;}
+.slash-palette-label{flex:1;color:#e8ddf5;}
+.slash-palette-cat{font-size:10px;color:#8878a0;text-transform:uppercase;letter-spacing:.06em;}
+.slash-palette-sec{padding:4px 14px 2px;font-size:9px;color:#7060a0;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid rgba(216,181,91,0.06);margin-top:2px;}
+.slash-palette-sec:first-child{border-top:none;margin-top:0;}
+</style>
+<script>
+(function(){
+  const palette = document.createElement('div');
+  palette.id = 'slashPalette';
+  palette.className = 'slash-palette';
+  palette.innerHTML =
+    '<input class="slash-palette-input" id="slashPaletteInput" type="text" placeholder="Type to filter commands…" autocomplete="off" spellcheck="false">' +
+    '<div class="slash-palette-list" id="slashPaletteList"></div>';
+  document.body.appendChild(palette);
+
+  let activeIdx = 0;
+  let filtered = [];
+
+  function commands(){
+    /* Built fresh every open so the menu reflects current panel state. */
+    const panelOn = !!document.getElementById('veRoot');
+    const list = [];
+    if(panelOn){
+      list.push({cat:'CSS panel', icon:'🎯', label:'Copy CSS selector of picked element', run:()=>copyPicked()});
+      list.push({cat:'CSS panel', icon:'📋', label:'Copy styles of picked element', run:()=>callPanel('copy')});
+      list.push({cat:'CSS panel', icon:'📋', label:'Paste styles to picked element', run:()=>callPanel('paste')});
+      list.push({cat:'CSS panel', icon:'✏️', label:'Edit text of picked element', run:()=>callPanel('edit')});
+      list.push({cat:'CSS panel', icon:'⬅', label:'Align left', run:()=>setPanelProp('text-align','left')});
+      list.push({cat:'CSS panel', icon:'⬍', label:'Align center', run:()=>setPanelProp('text-align','center')});
+      list.push({cat:'CSS panel', icon:'➡', label:'Align right', run:()=>setPanelProp('text-align','right')});
+      list.push({cat:'CSS panel', icon:'A+', label:'Increase font size by 1px', run:()=>bumpPanelFont(1)});
+      list.push({cat:'CSS panel', icon:'A−', label:'Decrease font size by 1px', run:()=>bumpPanelFont(-1)});
+      list.push({cat:'CSS panel', icon:'↔−', label:'Decrease padding by 2px', run:()=>bumpPanelSpacing(-2)});
+      list.push({cat:'CSS panel', icon:'🖥', label:'Toggle hide on desktop', run:()=>toggleResponsive('hideDesktop')});
+      list.push({cat:'CSS panel', icon:'📱', label:'Toggle hide on tablet', run:()=>toggleResponsive('hideTablet')});
+      list.push({cat:'CSS panel', icon:'📲', label:'Toggle hide on mobile', run:()=>toggleResponsive('hideMobile')});
+      list.push({cat:'CSS panel', icon:'↩', label:'Reset this element', run:()=>resetPanelTarget('this')});
+      list.push({cat:'CSS panel', icon:'🧹', label:'Clear overrides', run:()=>resetPanelTarget('clear')});
+    }
+    list.push({cat:'Editor', icon:'🎨', label:(panelOn?'Hide':'Show')+' visual CSS editor', run:()=>{
+      if(typeof window.veToggle==='function') window.veToggle();
+    }});
+    list.push({cat:'Planner', icon:'💾', label:'Save now', run:()=>{ if(typeof window.save==='function') window.save(); if(typeof window.toast==='function') window.toast('Saved', false); }});
+    list.push({cat:'Planner', icon:'↻', label:'Reload from server', run:()=>location.reload()});
+    return list;
+  }
+
+  function copyPicked(){
+    const sel = window.S && window.S.selCSS;
+    if(!sel){ if(window.toast) window.toast('No element picked', true); return; }
+    navigator.clipboard.writeText(sel).then(()=>{ if(window.toast) window.toast('Copied: '+sel, false); });
+  }
+  function callPanel(act){
+    /* Synthesize a click on the appropriate veCtx item by triggering
+       its data-ctx handler. Simpler: just call the underlying panel
+       function directly via window globals if exposed. */
+    if(!window.S) return;
+    if(act==='copy' && typeof window.copyStyles==='function') window.copyStyles();
+    else if(act==='paste' && typeof window.pasteStyles==='function') window.pasteStyles();
+    else if(act==='edit' && window.S.sel && typeof window.startTextEdit==='function') window.startTextEdit(window.S.sel);
+  }
+  function setPanelProp(prop, val){
+    if(!window.S || !window.S.selCSS) return;
+    if(!window.S.ov[window.S.selCSS]) window.S.ov[window.S.selCSS] = {};
+    window.S.ov[window.S.selCSS][prop] = val;
+    if(typeof window.applyCSS==='function') window.applyCSS();
+  }
+  function bumpPanelFont(delta){
+    if(!window.S || !window.S.selCSS || !window.S.sel) return;
+    const cur = parseFloat(getComputedStyle(window.S.sel).fontSize) || 16;
+    setPanelProp('font-size', Math.max(6, Math.round(cur+delta)) + 'px');
+  }
+  function bumpPanelSpacing(delta){
+    if(!window.S || !window.S.selCSS || !window.S.sel) return;
+    const cs = getComputedStyle(window.S.sel);
+    ['padding-top','padding-right','padding-bottom','padding-left'].forEach(p=>{
+      const cur = parseFloat(cs[p.replace(/-([a-z])/g,(_,l)=>l.toUpperCase())]) || 0;
+      setPanelProp(p, Math.max(0, Math.round(cur+delta)) + 'px');
+    });
+  }
+  function toggleResponsive(k){
+    if(!window.S || !window.S.selCSS) return;
+    if(!window.S.responsive[window.S.selCSS]) window.S.responsive[window.S.selCSS] = {};
+    window.S.responsive[window.S.selCSS][k] = !window.S.responsive[window.S.selCSS][k];
+    if(typeof window.applyCSS==='function') window.applyCSS();
+  }
+  function resetPanelTarget(mode){
+    if(!window.S || !window.S.selCSS) return;
+    if(mode==='this'){
+      delete window.S.ov[window.S.selCSS];
+      delete window.S.text[window.S.selCSS];
+      delete window.S.anims[window.S.selCSS];
+      delete window.S.responsive[window.S.selCSS];
+      delete window.S.attrs[window.S.selCSS];
+    } else if(mode==='clear'){
+      delete window.S.ov[window.S.selCSS];
+    }
+    if(typeof window.applyCSS==='function') window.applyCSS();
+  }
+
+  function open(x, y){
+    const cmds = commands();
+    activeIdx = 0;
+    render(cmds, '');
+    palette.classList.add('open');
+    const pw = palette.offsetWidth, ph = palette.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = (typeof x === 'number') ? x : (vw - pw) / 2;
+    let top  = (typeof y === 'number') ? y : Math.max(80, (vh - ph) / 3);
+    if(left + pw + 8 > vw) left = vw - pw - 8;
+    if(top + ph + 8 > vh) top = vh - ph - 8;
+    if(left < 8) left = 8;
+    if(top < 8) top = 8;
+    palette.style.left = left + 'px';
+    palette.style.top = top + 'px';
+    const inp = document.getElementById('slashPaletteInput');
+    inp.value = '';
+    inp.focus();
+  }
+  function close(){
+    palette.classList.remove('open');
+  }
+  function render(cmds, q){
+    const ql = q.toLowerCase().trim();
+    filtered = ql ? cmds.filter(c => c.label.toLowerCase().includes(ql) || c.cat.toLowerCase().includes(ql)) : cmds;
+    if(activeIdx >= filtered.length) activeIdx = Math.max(0, filtered.length - 1);
+    const list = document.getElementById('slashPaletteList');
+    list.innerHTML = '';
+    let lastCat = null;
+    filtered.forEach((c, i) => {
+      if(c.cat !== lastCat){
+        const sec = document.createElement('div');
+        sec.className = 'slash-palette-sec';
+        sec.textContent = c.cat;
+        list.appendChild(sec);
+        lastCat = c.cat;
+      }
+      const item = document.createElement('div');
+      item.className = 'slash-palette-item' + (i === activeIdx ? ' active' : '');
+      item.innerHTML =
+        '<span class="slash-palette-icon">' + c.icon + '</span>' +
+        '<span class="slash-palette-label">' + c.label + '</span>';
+      item.addEventListener('click', () => { c.run(); close(); });
+      item.addEventListener('mouseenter', () => { activeIdx = i; updateActive(); });
+      list.appendChild(item);
+    });
+  }
+  function updateActive(){
+    const items = document.getElementById('slashPaletteList').querySelectorAll('.slash-palette-item');
+    items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+  }
+
+  document.addEventListener('keydown', function(e){
+    /* Ignore when typing in inputs / textareas / contenteditable */
+    const t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if(e.key === '/' && !palette.classList.contains('open')){
+      e.preventDefault();
+      open();
+      return;
+    }
+    if(palette.classList.contains('open')){
+      if(e.key === 'Escape'){ e.preventDefault(); close(); }
+      else if(e.key === 'ArrowDown'){ e.preventDefault(); activeIdx = Math.min(filtered.length - 1, activeIdx + 1); updateActive(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIdx = Math.max(0, activeIdx - 1); updateActive(); }
+      else if(e.key === 'Enter'){ e.preventDefault(); if(filtered[activeIdx]){ filtered[activeIdx].run(); close(); } }
+    }
+  });
+
+  document.getElementById('slashPaletteInput').addEventListener('input', function(e){
+    activeIdx = 0;
+    render(commands(), e.target.value);
+  });
+
+  document.addEventListener('mousedown', function(e){
+    if(palette.classList.contains('open') && !e.target.closest('#slashPalette')){
+      close();
+    }
+  }, true);
+})();
+</script>
+<!-- ───────── /Slash-command palette ───────── -->
 
 </body>
 </html>
