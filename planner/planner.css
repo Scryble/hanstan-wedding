@@ -666,42 +666,42 @@ input[type="date"], textarea, select { font-size: 16px; }
 .progress-mini .p-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.3s; }
 .progress-mini .p-pct { font-size: 12px; color: var(--text-muted); min-width: 30px; text-align: right; }
 
-/* CONTEXT MENU — §9.2  (OneNote-style: icon column + label + section dividers) */
+/* CONTEXT MENU — §9.2  (compact OneNote density: single-line rows, ~28px tall) */
 .ctx-menu {
   position: fixed; background: var(--card); border: 1px solid var(--hair-gold, var(--divider));
-  border-radius: var(--r); box-shadow: var(--shadow-elevated);
-  z-index: 9500; min-width: 240px; max-width: 360px;
-  padding: 4px 0;
+  border-radius: var(--r-sm, 6px); box-shadow: var(--shadow-elevated);
+  z-index: 9500; min-width: 220px; max-width: 320px;
+  padding: 2px 0;
   display: none;
   font-family: 'DM Sans', system-ui, sans-serif;
   color: var(--text-primary);
 }
 .ctx-menu.open { display: block; }
 
-/* Header: task identity (or element identity for the generic menu) */
+/* Header: task / element identity */
 .ctx-menu .ctx-header {
-  padding: 8px 14px 6px;
+  padding: 6px 12px 4px;
   border-bottom: 1px solid var(--divider);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .ctx-menu .ctx-header-id {
   font-family: 'Cinzel', serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--gold-dark, #8a6d22);
 }
 .ctx-menu .ctx-header-title {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* Section labels */
+/* Section labels — slim caps row, no extra vertical bulk */
 .ctx-menu .ctx-section-label {
-  padding: 6px 14px 2px;
+  padding: 4px 12px 1px;
   font-family: 'Cinzel', serif;
   font-size: 9px;
   font-weight: 700;
@@ -710,24 +710,24 @@ input[type="date"], textarea, select { font-size: 16px; }
   color: var(--text-muted);
 }
 
-/* Rows: icon | label | optional shortcut */
+/* Rows — compact, single-line. Icon | label | (optional sub on right) | shortcut */
 .ctx-menu .ctx-row {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 7px 14px;
+  gap: 8px;
+  padding: 4px 12px;
   font-size: 13px;
   font-weight: 400;
+  line-height: 1.4;
   color: var(--text-primary);
   border: none; background: none; width: 100%;
   text-align: left;
   cursor: pointer;
   transition: background var(--transition);
+  white-space: nowrap;
 }
-.ctx-menu .ctx-row:hover {
-  background: var(--gold-wash, var(--bg-elevated));
-}
+.ctx-menu .ctx-row:hover { background: var(--gold-wash, var(--bg-elevated)); }
 .ctx-menu .ctx-row.disabled {
   color: var(--text-muted);
   cursor: not-allowed;
@@ -741,32 +741,38 @@ input[type="date"], textarea, select { font-size: 16px; }
 }
 
 .ctx-menu .ctx-icon {
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
   color: var(--gold-dark, #8a6d22);
   line-height: 1;
 }
 .ctx-menu .ctx-row.danger .ctx-icon { color: var(--s-overdue, #a1424f); }
 
+/* Label + inline sub — single row, not stacked. Sub is muted to the right
+   of the label, ellipsis-truncates, never forces a wrap. */
 .ctx-menu .ctx-label {
-  display: flex; flex-direction: column;
-  gap: 1px;
   overflow: hidden;
   font-size: 13px;
-  line-height: 1.3;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ctx-menu .ctx-sub {
-  font-size: 10px;
+  margin-left: 8px;
+  font-size: 11px;
   color: var(--text-muted);
   font-family: monospace;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   letter-spacing: 0;
+  font-weight: 400;
 }
 .ctx-menu .ctx-shortcut {
   font-size: 11px;
   color: var(--text-muted);
   font-family: monospace;
 }
+
+/* Tighter dividers */
+.ctx-menu .ctx-divider { margin: 3px 0; }
 
 /* Legacy .ctx-item — kept for any other call sites that still use the
    old shape (none in the planner currently, but defensive). */
