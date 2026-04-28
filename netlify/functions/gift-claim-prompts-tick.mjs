@@ -301,7 +301,22 @@ export default async function handler(request) {
   }), { status: 200, headers: { "Content-Type": "application/json" } });
 }
 
+// HW-REGISTRY-COMMS-WIRING (2026-04-28) fix-forward: the original export below
+// included `schedule: "*/5 * * * *"` for Netlify Scheduled Functions. The site's
+// nf_team_dev plan rejects the export shape with the schedule field — same incident
+// pattern as the digest-emit fix-forward on 2026-04-26. Dropped the schedule field.
+//
+// Replacement trigger: the gift-claims-public endpoint fires this tick fire-and-forget
+// on every fetch. The registry frontend polls gift-claims-public every 10 seconds while
+// the registry page is open, so the tick effectively runs every ~10s during traffic,
+// and stays quiet otherwise. Auto-revert math is therefore correct to within seconds
+// during active hours; up to several minutes during quiet hours (acceptable for a
+// 48-hour deadline).
+//
+// Master can also manually trigger via Bearer token POST.
+//
+// If the site upgrades to a tier that accepts scheduled functions, re-add:
+//   schedule: "*/5 * * * *"
 export const config = {
-  path: "/.netlify/functions/gift-claim-prompts-tick",
-  schedule: "*/5 * * * *"  // every 5 minutes — site is on a tier that supports scheduled functions
+  path: "/.netlify/functions/gift-claim-prompts-tick"
 };
