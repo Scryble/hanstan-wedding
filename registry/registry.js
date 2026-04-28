@@ -923,6 +923,36 @@
       el.modalRightList.appendChild(li);
     });
 
+    /* HW-S11 (Phase E, 2026-04-28): also surface the shipping address inside the
+       form modal's right pane so guests don't have to backtrack to find it. */
+    var shipBlock = document.createElement('div');
+    shipBlock.style.marginTop = 'var(--s-md)';
+    shipBlock.style.padding = 'var(--s-sm) var(--s-md)';
+    shipBlock.style.border = '1px solid rgba(216,181,91,0.22)';
+    shipBlock.style.background = 'rgba(216,181,91,0.06)';
+    shipBlock.style.borderRadius = 'var(--r-md)';
+    var shipT = document.createElement('div');
+    shipT.style.fontSize = '12px';
+    shipT.style.letterSpacing = '0.10em';
+    shipT.style.textTransform = 'uppercase';
+    shipT.style.color = 'var(--gold)';
+    shipT.style.marginBottom = '6px';
+    shipT.textContent = (state.copy.right && state.copy.right.shippingTitle) || 'Where to send a gift';
+    var shipAddr = document.createElement('div');
+    shipAddr.style.fontSize = '13.5px';
+    shipAddr.style.lineHeight = '1.55';
+    var shipLines = (state.copy.right && state.copy.right.shippingAddressLines) || [
+      'Merry Shipman', '13183 Aspen Way NE', 'Aurora, OR 97002'
+    ];
+    shipLines.forEach(function (ln) {
+      var span = document.createElement('div');
+      span.textContent = ln;
+      shipAddr.appendChild(span);
+    });
+    shipBlock.appendChild(shipT);
+    shipBlock.appendChild(shipAddr);
+    el.modalRightList.parentNode.insertBefore(shipBlock, el.modalRightList.nextSibling);
+
     el.giftForm.addEventListener('submit', function (e) {
       e.preventDefault();
       submitGiftForm();
@@ -1026,7 +1056,37 @@
       submittedAtISO: submittedAt
     };
 
+    /* HW-S9 (Phase E, 2026-04-28): track each path's outcome separately and surface
+       a clear, accurate banner. Three states:
+         - primary OK (regardless of legacy): silent — the planner has the claim.
+         - primary FAIL + legacy OK: soft warning — claim landed in Netlify Forms only,
+           Hannah/Stan will see it on next manual review; suggest emailing hello@.
+         - both FAIL: loud warning — local-only, retry when connection restores. */
     var primaryFailed = false;
+    var legacyFailed = false;
+    var primaryDone = false;
+    var legacyDone = false;
+
+    function showPostSubmitBanner() {
+      // Only banner once both paths have settled
+      if (!primaryDone || !legacyDone) return;
+      if (!primaryFailed && !legacyFailed) return;  // both OK → silent
+      var bannerClass = (primaryFailed && legacyFailed) ? 'claim-warning' : 'claim-warning';
+      var bannerText;
+      if (primaryFailed && legacyFailed) {
+        bannerText = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored. If you still do not hear from us within a day, please email hello@hanstan.wedding.';
+      } else if (primaryFailed && !legacyFailed) {
+        bannerText = 'Your claim was recorded but our notifications system is briefly offline. We will see it on next review. If you do not hear back within a day, email hello@hanstan.wedding.';
+      } else {
+        return;  // legacy-only failure with primary success → silent (primary is authoritative)
+      }
+      var b = document.createElement('div');
+      b.className = bannerClass;
+      b.textContent = bannerText;
+      if (el.detailModalScroll) el.detailModalScroll.insertBefore(b, el.detailModalScroll.firstChild);
+      setTimeout(function () { if (b.parentNode) b.parentNode.removeChild(b); }, 10000);
+    }
+
     fetch(PATH_GIFT_CLAIM_SUBMIT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1034,7 +1094,8 @@
     }).then(function (r) {
       if (!r.ok) primaryFailed = true;
       return r.json().catch(function () { return null; });
-    }).catch(function () { primaryFailed = true; });
+    }).catch(function () { primaryFailed = true; })
+      .then(function () { primaryDone = true; showPostSubmitBanner(); });
 
     /* Legacy redundant audit copy — keeps the Netlify Forms dashboard populated */
     postNetlifyForm({
@@ -1046,20 +1107,8 @@
       gifterEmail: email,
       giftMessage: msg,
       submittedAtISO: submittedAt
-    }).catch(function () {
-      /* Both POSTs failed → only then surface the warning to the user.
-         Schedule the check on a tick so the primary fetch above has time to resolve. */
-      setTimeout(function () {
-        if (!primaryFailed) return;
-        var warnBanner = document.createElement('div');
-        warnBanner.className = 'claim-warning';
-        warnBanner.textContent = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored.';
-        if (el.detailModalScroll) {
-          el.detailModalScroll.insertBefore(warnBanner, el.detailModalScroll.firstChild);
-        }
-        setTimeout(function () { if (warnBanner.parentNode) warnBanner.parentNode.removeChild(warnBanner); }, 8000);
-      }, 1500);
-    });
+    }).then(function () { legacyDone = true; showPostSubmitBanner(); })
+      .catch(function () { legacyFailed = true; legacyDone = true; showPostSubmitBanner(); });
   }
 
   /* [TICKET 3 — R6] postNetlifyForm returns promise */
