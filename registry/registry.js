@@ -20,6 +20,9 @@
   const PATH_COPY = '/.netlify/functions/data-copy-registry';
   const PATH_GIFTS = '/.netlify/functions/data-gifts';
   const PATH_ORDERING = '/.netlify/functions/data-ordering-registry';
+  /* HW-REGISTRY-COMMS-WIRING (2026-04-28): claim-status overlay endpoint */
+  const PATH_CLAIM_OVERLAYS = '/.netlify/functions/gift-claims-public';
+  const PATH_GIFT_CLAIM_SUBMIT = '/.netlify/functions/gift-claim-submit';
 
   const PAYMENT_CONFIG = { venmoHandle:'Hannah-Shipman-10', paypalMeLink:'https://paypal.me/HShipman20', zelleContact:'hannah7of9@gmail.com' };
   function payMemo(g){return 'HanStan Wedding: '+(g&&g.title?g.title:'Gift');}
@@ -113,11 +116,12 @@
   init();
 
   async function init() {
-    const [tokens, copy, giftDoc, ordering] = await Promise.all([
+    const [tokens, copy, giftDoc, ordering, claimOverlays] = await Promise.all([
       fetchJson(PATH_TOKENS),
       fetchJson(PATH_COPY),
       fetchJson(PATH_GIFTS),
-      fetchJson(PATH_ORDERING)
+      fetchJson(PATH_ORDERING),
+      fetchJson(PATH_CLAIM_OVERLAYS)
     ]);
 
     state.tokens = tokens;
@@ -127,6 +131,9 @@
 
     applyThemeTokens(tokens);
     applyCopy(copy);
+    /* HW-REGISTRY-COMMS-WIRING (2026-04-28): apply server-side claim overlays first
+       (authoritative across visitors), then local overrides on top (this device only) */
+    applyServerClaimOverlays(claimOverlays);
     hydrateLocalPendingOverrides();
 
     buildChips();
@@ -633,6 +640,10 @@
     body.appendChild(badgesEl);
     body.appendChild(descWrap);
 
+    /* HW-REGISTRY-COMMS-WIRING (2026-04-28): shipping address on every gift detail,
+       on both Send Funds and Purchase Personally paths, including Pending/Claimed views. */
+    body.appendChild(buildShippingBlock());
+
     if (gift.status === STATUS.Available) {
       body.appendChild(buildCheckoutBlock(gift));
     } else if (gift.status === STATUS.Pending) {
@@ -753,6 +764,33 @@
     blk.appendChild(title);
     blk.appendChild(line);
     return blk;
+  }
+
+  /* HW-REGISTRY-COMMS-WIRING (2026-04-28): shipping-address block, shown on every gift detail */
+  function buildShippingBlock() {
+    var wrap = document.createElement('div');
+    wrap.className = 'detailShipping';
+    var t = document.createElement('div');
+    t.className = 'detailShippingTitle';
+    t.textContent = (state.copy.right && state.copy.right.shippingTitle) || 'Where to send a gift';
+    var addr = document.createElement('div');
+    addr.className = 'detailShippingAddr';
+    var lines = (state.copy.right && state.copy.right.shippingAddressLines) || [
+      'Merry Shipman', '13183 Aspen Way NE', 'Aurora, OR 97002'
+    ];
+    lines.forEach(function (ln, i) {
+      var span = document.createElement('div');
+      span.textContent = ln;
+      addr.appendChild(span);
+    });
+    var note = document.createElement('p');
+    note.className = 'detailShippingNote';
+    note.textContent = (state.copy.right && state.copy.right.shippingBlockNote) ||
+      "Hannah's mom is collecting gifts at her home and bringing them to us at the wedding.";
+    wrap.appendChild(t);
+    wrap.appendChild(addr);
+    wrap.appendChild(note);
+    return wrap;
   }
 
   function buildClaimedBlock(gift) {
@@ -972,7 +1010,33 @@
     }
     setTimeout(function () { if (successBanner.parentNode) successBanner.parentNode.removeChild(successBanner); }, 6000);
 
-    /* [TICKET 3 — R6] Form error handling with .catch() */
+    /* HW-REGISTRY-COMMS-WIRING (2026-04-28): dual-POST.
+       Primary path: gift-claim-submit Netlify Function — writes to state.notes[],
+         creates registry channel on first use, schedules prompts, fires thank-you email.
+       Secondary path: legacy Netlify Forms POST — redundant audit copy in Netlify dashboard. */
+    var submittedAt = new Date().toISOString();
+    var primaryPayload = {
+      giftId: gift.giftId,
+      giftTitle: gift.title,
+      isGroupGift: Boolean(gift.isGroupGift),
+      paymentPath: path,
+      gifterName: name,
+      gifterEmail: email,
+      giftMessage: msg,
+      submittedAtISO: submittedAt
+    };
+
+    var primaryFailed = false;
+    fetch(PATH_GIFT_CLAIM_SUBMIT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(primaryPayload)
+    }).then(function (r) {
+      if (!r.ok) primaryFailed = true;
+      return r.json().catch(function () { return null; });
+    }).catch(function () { primaryFailed = true; });
+
+    /* Legacy redundant audit copy — keeps the Netlify Forms dashboard populated */
     postNetlifyForm({
       giftId: gift.giftId,
       giftTitle: gift.title,
@@ -981,15 +1045,20 @@
       gifterName: name,
       gifterEmail: email,
       giftMessage: msg,
-      submittedAtISO: new Date().toISOString()
+      submittedAtISO: submittedAt
     }).catch(function () {
-      var warnBanner = document.createElement('div');
-      warnBanner.className = 'claim-warning';
-      warnBanner.textContent = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored.';
-      if (el.detailModalScroll) {
-        el.detailModalScroll.insertBefore(warnBanner, el.detailModalScroll.firstChild);
-      }
-      setTimeout(function () { if (warnBanner.parentNode) warnBanner.parentNode.removeChild(warnBanner); }, 8000);
+      /* Both POSTs failed → only then surface the warning to the user.
+         Schedule the check on a tick so the primary fetch above has time to resolve. */
+      setTimeout(function () {
+        if (!primaryFailed) return;
+        var warnBanner = document.createElement('div');
+        warnBanner.className = 'claim-warning';
+        warnBanner.textContent = 'Submission could not be sent. Your claim is saved locally and will sync when connectivity is restored.';
+        if (el.detailModalScroll) {
+          el.detailModalScroll.insertBefore(warnBanner, el.detailModalScroll.firstChild);
+        }
+        setTimeout(function () { if (warnBanner.parentNode) warnBanner.parentNode.removeChild(warnBanner); }, 8000);
+      }, 1500);
     });
   }
 
@@ -1014,6 +1083,22 @@
       doc[giftId] = { status: status };
       localStorage.setItem(key, JSON.stringify(doc));
     } catch (e) {}
+  }
+
+  /* HW-REGISTRY-COMMS-WIRING (2026-04-28): server-side claim overlays.
+     The gift-claims-public endpoint returns { overlays: { <giftId>: { status, claimId } } }
+     reflecting state.giftClaims[]. Applied as a status override on top of the published
+     gifts blob so every visitor on every device sees a consistent view. */
+  function applyServerClaimOverlays(overlayDoc) {
+    if (!overlayDoc || !overlayDoc.overlays) return;
+    var ovs = overlayDoc.overlays;
+    state.gifts.forEach(function (g) {
+      var ov = ovs[g.giftId];
+      if (!ov || !ov.status) return;
+      // Don't downgrade Hidden; otherwise, server overlay is authoritative
+      if (g.status === 'Hidden') return;
+      g.status = ov.status;
+    });
   }
 
   /* [TICKET 4 — R4] Reconciliation: only preserve overrides where server hasn't caught up */
@@ -1169,11 +1254,12 @@
     var prevSelectedId = state.selectedGiftId;
     var prevScrollTop = (document.getElementById('middleScroll') || {}).scrollTop || 0;
 
-    var [tokens, copy, giftDoc, ordering] = await Promise.all([
+    var [tokens, copy, giftDoc, ordering, claimOverlays] = await Promise.all([
       fetchJson(PATH_TOKENS),
       fetchJson(PATH_COPY),
       fetchJson(PATH_GIFTS),
-      fetchJson(PATH_ORDERING)
+      fetchJson(PATH_ORDERING),
+      fetchJson(PATH_CLAIM_OVERLAYS)
     ]);
 
     state.tokens = tokens;
@@ -1184,6 +1270,8 @@
     applyThemeTokens(tokens);
     applyCopy(copy);
 
+    /* HW-REGISTRY-COMMS-WIRING: server overlays first, then local overrides */
+    applyServerClaimOverlays(claimOverlays);
     /* [TICKET 4 — R1] Re-hydrate local overrides after polling refresh */
     hydrateLocalPendingOverrides();
 
