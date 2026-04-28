@@ -18,6 +18,9 @@
 
 import { getStore } from "@netlify/blobs";
 import { validateToken } from "./_planner_lib/auth.mjs";
+// HW-REGISTRY-COMMS-WIRING (2026-04-28): import claim-token note processor.
+// Guarded — module is optional; if it can't load, inbound-pull falls back to its prior behavior.
+import { processNote as processNoteForClaim } from "./gift-claim-email-reply.mjs";
 
 const PLANNER_STORE_NAME = "hanstan-wedding-data";
 const STATE_KEY = "planner/state-current.json";
@@ -145,6 +148,26 @@ async function appendNotesAndAudit(store, alias, messages, byName) {
       summary: "Inbound Zoho mail (zoho-" + alias + "): " + (msg.subject || "").slice(0, 80) + " from " + msg.fromAddress,
       channel: "zoho-" + alias
     });
+    // HW-REGISTRY-COMMS-WIRING (2026-04-28): scan each new note for a [claim:<token>] tag
+    // and, if matched, mutate state to flip the claim → Claimed. Never throws (helper is
+    // wrapped in try/catch internally). Returns audit entries we append below.
+    try {
+      if (typeof processNoteForClaim === "function") {
+        const claimAuditEntries = processNoteForClaim(state, note);
+        if (Array.isArray(claimAuditEntries) && claimAuditEntries.length) {
+          for (const e of claimAuditEntries) auditEntries.push(e);
+        }
+      }
+    } catch (e) {
+      auditEntries.push({
+        ts: new Date().toISOString(),
+        by: byName,
+        entity: "system",
+        action: "claimTokenScan.error",
+        target: note.id,
+        summary: "claim-token scan crashed: " + (e.message || "unknown") + " — note kept as plain inbound, not blocking pull"
+      });
+    }
   }
 
   state.lastModified = now;

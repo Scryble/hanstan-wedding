@@ -49,22 +49,29 @@
     "claimedMessageTitle": "Message from gifter",
     "replyTitle": "Reply from Hannah & Ranjit",
     "groupThankYouTitle": "Group thank-you note",
-    "claimSuccessMessage": "Thank you! Your intent-to-gift has been recorded."
+    "claimSuccessMessage": "Thank you! Your intent-to-gift has been recorded.",
+    "shippingTitle": "Where to send a gift",
+    "shippingAddressLines": [
+      "Merry Shipman",
+      "13183 Aspen Way NE",
+      "Aurora, OR 97002"
+    ],
+    "shippingBlockNote": "Hannah's mom is collecting gifts at her home and bringing them to us at the wedding."
   },
   "overlay": {
     "title": "Gifting details",
     "required": "Required",
     "gifterName": "Your name",
     "gifterEmail": "Your email",
-    "giftMessage": "Message to include on the gift card",
+    "giftMessage": "Your note + transaction detail (which app you used, approx amount, or a receipt reference if shipping)",
     "submit": "Submit",
     "cancel": "Cancel",
-    "shippingNote": "Shipping details are delivered by email (they are not shown on the site).",
+    "shippingNote": "If you're shipping a physical gift, the address is shown above the form on the gift's detail page.",
     "rightPaneTitle": "Quick guidance",
     "rightPaneLines": [
-      "No real checkout happens here.",
-      "This captures your intent-to-gift and your gift-card message.",
-      "Preferred merchants are listed for convenience."
+      "Tell us how you sent or arranged the gift — payment app + amount, or a receipt reference if shipping.",
+      "We'll mark the gift Claimed once we confirm receipt.",
+      "If we don't hear from you, we'll send a friendly reminder by email."
     ]
   },
   "budget": {
