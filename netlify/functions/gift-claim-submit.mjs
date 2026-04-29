@@ -18,7 +18,8 @@ const PLANNER_STORE_NAME = "hanstan-wedding-data";
 const STATE_KEY = "planner/state-current.json";
 const AUDIT_KEY = "planner/audit-log.json";
 const MAX_AUDIT_ENTRIES = 5000;
-const DEDUP_WINDOW_MS = 5 * 60 * 1000;            // 5 minutes
+const DEDUP_WINDOW_MS = 5 * 60 * 1000;            // 5 minutes (giftId+email-only check)
+const DEDUP_HASH_WINDOW_MS = 60 * 60 * 1000;      // 60 minutes (S3: full payload hash) — extended idempotency
 const PROMPT_OFFSETS_MS = [15 * 60 * 1000, 12 * 60 * 60 * 1000, 36 * 60 * 60 * 1000]; // 15min, 12h, 36h
 const AUTO_REVERT_OFFSET_MS = 48 * 60 * 60 * 1000;                                     // 48h
 const SHIPPING_ADDRESS = {
@@ -33,6 +34,15 @@ function tokenize() {
   let s = "";
   for (let i = 0; i < 12; i++) s += c[Math.floor(Math.random() * c.length)];
   return s;
+}
+
+// S3: payload-hash for extended dedup (60-min window). Catches a slow-double-submit that
+// falls outside the 5-min giftId+email check. djb2 — small, fast, no crypto dep needed.
+function payloadHash(giftId, email, message) {
+  const s = (giftId || "") + "|" + (email || "").toLowerCase() + "|" + (message || "").trim();
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
 }
 
 function safeEmail(s) {
@@ -66,11 +76,22 @@ function ensureRegistryChannel(state) {
   if (!state.messageBoard || typeof state.messageBoard !== "object") state.messageBoard = {};
   if (!state.messageBoard.channels || typeof state.messageBoard.channels !== "object") state.messageBoard.channels = {};
   if (!state.messageBoard.channels.registry) {
+    const now = new Date().toISOString();
     state.messageBoard.channels.registry = {
       name: "Registry",
       members: [],
-      messages: [],
-      createdAt: new Date().toISOString(),
+      messages: [
+        // S13: welcome message so the channel doesn't feel empty on first open
+        {
+          id: "msg-registry-welcome-" + Date.now(),
+          by: "registry-system",
+          ts: now,
+          text: "Welcome to the Registry channel. Every gift-claim submission, prompt-email, and confirmation reply will appear here, oldest at the top. Pending claims that don't get confirmed within 48h auto-release the gift back to Available.",
+          reactions: {},
+          kind: "channel-welcome"
+        }
+      ],
+      createdAt: now,
       createdBy: "system-bootstrap-on-first-claim"
     };
     return true;
@@ -78,7 +99,7 @@ function ensureRegistryChannel(state) {
   return false;
 }
 
-function findDuplicateClaim(state, giftId, gifterEmail, nowMs) {
+function findDuplicateClaim(state, giftId, gifterEmail, nowMs, msgHash) {
   if (!Array.isArray(state.giftClaims)) return null;
   const lc = (gifterEmail || "").toLowerCase();
   return state.giftClaims.find(c => {
@@ -86,7 +107,12 @@ function findDuplicateClaim(state, giftId, gifterEmail, nowMs) {
     if ((c.claimerEmail || "").toLowerCase() !== lc) return false;
     if (c.status !== "Pending") return false;
     const startedMs = new Date(c.claimStartedAt).getTime();
-    return (nowMs - startedMs) < DEDUP_WINDOW_MS;
+    const ageMs = nowMs - startedMs;
+    // Tier 1: giftId + email match within 5 min → dedup
+    if (ageMs < DEDUP_WINDOW_MS) return true;
+    // Tier 2 (S3): giftId + email + payload-hash match within 60 min → dedup
+    if (msgHash && c.payloadHash === msgHash && ageMs < DEDUP_HASH_WINDOW_MS) return true;
+    return false;
   }) || null;
 }
 
@@ -172,6 +198,17 @@ export default async function handler(request) {
     });
   }
 
+  // S7: honeypot — bots fill all fields including invisible ones; humans don't see this
+  const honeypot = (body.bot_field || body["bot-field"] || "").toString().trim();
+  if (honeypot) {
+    // Silently 200 so bots don't learn they were caught (return ok with a fake claim id)
+    return new Response(JSON.stringify({
+      ok: true,
+      claimId: "claim-rejected-honeypot-" + Date.now(),
+      confirmationToken: "rejected"
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
   const giftId = (body.giftId || "").trim();
   const giftTitle = (body.giftTitle || "").trim();
   const isGroupGift = !!(body.isGroupGift === true || body.isGroupGift === "true");
@@ -204,8 +241,11 @@ export default async function handler(request) {
   if (!Array.isArray(state.giftClaims)) state.giftClaims = [];
   if (!Array.isArray(state.notes)) state.notes = [];
 
-  // Idempotency: dedup within 5min window
-  const existing = findDuplicateClaim(state, giftId, gifterEmail, nowMs);
+  // S3: compute payload hash for extended (60min) idempotency check
+  const msgHash = payloadHash(giftId, gifterEmail, giftMessage);
+
+  // Idempotency: dedup within 5min window (giftId+email) OR 60min window (giftId+email+hash)
+  const existing = findDuplicateClaim(state, giftId, gifterEmail, nowMs, msgHash);
   if (existing) {
     return new Response(JSON.stringify({
       ok: true,
@@ -237,6 +277,7 @@ export default async function handler(request) {
     transactionDetail,
     isGroupGift,
     paymentPath,
+    payloadHash: msgHash,
     claimStartedAt: now,
     status: "Pending",
     claimedAt: null,

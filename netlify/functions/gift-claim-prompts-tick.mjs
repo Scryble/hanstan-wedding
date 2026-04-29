@@ -198,6 +198,17 @@ export default async function handler(request) {
   if (!Array.isArray(state.giftClaims)) state.giftClaims = [];
   const claims = state.giftClaims;
 
+  // S4: early-exit if no Pending claims — saves a state-write round trip on quiet days
+  const pendingCount = claims.filter(c => c.status === "Pending").length;
+  if (pendingCount === 0) {
+    return new Response(JSON.stringify({
+      ok: true,
+      isInternal,
+      now,
+      summary: { promptsSent: 0, promptsFailed: 0, autoReverted: 0, scanned: claims.length, earlyExit: true }
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
   const auditEntries = [];
   const summary = { promptsSent: 0, promptsFailed: 0, autoReverted: 0, scanned: claims.length };
 
